@@ -4,6 +4,12 @@
        qdot (gate is 1e-6). Euler/implicitfast at 2 ms drift ~1e-3. See DECISIONS.md. -->
   <option gravity="0 0 0" timestep="0.00025" integrator="RK4"/>
 
+  <!-- Off-screen framebuffer for src/teleop.py's 1280x720 window -->
+  <visual>
+    <global offwidth="1280" offheight="720"/>
+    <headlight ambient="0.4 0.4 0.4" diffuse="0.8 0.8 0.8" specular="0.1 0.1 0.1"/>
+  </visual>
+
   <default>
     <joint type="hinge" damping="0.2" armature="0.01"/>
     <geom contype="0" conaffinity="0" rgba="0.7 0.75 0.8 1"/>

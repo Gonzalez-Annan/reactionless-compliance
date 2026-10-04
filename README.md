@@ -21,7 +21,7 @@ reactionless-compliance/
   src/
     dynamics.py             H_b, H_bm, generalized Jacobian J*, RNS projector [P2]
     schemes.py              The five redundancy-resolution laws, 3-D and 6-D variants [P3]
-    teleop.py               Gamepad -> task-space velocity [P1]
+    teleop.py               Operator input -> task-space velocity, fixed-rate loop, window [P1]
     task.py                 Closed-loop ORU task, --mode 3d|6d [P1]
     safety.py               Lambda(q), effective mass, v_max map [P4]
     logger.py               Single-clock CSV logging [P1]
@@ -81,61 +81,70 @@ Changes made on 2026-10-04 (P1). Reasons and measurements are in DECISIONS.md.
   `mujoco.mj_fullM(model, data, M)` where `M = np.zeros((model.nv, model.nv))`
   (note the argument order: `data`, then the output array).
 
-### P2 -- Dynamics
+- **Actuators are velocity servos:** `data.ctrl` is the commanded arm qdot
+  (rad/s). Write qdot to `data.ctrl`, never to `data.qvel` -- writing `qvel`
+  bypasses the dynamics and the base will not react. `ctrl` is limited to
+  ±1 rad/s per joint and joint torque saturates at ±5 Nm (kv = 20).
+  **Provisional** (see DECISIONS.md) -- raise it now if it does not fit
+  your code.
 
-The plan's equations map directly onto MuJoCo's matrices, verified on all
-three servicers:
+### Controller interface (P3: plug your schemes in here)
+
+`src/teleop.py` runs the loop and calls one function every control tick
+(100 Hz):
 
 ```python
-mujoco.mj_forward(model, data)
-M = np.zeros((model.nv, model.nv)); mujoco.mj_fullM(model, data, M)
-H_b, H_bm = M[:6, :6], M[:6, 6:]
-
-jacp = np.zeros((3, model.nv)); jacr = np.zeros((3, model.nv))
-mujoco.mj_jacSite(model, data, jacp, jacr, model.site("end_effector").id)
-J = np.vstack([jacp, jacr])            # world-frame [lin; ang] EE velocity
-J_b, J_m = J[:, :6], J[:, 6:]
-J_star = J_m - J_b @ np.linalg.solve(H_b, H_bm)
+controller(model, data, xdot, mode) -> qdot   # qdot: shape (7,), rad/s
 ```
 
-Measured: `||H_b v_b + H_bm qdot||` ≤ 4.4e-8 over 10 s of random qdot
-(gate is 1e-6); `J_star @ qdot` matches the simulated end-effector velocity
-to 6e-10. For the reaction null space, the angular rows `H_bm[3:6]` are in
-the base frame -- fine for a null space (same null space in any frame), but
-rotate by the base orientation if you report angular momentum in world axes.
+- `xdot`: operator's commanded end-effector twist `[vx vy vz wx wy wz]`,
+  world frame (same row order as `mj_jacSite`'s `[jacp; jacr]`). In `"3d"`
+  mode the last three entries are zero.
+- `mode`: `"3d"` or `"6d"`.
+- The loop writes `qdot` to `data.ctrl`. If any joint exceeds ±1 rad/s the
+  whole vector is scaled down, keeping its direction.
+- To register schemes, define in `src/schemes.py`:
+  `SCHEMES = {"dls": dls, "rns": rns, ...}`. Then
+  `python -m src.teleop --controller dls` runs that scheme.
 
-### P3 -- Control
+### Logs (P5)
 
-- The actuators are **velocity servos**: write the scheme's output qdot to
-  `data.ctrl[:] = qdot` (rad/s). Do **not** write `data.qvel` directly -- that
-  bypasses the dynamics and the base will not react, which defeats the study.
-- `ctrl` is clipped to ±1 rad/s per joint and joint torque saturates at
-  ±5 Nm (gain kv = 20). Smooth commands track within ~0.02--0.2 rad/s; step
-  changes saturate the torque and lag. If a scheme commands more than ±1 rad/s
-  it will be clipped silently -- scale the whole qdot vector down instead so
-  the direction is preserved.
-- Use `J_star` from the snippet above, not the fixed-base `J_m`.
+`--log path.csv` writes one row per control tick. `# key: value` lines at
+the top record model, mode, controller and rates; read with
+`pd.read_csv(path, comment="#")`. Columns: `t_wall`, `t_sim` (the clock),
+`xdot_cmd_0..5`, `qdot_cmd_0..6`, `qpos_0..13`, `qvel_0..12`,
+`ee_pos_0..2`, `ee_quat_0..3`, `target_pos_0..2`, `target_quat_0..3`
+(quaternions `w x y z`), `antenna_err_deg`.
 
-### P4 -- Safety
-
-The free-floating operational-space inertia comes straight from the full
-13×13 `M` and the full 6×13 `J` (base columns included):
-`Lambda = inv(J @ inv(M) @ J.T)`. Using the full matrices is what makes it
-the free-floating value; using only the arm block gives the fixed-base value.
-
-### Requests back to P1
-
-If anything above does not fit your code, raise it before the end of the
-week -- the actuator choice in particular is marked provisional in
-DECISIONS.md.
-
-## Testing what's here
+## Running the teleop window
 
 ```bash
 source .venv/bin/activate
-pytest -v                                        # all tests
-python scripts/check_models.py                   # momentum + tracking numbers, all 3 servicers
-python scripts/check_models.py --view ff_small   # watch the base react to the arm
+python -m src.teleop                                  # medium servicer, 6-D, arm held still
+python -m src.teleop --model small --mode 3d
+python -m src.teleop --log data/pilot/test.csv        # also record a CSV
+```
+
+| Input | Command |
+|-------|---------|
+| W / S, A / D, R / F | move target ±x, ±y, ±z |
+| Q / E | roll |
+| hold left mouse + drag | pitch / yaw |
+| Shift | fine mode (×0.3) |
+| scroll | zoom |
+| G | snap target back to the hand |
+| P / Backspace / Esc | pause / reset / quit |
+
+The blue sphere is the commanded target. The green line is the antenna
+direction at the start and the yellow line is now (red past ±5°). Until
+`src/schemes.py` exists, only `--controller hold` is available: the arm
+stays still and only the target moves. A PlayStation gamepad will be added
+as a second input device.
+
+## Tests
+
+```bash
+pytest -v
 ```
 
 ## Roles

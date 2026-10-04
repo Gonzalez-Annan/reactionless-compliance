@@ -1,15 +1,15 @@
 # Who reviews changes to which files.
-# GitHub only enforces this once the P1..P5 placeholders are replaced by real
-# GitHub usernames (e.g. @alice). Until then it documents ownership only.
+# P1 = @Gonzalez-Annan. GitHub only enforces the other lines once the P2..P5
+# placeholders are replaced by real GitHub usernames (e.g. @alice).
 
-*                       @P1
-/models/                @P1
-/src/teleop.py          @P1
-/src/task.py            @P1
-/src/logger.py          @P1
-/.github/               @P1
-/tests/test_models.py   @P1
-/scripts/               @P1
+*                       @Gonzalez-Annan
+/models/                @Gonzalez-Annan
+/src/teleop.py          @Gonzalez-Annan
+/src/task.py            @Gonzalez-Annan
+/src/logger.py          @Gonzalez-Annan
+/.github/               @Gonzalez-Annan
+/tests/test_models.py   @Gonzalez-Annan
+/tests/test_logger.py   @Gonzalez-Annan
 
 /src/dynamics.py        @P2
 /tests/test_momentum.py @P2

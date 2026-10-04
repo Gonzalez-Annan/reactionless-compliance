@@ -3,5 +3,5 @@ numpy
 scipy
 pandas
 matplotlib
-pygame
+pygame-ce  # maintained pygame fork; pygame 2.6 text rendering breaks on Python 3.14
 pytest
