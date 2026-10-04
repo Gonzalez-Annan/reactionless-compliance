@@ -1,0 +1,24 @@
+<mujoco>
+  <!-- Simulation options, defaults and actuators shared by all three servicers. -->
+  <!-- RK4 at 0.25 ms keeps total-momentum drift < 1.2e-7 over 10 s of random
+       qdot (gate is 1e-6). Euler/implicitfast at 2 ms drift ~1e-3. See DECISIONS.md. -->
+  <option gravity="0 0 0" timestep="0.00025" integrator="RK4"/>
+
+  <default>
+    <joint type="hinge" damping="0.2" armature="0.01"/>
+    <geom contype="0" conaffinity="0" rgba="0.7 0.75 0.8 1"/>
+    <!-- Velocity servos: the schemes output qdot, ctrl is the commanded qdot [rad/s].
+         Torque saturates at forcerange, as a real joint drive would. -->
+    <velocity kv="20" ctrlrange="-1 1" forcelimited="true" forcerange="-5 5"/>
+  </default>
+
+  <actuator>
+    <velocity name="a1" joint="j1"/>
+    <velocity name="a2" joint="j2"/>
+    <velocity name="a3" joint="j3"/>
+    <velocity name="a4" joint="j4"/>
+    <velocity name="a5" joint="j5"/>
+    <velocity name="a6" joint="j6"/>
+    <velocity name="a7" joint="j7"/>
+  </actuator>
+</mujoco>

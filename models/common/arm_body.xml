@@ -1,0 +1,40 @@
+<mujoco>
+  <!-- 7-DOF arm kinematic chain, shared by all three servicers.
+       Included inside each servicer's "mount" body, which sits on the base face.
+       Edit the arm here only; the servicer files differ only in their base. -->
+  <body name="link1" pos="0 0 0">
+    <joint name="j1" axis="0 0 1"/>
+    <geom type="capsule" fromto="0 0 0 0.18 0 0" size="0.035" mass="1.2"/>
+
+    <body name="link2" pos="0.18 0 0">
+      <joint name="j2" axis="0 1 0"/>
+      <geom type="capsule" fromto="0 0 0 0.18 0 0" size="0.035" mass="1.2"/>
+
+      <body name="link3" pos="0.18 0 0">
+        <joint name="j3" axis="1 0 0"/>
+        <geom type="capsule" fromto="0 0 0 0.15 0 0" size="0.03" mass="1.0"/>
+
+        <body name="link4" pos="0.15 0 0">
+          <joint name="j4" axis="0 1 0"/>
+          <geom type="capsule" fromto="0 0 0 0.15 0 0" size="0.03" mass="1.0"/>
+
+          <body name="link5" pos="0.15 0 0">
+            <joint name="j5" axis="1 0 0"/>
+            <geom type="capsule" fromto="0 0 0 0.12 0 0" size="0.025" mass="0.8"/>
+
+            <body name="link6" pos="0.12 0 0">
+              <joint name="j6" axis="0 1 0"/>
+              <geom type="capsule" fromto="0 0 0 0.1 0 0" size="0.025" mass="0.8"/>
+
+              <body name="link7" pos="0.1 0 0">
+                <joint name="j7" axis="1 0 0"/>
+                <geom type="capsule" fromto="0 0 0 0.08 0 0" size="0.02" mass="0.6"/>
+                <site name="end_effector" pos="0.08 0 0" size="0.015"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </body>
+</mujoco>

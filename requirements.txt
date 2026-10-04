@@ -1,0 +1,7 @@
+mujoco>=3.1.0
+numpy
+scipy
+pandas
+matplotlib
+pygame
+pytest

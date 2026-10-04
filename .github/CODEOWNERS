@@ -1,0 +1,23 @@
+# Who reviews changes to which files.
+# GitHub only enforces this once the P1..P5 placeholders are replaced by real
+# GitHub usernames (e.g. @alice). Until then it documents ownership only.
+
+*                       @P1
+/models/                @P1
+/src/teleop.py          @P1
+/src/task.py            @P1
+/src/logger.py          @P1
+/.github/               @P1
+/tests/test_models.py   @P1
+/scripts/               @P1
+
+/src/dynamics.py        @P2
+/tests/test_momentum.py @P2
+
+/src/schemes.py         @P3
+
+/src/safety.py          @P4
+
+/analysis/              @P5
+/data/                  @P5
+/paper/                 @P5
