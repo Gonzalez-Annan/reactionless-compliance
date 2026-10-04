@@ -2,6 +2,7 @@
 
     python -m src.teleop --model medium --mode 6d
     python -m src.teleop --model small --log data/pilot/test.csv
+    python -m src.teleop --task --controller demo      # with the closed-loop ORU task
 
 One pygame OpenGL window: MuJoCo draws straight into it (mjr_render) and
 pygame reads all input, so the MuJoCo viewer's own keyboard shortcuts cannot
@@ -20,6 +21,7 @@ Input -> commanded end-effector twist xdot = [vx vy vz wx wy wz], world frame
     Shift        fine mode (x0.3)
     G            snap target back to the hand     P  pause
     V            show / hide the reachable workspace
+    Space        start the trial (when waiting)
     Backspace    reset simulation                 Esc  quit
 
 In 3-D mode the rotational part of xdot is zeroed.
@@ -45,6 +47,7 @@ import pygame
 from scipy.spatial.transform import Rotation
 
 from src.logger import CsvLogger
+from src.task import ClosedLoopTask
 from src.workspace import reachable_points, surface_voxels
 
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
@@ -157,7 +160,11 @@ def add_sphere(scene, pos, radius, rgba):
 
 
 class Teleop:
-    def __init__(self, model_name, mode, controller_name, log_path=None, headless=False):
+    def __init__(self, model_name, mode, controller_name, log_path=None, headless=False,
+                 task_loops=None, banner=None, blind=False, meta=None):
+        """task_loops: run the closed-loop ORU task with this many loops; the
+        trial ends when it is done. banner: wait for Space before starting,
+        showing this text. blind: hide the controller name (participants)."""
         self.model_name = f"ff_{model_name}"
         self.model = mujoco.MjModel.from_xml_path(str(MODELS_DIR / f"{self.model_name}.xml"))
         self.data = mujoco.MjData(self.model)
@@ -174,8 +181,13 @@ class Teleop:
             self.logger = CsvLogger(log_path, meta={
                 "model": self.model_name, "mode": mode, "controller": controller_name,
                 "control_hz": CONTROL_HZ, "timestep": self.model.opt.timestep,
+                **(meta or {}),
             })
+        self.task_loops = task_loops
+        self.blind = blind
         self.reset()
+        self.banner = banner
+        self.waiting = banner is not None
 
         if not headless:
             pygame.init()
@@ -204,6 +216,10 @@ class Teleop:
         self.paused = False
         self.show_workspace = False
         self.workspace = None  # surface voxel centres in the base frame, computed on first V
+        self.task = None
+        if self.task_loops:
+            ee_pos, ee_R = site_pose(self.model, self.data, "end_effector")
+            self.task = ClosedLoopTask(ee_pos, Rotation.from_matrix(ee_R), self.mode, self.task_loops)
 
     def snap_target(self):
         self.target_pos, R = site_pose(self.model, self.data, "end_effector")
@@ -231,14 +247,19 @@ class Teleop:
         self.target_pos = self.target_pos + xdot[:3] * dt
         self.target_rot = Rotation.from_rotvec(xdot[3:] * dt) * self.target_rot
 
+        ee_pos, ee_R = site_pose(m, d, "end_effector")
+        if self.task:
+            self.task.update(ee_pos, Rotation.from_matrix(ee_R), dt)
+
         if self.logger:
-            ee_pos, ee_R = site_pose(m, d, "end_effector")
             self.logger.write(
                 t_sim=d.time, xdot_cmd=xdot, qdot_cmd=qdot,
                 qpos=d.qpos, qvel=d.qvel,
                 ee_pos=ee_pos, ee_quat=Rotation.from_matrix(ee_R).as_quat(scalar_first=True),
                 target_pos=self.target_pos, target_quat=self.target_rot.as_quat(scalar_first=True),
                 antenna_err_deg=self.antenna_error_deg(),
+                task_waypoint=self.task.index if self.task else -1,
+                task_loop=self.task.loop if self.task else -1,
             )
 
     def draw(self):
@@ -262,6 +283,21 @@ class Teleop:
             for c in self.workspace:
                 add_box(scn, b_pos + b_R @ c, 0.45 * WORKSPACE_VOXEL, b_R, [0.3, 0.8, 0.9, 0.12])
 
+        # task: path (thin), other waypoints (small grey), current one (orange + axes)
+        if self.task and not self.task.done:
+            wps = self.task.waypoints
+            for (_, p0, _), (_, p1, _) in zip([(None, *self.task.start)] + wps[:-1], wps):
+                add_line(scn, p0, p1, [0.6, 0.6, 0.6, 0.5], width=1)
+            for i, (_, p, r) in enumerate(wps):
+                if i != self.task.index:
+                    add_sphere(scn, p, 0.012, [0.7, 0.7, 0.7, 0.6])
+            _, p, r = self.task.current
+            add_sphere(scn, p, 0.035, [1.0, 0.55, 0.1, 0.45])
+            if self.mode == "6d":
+                R = r.as_matrix()
+                for i, c in enumerate(([1, 0.4, 0.4, 1], [0.4, 1, 0.4, 1], [0.4, 0.4, 1, 1])):
+                    add_line(scn, p, p + 0.1 * R[:, i], c, width=4)
+
         # ghost target: sphere + its axes (6-D mode)
         add_sphere(scn, self.target_pos, 0.03, [0.3, 0.7, 1.0, 0.8])
         if self.mode == "6d":
@@ -274,12 +310,18 @@ class Teleop:
         mujoco.mjr_render(self.viewport, scn, self.ctx)
 
         over = err > ANTENNA_LIMIT_DEG
-        labels = "\n".join(["model", "mode", "controller", "time", "late ticks", "antenna error"])
-        values = "\n".join([
-            self.model_name, self.mode, self.controller_name + ("   [PAUSED]" if self.paused else ""),
-            f"{self.data.time:.1f} s", str(self.overruns),
-            f"{err:.2f} deg" + ("   OVER LIMIT" if over else f"   (limit {ANTENNA_LIMIT_DEG:.0f})"),
-        ])
+        rows = [("model", self.model_name), ("mode", self.mode)]
+        if not self.blind:
+            rows.append(("controller", self.controller_name))
+        rows += [
+            ("time", f"{self.data.time:.1f} s" + ("   [PAUSED]" if self.paused else "")),
+            ("late ticks", str(self.overruns)),
+            ("antenna error", f"{err:.2f} deg" + ("   OVER LIMIT" if over else f"   (limit {ANTENNA_LIMIT_DEG:.0f})")),
+        ]
+        if self.task:
+            rows.append(("task", self.task.status()))
+        labels = "\n".join(r[0] for r in rows)
+        values = "\n".join(r[1] for r in rows)
         mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_TOPLEFT,
                            self.viewport, labels, values, self.ctx)
         mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_BOTTOMLEFT,
@@ -287,6 +329,9 @@ class Teleop:
                            "WASD / RF\nQ / E\nleft-drag\nShift\nG   P\nV\nBackspace   Esc",
                            "move x y / z\nroll\npitch / yaw\nfine mode\nsnap target   pause\nreachable workspace\nreset   quit",
                            self.ctx)
+        if self.waiting:
+            mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_BIG, mujoco.mjtGridPos.mjGRID_TOP,
+                               self.viewport, self.banner + "\n\npress SPACE to start", "", self.ctx)
         pygame.display.flip()
 
     def handle_events(self):
@@ -297,7 +342,10 @@ class Teleop:
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return False
-                if event.key == pygame.K_BACKSPACE:
+                if event.key == pygame.K_SPACE and self.waiting:
+                    self.waiting = False
+                    pygame.mouse.get_rel()
+                elif event.key == pygame.K_BACKSPACE and not self.task:  # no resets mid-trial
                     self.reset()
                 elif event.key == pygame.K_g:
                     self.snap_target()
@@ -317,8 +365,10 @@ class Teleop:
             while self.handle_events():
                 if duration is not None and self.data.time >= duration:
                     break
+                if self.task and self.task.done:
+                    break
                 u = self.input.read()
-                if not self.paused:
+                if not (self.paused or self.waiting):
                     self.control_tick(self.twist_from_input(u))
                 if tick % RENDER_EVERY == 0:
                     self.draw()
@@ -350,8 +400,11 @@ def main():
     ap.add_argument("--controller", default="hold", help='"hold", "demo" (crude fixed-base follower, for showing the base reaction) or a name from src.schemes.SCHEMES')
     ap.add_argument("--log", help="CSV path, e.g. data/pilot/test.csv")
     ap.add_argument("--duration", type=float, help="stop after this many simulated seconds")
+    ap.add_argument("--task", action="store_true", help="run the closed-loop ORU task (2 loops)")
     args = ap.parse_args()
-    Teleop(args.model, args.mode, args.controller, args.log).run(args.duration)
+    Teleop(args.model, args.mode, args.controller, args.log,
+           task_loops=2 if args.task else None,
+           banner=f"{args.mode.upper()} task" if args.task else None).run(args.duration)
 
 
 if __name__ == "__main__":

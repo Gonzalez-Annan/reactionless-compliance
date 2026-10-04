@@ -7,6 +7,11 @@
 /src/teleop.py          @Gonzalez-Annan
 /src/task.py            @Gonzalez-Annan
 /src/logger.py          @Gonzalez-Annan
+/src/session.py         @Gonzalez-Annan
+/src/workspace.py       @Gonzalez-Annan
+/tests/test_task.py     @Gonzalez-Annan
+/tests/test_session.py  @Gonzalez-Annan
+/tests/test_workspace.py @Gonzalez-Annan
 /.github/               @Gonzalez-Annan
 /tests/test_models.py   @Gonzalez-Annan
 /tests/test_logger.py   @Gonzalez-Annan

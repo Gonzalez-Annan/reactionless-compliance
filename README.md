@@ -23,7 +23,8 @@ reactionless-compliance/
     schemes.py              The five redundancy-resolution laws, 3-D and 6-D variants [P3]
     teleop.py               Operator input -> task-space velocity, fixed-rate loop, window [P1]
     workspace.py            Reachable workspace of the arm (shown with V in teleop) [P1]
-    task.py                 Closed-loop ORU task, --mode 3d|6d [P1]
+    task.py                 Closed-loop ORU task (3-D / 6-D), scripted no-human runs [P1]
+    session.py              Participant session runner: counterbalanced order -> CSVs [P1]
     safety.py               Lambda(q), effective mass, v_max map [P4]
     logger.py               Single-clock CSV logging [P1]
   tests/
@@ -110,9 +111,14 @@ controller(model, data, xdot, mode) -> qdot   # qdot: shape (7,), rad/s
 - `mode`: `"3d"` or `"6d"`.
 - The loop writes `qdot` to `data.ctrl`. If any joint exceeds ±1 rad/s the
   whole vector is scaled down, keeping its direction.
-- To register schemes, define in `src/schemes.py`:
-  `SCHEMES = {"dls": dls, "rns": rns, ...}`. Then
-  `python -m src.teleop --controller dls` runs that scheme.
+- To register schemes, define in `src/schemes.py` a dict with exactly these
+  keys (the session runner uses them):
+  `SCHEMES = {"dls": ..., "grad_proj": ..., "impedance": ..., "rns": ..., "impedance_rns": ...}`
+  (plan schemes 1-5). Then `python -m src.teleop --controller dls` runs it.
+- **Scripted loop (no human)** for your stability gate and the β-sweep:
+  `python -m src.task --model medium --mode 6d --controller dls --log out.csv`
+  drives the closed-loop task with a smooth reference and prints whether it
+  completed. From Python: `src.task.run_scripted(model, mode, controller, loops, log_path)`.
 
 ### Logs (P5)
 
@@ -121,7 +127,17 @@ the top record model, mode, controller and rates; read with
 `pd.read_csv(path, comment="#")`. Columns: `t_wall`, `t_sim` (the clock),
 `xdot_cmd_0..5`, `qdot_cmd_0..6`, `qpos_0..13`, `qvel_0..12`,
 `ee_pos_0..2`, `ee_quat_0..3`, `target_pos_0..2`, `target_quat_0..3`
-(quaternions `w x y z`), `antenna_err_deg`.
+(quaternions `w x y z`), `antenna_err_deg`, `task_waypoint` (index of the
+waypoint being approached, -1 without a task), `task_loop` (completed loops).
+Session logs also carry `participant`, `condition`, `scheme` in the `#` header.
+
+### Task (P5: confirm for the protocol)
+
+Closed loop from the hand's home pose, twice per trial:
+`start -> approach -> ORU -> approach -> stow -> start` (offsets and
+orientations in `src/task.py` `WAYPOINTS`). A waypoint counts when the real
+hand stays within 2 cm (and 10° in 6-D mode) for 0.3 s. Waypoints are fixed
+in the world, as the ORU is on another spacecraft.
 
 ## Running the teleop window
 
@@ -151,6 +167,21 @@ The blue sphere is the commanded target. The green line is the antenna
 direction at the start and the yellow line is now (red past ±5°). With the
 default `--controller hold` the arm stays still and only the target moves. A PlayStation gamepad will be added
 as a second input device.
+
+## Running a participant session
+
+```bash
+python -m src.session --participant P01 --show-order   # print the 10-condition order
+python -m src.session --participant P01 --dry-run      # whole pipeline with "demo" for every scheme
+python -m src.session --participant P01                # real session (needs P3's schemes)
+python -m src.session --participant P01 --start-at 4   # resume after Esc / crash
+```
+
+5 schemes × 2 modes on the medium servicer. Modes are blocks (odd IDs 3-D
+first, even IDs 6-D first); scheme order within a block is a Williams Latin
+square row. Each trial waits for SPACE, ends automatically after 2 loops,
+and is saved to `data/participants/<ID>/` (git-ignored; back it up after
+every participant). The controller name is hidden from the participant.
 
 ## Tests
 

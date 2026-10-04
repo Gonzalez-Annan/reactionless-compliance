@@ -31,10 +31,12 @@
     <exclude body1="base" body2="link1"/>
   </contact>
 
-  <!-- "home": elbow and wrist bent so the arm starts away from the straight-arm
-       singularity. Base at the origin, identity orientation. -->
+  <!-- "home": shoulder up 50 deg, elbow folded 100 deg, wrist down 50 deg -> hand
+       level, ~0.75 m out (85% reach), elbow above the base, 20 deg margin to the
+       elbow limit. Away from the straight-arm singularity. Base at the origin,
+       identity orientation. qpos is in radians. -->
   <keyframe>
-    <key name="home" qpos="0 0 0  1 0 0 0  0 0.6 0 -1.2 0 0.6 0"/>
+    <key name="home" qpos="0 0 0  1 0 0 0  0 -0.8727 0 1.7453 0 -0.8727 0"/>
   </keyframe>
 
   <actuator>
