@@ -4,9 +4,7 @@
        qdot (gate is 1e-6). Euler/implicitfast at 2 ms drift ~1e-3. See DECISIONS.md. -->
   <option gravity="0 0 0" timestep="0.00025" integrator="RK4"/>
 
-  <!-- Off-screen framebuffer for src/teleop.py's 1280x720 window -->
   <visual>
-    <global offwidth="1280" offheight="720"/>
     <headlight ambient="0.4 0.4 0.4" diffuse="0.8 0.8 0.8" specular="0.1 0.1 0.1"/>
   </visual>
 
@@ -17,6 +15,12 @@
          Torque saturates at forcerange, as a real joint drive would. -->
     <velocity kv="20" ctrlrange="-1 1" forcelimited="true" forcerange="-5 5"/>
   </default>
+
+  <!-- "home": elbow and wrist bent so the arm starts away from the straight-arm
+       singularity. Base at the origin, identity orientation. -->
+  <keyframe>
+    <key name="home" qpos="0 0 0  1 0 0 0  0 0.6 0 -1.2 0 0.6 0"/>
+  </keyframe>
 
   <actuator>
     <velocity name="a1" joint="j1"/>

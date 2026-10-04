@@ -44,3 +44,15 @@ def test_teleop_3d_mode_zeroes_rotation():
     t = Teleop("medium", "3d", "hold", headless=True)
     xdot = t.twist_from_input(np.ones(6))
     assert np.all(xdot[3:] == 0)
+
+
+def test_demo_controller_follows_target_and_base_reacts():
+    t = Teleop("medium", "3d", "demo", headless=True)
+    xdot = np.array([0, 0.05, 0, 0, 0, 0])
+    for _ in range(2 * CONTROL_HZ):  # target moves 10 cm in +y over 2 s
+        t.control_tick(xdot)
+    for _ in range(CONTROL_HZ):      # then holds for 1 s
+        t.control_tick(np.zeros(6))
+    ee = t.data.site_xpos[t.model.site("end_effector").id]
+    assert np.linalg.norm(t.target_pos - ee) < 0.005  # hand caught up with the ball
+    assert t.antenna_error_deg() > 0.05                # and the base turned

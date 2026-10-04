@@ -3,8 +3,10 @@
     python -m src.teleop --model medium --mode 6d
     python -m src.teleop --model small --log data/pilot/test.csv
 
-One pygame window: MuJoCo renders off-screen into it and pygame reads all
-input, so the MuJoCo viewer's own keyboard shortcuts cannot interfere.
+One pygame OpenGL window: MuJoCo draws straight into it (mjr_render) and
+pygame reads all input, so the MuJoCo viewer's own keyboard shortcuts cannot
+interfere. Off-screen rendering + blitting gave black frames on a hybrid
+NVIDIA/AMD Wayland laptop; drawing into the window's own GL context works.
 
 Rates: physics at model.opt.timestep (4 kHz), control at CONTROL_HZ (100 Hz,
 the command is held over the physics steps in between), display ~30 fps.
@@ -27,9 +29,10 @@ Controller interface (P3's schemes plug in here):
 
 The returned qdot is written to data.ctrl (velocity servos). If any joint
 exceeds its ctrlrange the whole vector is scaled down, preserving direction.
-Until src/schemes.py provides SCHEMES = {name: controller}, only "hold"
-(qdot = 0) is available: the arm stays still and the ghost target shows
-the commanded motion.
+Built in: "hold" (qdot = 0, arm stays still, only the target moves) and
+"demo" (a crude fixed-base follower for showing teammates the base reaction;
+NOT one of the five benchmark schemes). P3's schemes come from
+src/schemes.py: SCHEMES = {name: controller}.
 """
 import argparse
 import time
@@ -45,7 +48,7 @@ from src.logger import CsvLogger
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 CONTROL_HZ = 100
 RENDER_EVERY = 3            # control ticks per rendered frame (~33 fps)
-WIDTH, HEIGHT = 1280, 720   # must fit models/common/arm_defs.xml <visual> offwidth/offheight
+WIDTH, HEIGHT = 1280, 720
 ANTENNA_LIMIT_DEG = 5.0
 
 LIN_SPEED = 0.05            # m/s at full input
@@ -57,6 +60,30 @@ MOUSE_PX_FULL = 10          # mouse pixels per control tick that count as full i
 def hold(model, data, xdot, mode):
     """Placeholder controller: keep the arm still."""
     return np.zeros(model.nu)
+
+
+def make_demo(get_target, gain=2.0, damping=0.05):
+    """DEMO ONLY -- not one of the five benchmark schemes (those are P3's).
+
+    Drives the hand toward the target with damped least squares on the
+    FIXED-BASE arm Jacobian, i.e. it ignores that the base floats. That makes
+    the base reaction easy to see: the base turns as the arm moves.
+    """
+    def demo(model, data, xdot, mode):
+        sid = model.site("end_effector").id
+        jacp = np.zeros((3, model.nv))
+        jacr = np.zeros((3, model.nv))
+        mujoco.mj_jacSite(model, data, jacp, jacr, sid)
+        J = np.vstack([jacp, jacr])[:, 6:]
+
+        target_pos, target_rot = get_target()
+        ee_rot = Rotation.from_matrix(data.site_xmat[sid].reshape(3, 3))
+        err = np.r_[target_pos - data.site_xpos[sid], (target_rot * ee_rot.inv()).as_rotvec()]
+        v = xdot + gain * err
+        if mode == "3d":
+            J, v = J[:3], v[:3]
+        return J.T @ np.linalg.solve(J @ J.T + damping**2 * np.eye(len(v)), v)
+    return demo
 
 
 def load_controller(name):
@@ -125,7 +152,10 @@ class Teleop:
         self.data = mujoco.MjData(self.model)
         self.mode = mode
         self.controller_name = controller_name
-        self.controller = load_controller(controller_name)
+        if controller_name == "demo":
+            self.controller = make_demo(lambda: (self.target_pos, self.target_rot))
+        else:
+            self.controller = load_controller(controller_name)
         self.n_sub = round(1.0 / CONTROL_HZ / self.model.opt.timestep)
         self.headless = headless
         self.logger = None
@@ -138,10 +168,14 @@ class Teleop:
 
         if not headless:
             pygame.init()
-            self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
+            pygame.display.set_mode((WIDTH, HEIGHT), pygame.OPENGL | pygame.DOUBLEBUF | pygame.RESIZABLE)
             pygame.display.set_caption("Reactionless Compliance - teleop")
-            self.font = pygame.font.SysFont("monospace", 18)
-            self.renderer = mujoco.Renderer(self.model, HEIGHT, WIDTH)
+            # MuJoCo renders into the GL context pygame just made current
+            self.ctx = mujoco.MjrContext(self.model, mujoco.mjtFontScale.mjFONTSCALE_150)
+            mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_WINDOW, self.ctx)
+            self.scene = mujoco.MjvScene(self.model, maxgeom=2000)
+            self.vopt = mujoco.MjvOption()
+            self.viewport = mujoco.MjrRect(0, 0, WIDTH, HEIGHT)
             self.cam = mujoco.MjvCamera()
             self.cam.lookat[:] = [0.6, 0, 0]
             self.cam.distance = 3.0
@@ -151,7 +185,7 @@ class Teleop:
             pygame.mouse.get_rel()  # discard the first, large, relative motion
 
     def reset(self):
-        mujoco.mj_resetData(self.model, self.data)
+        mujoco.mj_resetDataKeyframe(self.model, self.data, self.model.key("home").id)
         mujoco.mj_forward(self.model, self.data)
         self.antenna_z0 = site_pose(self.model, self.data, "antenna")[1][:, 2].copy()
         self.snap_target()
@@ -195,9 +229,9 @@ class Teleop:
             )
 
     def draw(self):
-        r = self.renderer
-        r.update_scene(self.data, camera=self.cam)
-        scn = r.scene
+        scn = self.scene
+        mujoco.mjv_updateScene(self.model, self.data, self.vopt, None, self.cam,
+                               mujoco.mjtCatBit.mjCAT_ALL, scn)
 
         # antenna: boresight at start (green) and now (red once past the limit)
         a_pos, a_R = site_pose(self.model, self.data, "antenna")
@@ -213,19 +247,24 @@ class Teleop:
             for i, c in enumerate(([1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1])):
                 add_line(scn, self.target_pos, self.target_pos + 0.08 * R[:, i], c, width=2)
 
-        frame = r.render()
-        self.screen.blit(pygame.image.frombuffer(frame.tobytes(), (WIDTH, HEIGHT), "RGB"), (0, 0))
+        # follow the window size; SDL2 keeps the GL context across resizes
+        self.viewport.width, self.viewport.height = pygame.display.get_window_size()
+        mujoco.mjr_render(self.viewport, scn, self.ctx)
 
-        lines = [
-            f"model {self.model_name}   mode {self.mode}   controller {self.controller_name}"
-            + ("   [PAUSED]" if self.paused else ""),
-            f"t = {self.data.time:6.1f} s   loop overruns {self.overruns}",
-            f"antenna error {err:5.2f} deg  (limit {ANTENNA_LIMIT_DEG:.0f})",
-            "WASD/RF move  Q/E roll  drag: pitch/yaw  Shift fine  G snap  P pause  Bksp reset  Esc quit",
-        ]
-        for i, text in enumerate(lines):
-            colour = (255, 80, 80) if i == 2 and err > ANTENNA_LIMIT_DEG else (240, 240, 240)
-            self.screen.blit(self.font.render(text, True, colour), (12, 10 + 22 * i))
+        over = err > ANTENNA_LIMIT_DEG
+        labels = "\n".join(["model", "mode", "controller", "time", "late ticks", "antenna error"])
+        values = "\n".join([
+            self.model_name, self.mode, self.controller_name + ("   [PAUSED]" if self.paused else ""),
+            f"{self.data.time:.1f} s", str(self.overruns),
+            f"{err:.2f} deg" + ("   OVER LIMIT" if over else f"   (limit {ANTENNA_LIMIT_DEG:.0f})"),
+        ])
+        mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_TOPLEFT,
+                           self.viewport, labels, values, self.ctx)
+        mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_BOTTOMLEFT,
+                           self.viewport,
+                           "WASD / RF\nQ / E\nleft-drag\nShift\nG   P\nBackspace   Esc",
+                           "move x y / z\nroll\npitch / yaw\nfine mode\nsnap target   pause\nreset   quit",
+                           self.ctx)
         pygame.display.flip()
 
     def handle_events(self):
@@ -265,7 +304,7 @@ class Teleop:
                 slack = next_tick - time.perf_counter()
                 if slack > 0:
                     time.sleep(slack)
-                else:
+                else:  # this tick took longer than its 10 ms budget
                     self.overruns += 1
                     if slack < -0.1:  # fell far behind (e.g. window dragged): don't try to catch up
                         next_tick = time.perf_counter()
@@ -276,7 +315,7 @@ class Teleop:
         if self.logger:
             self.logger.close()
         if not self.headless:
-            self.renderer.close()
+            self.ctx.free()
             pygame.quit()
 
 
@@ -284,7 +323,7 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--model", choices=["small", "medium", "large"], default="medium")
     ap.add_argument("--mode", choices=["3d", "6d"], default="6d")
-    ap.add_argument("--controller", default="hold", help='"hold" or a name from src.schemes.SCHEMES')
+    ap.add_argument("--controller", default="hold", help='"hold", "demo" (crude fixed-base follower, for showing the base reaction) or a name from src.schemes.SCHEMES')
     ap.add_argument("--log", help="CSV path, e.g. data/pilot/test.csv")
     ap.add_argument("--duration", type=float, help="stop after this many simulated seconds")
     args = ap.parse_args()

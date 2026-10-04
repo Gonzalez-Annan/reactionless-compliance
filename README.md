@@ -135,10 +135,13 @@ python -m src.teleop --log data/pilot/test.csv        # also record a CSV
 | G | snap target back to the hand |
 | P / Backspace / Esc | pause / reset / quit |
 
+`--controller demo` makes the arm chase the blue sphere with a crude
+fixed-base rule, so you can see the base turn as the arm moves (try
+`--model small`). It is a demo, **not** one of the five benchmark schemes.
+
 The blue sphere is the commanded target. The green line is the antenna
-direction at the start and the yellow line is now (red past ±5°). Until
-`src/schemes.py` exists, only `--controller hold` is available: the arm
-stays still and only the target moves. A PlayStation gamepad will be added
+direction at the start and the yellow line is now (red past ±5°). With the
+default `--controller hold` the arm stays still and only the target moves. A PlayStation gamepad will be added
 as a second input device.
 
 ## Tests
