@@ -2,19 +2,34 @@
   <!-- Simulation options, defaults and actuators shared by all three servicers. -->
   <!-- RK4 at 0.25 ms keeps total-momentum drift < 1.2e-7 over 10 s of random
        qdot (gate is 1e-6). Euler/implicitfast at 2 ms drift ~1e-3. See DECISIONS.md. -->
-  <option gravity="0 0 0" timestep="0.00025" integrator="RK4"/>
+  <!-- With contacts and joint limits on, tolerance 1e-12 and soft constraints
+       (solref 0.1 s) keep drift < 1e-7 when the arm hits a limit or the base;
+       cost: <= ~1 deg past a limit / ~5 mm into the base at full speed. -->
+  <option gravity="0 0 0" timestep="0.00025" integrator="RK4" tolerance="1e-12" iterations="200"/>
 
   <visual>
     <headlight ambient="0.4 0.4 0.4" diffuse="0.8 0.8 0.8" specular="0.1 0.1 0.1"/>
   </visual>
 
   <default>
-    <joint type="hinge" damping="0.2" armature="0.01"/>
-    <geom contype="0" conaffinity="0" rgba="0.7 0.75 0.8 1"/>
+    <!-- Joint limits (degrees), generic 7-DOF values: roll/yaw joints +/-170,
+         pitch joints +/-120 (class "pitch", used by j2, j4, j6). -->
+    <joint type="hinge" damping="0.2" armature="0.01" limited="true" range="-170 170" solreflimit="0.1 1"/>
+    <default class="pitch">
+      <joint range="-120 120"/>
+    </default>
+    <!-- Collisions on: the arm cannot pass through the base or itself.
+         Contact forces are internal, so total momentum is still conserved. -->
+    <geom contype="1" conaffinity="1" solref="0.1 1" rgba="0.7 0.75 0.8 1"/>
     <!-- Velocity servos: the schemes output qdot, ctrl is the commanded qdot [rad/s].
          Torque saturates at forcerange, as a real joint drive would. -->
     <velocity kv="20" ctrlrange="-1 1" forcelimited="true" forcerange="-5 5"/>
   </default>
+
+  <!-- link1 starts on the base face, so it always touches the base: not a collision -->
+  <contact>
+    <exclude body1="base" body2="link1"/>
+  </contact>
 
   <!-- "home": elbow and wrist bent so the arm starts away from the straight-arm
        singularity. Base at the origin, identity orientation. -->

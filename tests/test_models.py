@@ -83,3 +83,37 @@ def test_integrator_conserves_total_momentum(name):
         L = data.subtree_angmom[0] + np.cross(data.subtree_com[0], p)
         worst = max(worst, np.abs(np.r_[p, L]).max())
     assert worst < 1e-6
+
+
+@pytest.mark.parametrize("name", MODELS)
+def test_home_pose_is_collision_free_and_within_limits(name):
+    model = load(name)
+    data = mujoco.MjData(model)
+    mujoco.mj_resetDataKeyframe(model, data, model.key("home").id)
+    mujoco.mj_forward(model, data)
+    assert data.ncon == 0
+    q = data.qpos[7:]
+    assert np.all(q > model.jnt_range[1:, 0]) and np.all(q < model.jnt_range[1:, 1])
+
+
+@pytest.mark.parametrize("name", MODELS)
+def test_momentum_conserved_through_contacts_and_limits(name):
+    """From home, every joint is driven at full speed one way for 2.5 s and
+    back for 2.5 s, slamming into joint limits. Constraint forces are
+    internal, so momentum must still hold."""
+    model = load(name)
+    data = mujoco.MjData(model)
+    mujoco.mj_resetDataKeyframe(model, data, model.key("home").id)
+    half = int(2.5 / model.opt.timestep)
+    worst, constrained = 0.0, False
+    for k in range(2 * half):
+        data.ctrl[:] = 1.0 if k < half else -1.0
+        mujoco.mj_step(model, data)
+        constrained |= data.nefc > 0
+        if k % 20 == 0:
+            mujoco.mj_subtreeVel(model, data)
+            p = model.body_subtreemass[0] * data.subtree_linvel[0]
+            L = data.subtree_angmom[0] + np.cross(data.subtree_com[0], p)
+            worst = max(worst, np.abs(np.r_[p, L]).max())
+    assert constrained, "test never reached a limit or contact"
+    assert worst < 1e-6

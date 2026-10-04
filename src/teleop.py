@@ -19,6 +19,7 @@ Input -> commanded end-effector twist xdot = [vx vy vz wx wy wz], world frame
     R / F        +z / -z          (hold left button)
     Shift        fine mode (x0.3)
     G            snap target back to the hand     P  pause
+    V            show / hide the reachable workspace
     Backspace    reset simulation                 Esc  quit
 
 In 3-D mode the rotational part of xdot is zeroed.
@@ -44,12 +45,14 @@ import pygame
 from scipy.spatial.transform import Rotation
 
 from src.logger import CsvLogger
+from src.workspace import reachable_points, surface_voxels
 
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 CONTROL_HZ = 100
 RENDER_EVERY = 3            # control ticks per rendered frame (~33 fps)
 WIDTH, HEIGHT = 1280, 720
 ANTENNA_LIMIT_DEG = 5.0
+WORKSPACE_VOXEL = 0.1       # m, cube size for the workspace display
 
 LIN_SPEED = 0.05            # m/s at full input
 ANG_SPEED = 0.25            # rad/s at full input
@@ -137,6 +140,14 @@ def add_line(scene, a, b, rgba, width=3):
     scene.ngeom += 1
 
 
+def add_box(scene, pos, half, mat, rgba):
+    if scene.ngeom >= scene.maxgeom:
+        return
+    g = scene.geoms[scene.ngeom]
+    mujoco.mjv_initGeom(g, mujoco.mjtGeom.mjGEOM_BOX, np.full(3, half), np.asarray(pos, float), mat.ravel(), np.asarray(rgba, float))
+    scene.ngeom += 1
+
+
 def add_sphere(scene, pos, radius, rgba):
     if scene.ngeom >= scene.maxgeom:
         return
@@ -173,7 +184,7 @@ class Teleop:
             # MuJoCo renders into the GL context pygame just made current
             self.ctx = mujoco.MjrContext(self.model, mujoco.mjtFontScale.mjFONTSCALE_150)
             mujoco.mjr_setBuffer(mujoco.mjtFramebuffer.mjFB_WINDOW, self.ctx)
-            self.scene = mujoco.MjvScene(self.model, maxgeom=2000)
+            self.scene = mujoco.MjvScene(self.model, maxgeom=5000)
             self.vopt = mujoco.MjvOption()
             self.viewport = mujoco.MjrRect(0, 0, WIDTH, HEIGHT)
             self.cam = mujoco.MjvCamera()
@@ -191,6 +202,8 @@ class Teleop:
         self.snap_target()
         self.overruns = 0
         self.paused = False
+        self.show_workspace = False
+        self.workspace = None  # surface voxel centres in the base frame, computed on first V
 
     def snap_target(self):
         self.target_pos, R = site_pose(self.model, self.data, "end_effector")
@@ -240,6 +253,15 @@ class Teleop:
         add_line(scn, a_pos, a_pos + 0.8 * a_R[:, 2],
                  [0.95, 0.2, 0.2, 1] if err > ANTENNA_LIMIT_DEG else [0.95, 0.8, 0.1, 1])
 
+        # reachable workspace, carried along with the base
+        if self.show_workspace:
+            if self.workspace is None:
+                self.workspace = surface_voxels(reachable_points(self.model), WORKSPACE_VOXEL)
+            bid = self.model.body("base").id
+            b_pos, b_R = self.data.xpos[bid], self.data.xmat[bid].reshape(3, 3)
+            for c in self.workspace:
+                add_box(scn, b_pos + b_R @ c, 0.45 * WORKSPACE_VOXEL, b_R, [0.3, 0.8, 0.9, 0.12])
+
         # ghost target: sphere + its axes (6-D mode)
         add_sphere(scn, self.target_pos, 0.03, [0.3, 0.7, 1.0, 0.8])
         if self.mode == "6d":
@@ -262,8 +284,8 @@ class Teleop:
                            self.viewport, labels, values, self.ctx)
         mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_BOTTOMLEFT,
                            self.viewport,
-                           "WASD / RF\nQ / E\nleft-drag\nShift\nG   P\nBackspace   Esc",
-                           "move x y / z\nroll\npitch / yaw\nfine mode\nsnap target   pause\nreset   quit",
+                           "WASD / RF\nQ / E\nleft-drag\nShift\nG   P\nV\nBackspace   Esc",
+                           "move x y / z\nroll\npitch / yaw\nfine mode\nsnap target   pause\nreachable workspace\nreset   quit",
                            self.ctx)
         pygame.display.flip()
 
@@ -279,6 +301,8 @@ class Teleop:
                     self.reset()
                 elif event.key == pygame.K_g:
                     self.snap_target()
+                elif event.key == pygame.K_v:
+                    self.show_workspace = not self.show_workspace
                 elif event.key == pygame.K_p:
                     self.paused = not self.paused
             if event.type == pygame.MOUSEWHEEL:

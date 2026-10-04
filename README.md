@@ -22,6 +22,7 @@ reactionless-compliance/
     dynamics.py             H_b, H_bm, generalized Jacobian J*, RNS projector [P2]
     schemes.py              The five redundancy-resolution laws, 3-D and 6-D variants [P3]
     teleop.py               Operator input -> task-space velocity, fixed-rate loop, window [P1]
+    workspace.py            Reachable workspace of the arm (shown with V in teleop) [P1]
     task.py                 Closed-loop ORU task, --mode 3d|6d [P1]
     safety.py               Lambda(q), effective mass, v_max map [P4]
     logger.py               Single-clock CSV logging [P1]
@@ -45,10 +46,13 @@ the base, giving arm/base mass ratios of 0.33 / 0.044 / 0.0044.
 
 | Name | Value |
 |------|-------|
-| Base | free joint, gravity 0, contacts off |
+| Base | free joint, gravity 0 |
+| Joint limits | ±170° (j1, j3, j5, j7), ±120° (pitch joints j2, j4, j6) |
+| Collisions | on: the arm cannot pass through the base or itself |
+| Start pose | keyframe `home` (elbow and wrist bent, away from the straight-arm singularity) |
 | Arm mount | shoulder on the base +x face (`mount` body) |
 | Actuators | velocity servos: `data.ctrl` is the commanded qdot [rad/s], kv = 20, torque limit +/-5 Nm |
-| Integrator | RK4, timestep 0.25 ms (needed for the 1e-6 momentum gate) |
+| Integrator | RK4, timestep 0.25 ms, solver tolerance 1e-12, soft constraints (needed for the 1e-6 momentum gate) |
 | Sites | `end_effector` (tool point), `antenna` (z-axis = boresight for the +/-5 deg limit) |
 
 Change the arm in `models/common/` only; the servicer files hold just the base.
@@ -70,6 +74,9 @@ Changes made on 2026-10-04 (P1). Reasons and measurements are in DECISIONS.md.
     MuJoCo's free-joint convention, not a choice we made -- but every matrix
     MuJoCo gives you (`M`, Jacobians) uses the same convention, so they are
     consistent with each other.
+- **Joint limits and collisions are on** (arm vs base, arm vs itself). Use
+  `mj_resetDataKeyframe(model, data, model.key("home").id)` to start from the
+  home pose; the all-zero pose is a straight-arm singularity.
 - **Timestep is 0.25 ms (RK4).** Do not change it to speed things up: at the
   old 2 ms / implicitfast the momentum error was ~1e-3 and the 1e-6 gate
   cannot pass. Controllers should run slower than physics and hold their
@@ -133,6 +140,7 @@ python -m src.teleop --log data/pilot/test.csv        # also record a CSV
 | Shift | fine mode (×0.3) |
 | scroll | zoom |
 | G | snap target back to the hand |
+| V | show / hide the reachable workspace (cyan cubes; moves with the base) |
 | P / Backspace / Esc | pause / reset / quit |
 
 `--controller demo` makes the arm chase the blue sphere with a crude
