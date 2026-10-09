@@ -27,3 +27,13 @@ k = np.array(seen)
 print("dot depth: max %.4f, at the end %.4f, zone %d; rehearsal said %s" % (k.max(), k[-1], T.zone(k[-1]), s["ans"][0]))
 assert k.max() <= T.FENCE[1] + 1e-6 and k.max() > T.FENCE[0], "the dot must reach the caution zone and stop at the fence"
 print("ok")
+
+
+def test_keys_off_windows(monkeypatch):
+    """Linux / macOS path: a key the viewer reported just now is down, an old one is not."""
+    import time
+    import teleop as T
+    monkeypatch.setattr(T, "WIN", False)
+    monkeypatch.setattr(T, "PRESSED", {T.GLFW["up"]: time.time(), T.GLFW["left"]: time.time() - 1})
+    assert T.down("up") and not T.down("left") and not T.down("enter")
+    assert T.keyboard()[:2] == (0, 1)

@@ -37,13 +37,16 @@ def draw_envelope(scn, n, tips, tris, edges):
     return n
 
 
+key_callback = None                     # teleop sets this off Windows to get key presses from the viewer window
+
+
 def viewer_hook(show_ref=True):
     """on_step callback for run_trial: opens the viewer on the first step and paces to real time."""
     s = {}
 
     def on_step(m, d, ref):
         if "v" not in s:
-            s["v"], s["t0"] = mujoco.viewer.launch_passive(m, d), time.time() - d.time
+            s["v"], s["t0"] = mujoco.viewer.launch_passive(m, d, key_callback=key_callback), time.time() - d.time
         v = s["v"]
         if show_ref:   # green = where the hand should be
             mujoco.mjv_initGeom(v.user_scn.geoms[0], mujoco.mjtGeom.mjGEOM_SPHERE, [0.012, 0, 0],

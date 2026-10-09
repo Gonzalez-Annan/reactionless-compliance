@@ -54,6 +54,7 @@ from dynamics import kin
 from schemes import NAMES, qdot
 from task import run_trial, MODELS, Q_REST, Q_LIM, DECIM, QD_MAX
 from schemes import MARGIN
+import view
 from view import viewer_hook
 
 V_MAX, W_MAX, DEAD = 0.08, 0.4, 0.1     # m/s, rad/s, stick deadband: tune in the pilot
@@ -80,13 +81,25 @@ LINE = ([0.2, 1, 0.3, 1], [1, 0.55, 0.1, 1], [0.3, 0.6, 1, 1])     # slice rings
 FENCE = (0.9, 1.1)                      # depth on the 2 deg cage: inside 0.9 the map is right 86 times in 89, past 1.1 nothing is reachable (D25)
 
 
+GLFW = dict(left=263, up=265, right=262, down=264, pgup=266, pgdn=267, home=268, end=269, enter=257,
+            delete=261, shift=340, insert=260, rctrl=345)
+WIN = hasattr(ctypes, "windll")
+PRESSED, HOLD = {}, 0.12                # Linux / macOS: viewer key -> time of its last press or repeat; a key counts as held for HOLD s
+if not WIN:
+    view.key_callback = lambda k: PRESSED.__setitem__(k, time.time())
+
+
 def down(n):
-    return bool(ctypes.windll.user32.GetAsyncKeyState(VK[n]) & 0x8000)
+    if WIN:
+        return bool(ctypes.windll.user32.GetAsyncKeyState(VK[n]) & 0x8000)
+    return time.time() - PRESSED.get(GLFW[n], 0) < HOLD
 
 
 def keyboard():
     """-> (sx, sy, depth, cam_x, cam_y, go, snap, fine), the same tuple as gamepad().
-    ponytail: Windows-only and reads keys even when the viewer is not focused; use --pad elsewhere."""
+    Windows reads the key state directly, even when the viewer is not focused.
+    ponytail: Linux / macOS get key presses from the viewer window, so a held key moves after the OS repeat delay
+    and the viewer must have focus. NOT TESTED on Linux or macOS yet; --pad is the other way in."""
     return (down("right") - down("left"), down("up") - down("down"), down("pgup") - down("pgdn"),
             down("home") - down("end"), 0, down("enter"), down("delete"), down("shift"))
 
