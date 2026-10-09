@@ -311,3 +311,17 @@ All measured, 300 kg model unless said.
 - Second guess, also weak: shift against the area of the triangle rest, start, goal. Big shifts only happen at big
   area (worst -0.29 m above 0.09 m2, -0.05 m below 0.03 m2) but a signed linear fit explains 7%. Not a predictor.
 - Where that leaves the live map: no cheap formula yet. Rehearsal is still the only thing that is right.
+
+## D39 Live cage timed, guaranteed set widened (2026-10-10)
+- Live cage: the 98 probes shared over a warm pool of processes (`src/livemap.py`, timing in
+  `analysis/envelope/live.py`). 12.6 s from rest and 7.4 s after a 0.3 m detour on 10 processes, against 85 s on one
+  thread. 12 processes is no faster. Tips match the cached cage exactly. So the live map is right but 7 to 13 s old:
+  it is for a hand that has settled, not one that is moving. Check: `tests/test_livemap.py`. Not drawn by the tool yet.
+- Guaranteed set over 40 random one-leg starts (`analysis/envelope/wide.py`, `data/wide_medium.npz`, scripted, 18 min):
+  median edge 0.74, worst 0.35, 44% of the rest reach by volume. The same at 20 starts as at 40 (59% at 5 and 10),
+  so it has probably stopped shrinking for one-leg starts. Starts with several legs are not covered.
+- 80% of pairs are within 0.05 of the rest edge, 7% are under 0.8 of it. The bad ones are spread out: 17 of 40 starts
+  and 13 of 20 directions have at least one. More common on cross moves (8 to 10% against 3 to 4% along or against
+  the start) and with more tilt left (15% above 0.8 deg against 5% below 0.4), but neither predicts which.
+- So the trade for the study is real: guaranteed map = 44% of the reach and never wrong (as far as tested),
+  rest map = all of it and wrong on about 1 pair in 14 near the edge, live map = right but seconds late.
