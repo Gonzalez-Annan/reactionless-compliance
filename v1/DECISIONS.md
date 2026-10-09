@@ -252,3 +252,17 @@ All measured, 300 kg model unless said.
   Reading: start-independence holds away from the edge and fails within about 5% of it. That is inside the caution
   zone (0.90 to 1.10) the fence already has, so the three zones stand, but 'drawn once' needs the margin said with it.
 - Dropped: the 37 of 42 / 16 of 18 counts (scratch scripts gone). The schemes paper quotes 271 of 300 from the map table.
+
+## D35 The cage is a guide, not the gate (2026-10-10)
+- Bigger detours (`start.py far`): the same 20 between-line directions, goals at 0.6, 0.8, 0.9, 1.0, 1.05 of the map's
+  edge, five 0.3 m detours (+z, -z, -x, +x, +y), all arrived. From rest 20, 20, 20, 20, 6 of 20 reachable.
+  Same answer on 428 of 500. By depth: 99, 95, 94, 76, 64 of 100. By detour: +z 84, -z 88, -x 89, +x 91, +y 76 of 100.
+  Flips: 51 go -> no-go, 21 no-go -> go.
+- Reading: D34 said start matters only within about 5% of the edge. That was true for 0.15 m detours and is false for
+  0.3 m ones: 5 to 6 of 100 flip inside the free zone, a quarter at the edge. 'Drawn once with a 5% margin' is withdrawn.
+- What stands: the cage is drawn from rest and is a guide. The rehearsal runs from the true state and decides
+  (as D19, D20 already said). The feedback study starts every target from rest, so its map is the one that was measured.
+  Not covered: a second send on the same study target after a move that arrived part way.
+- Not done: redrawing the cage from the current start. 98 probe moves take about 85 s, too slow to do live.
+- Paper: P2 TODOs closed (hand to base weight 2 to 1 from TW_BASE, related work), the stale 'scores in points' TODO
+  replaced (feedback() already scores seconds), operator view figure added (`analysis/envelope/opview.py`).

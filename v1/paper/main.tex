@@ -51,14 +51,14 @@ with a fence, the go or no-go decision is not a safety decision. (v) A study too
 to run.
 
 \section{Related Work}
-\todo{P2: condense P2\_Literature\_Survey.xlsx to about half a page.}
 The generalised Jacobian~\cite{umetani1989} gives hand motion of a free-floating arm from joint rates
 alone. Reaction null-space control~\cite{nenchev1999} and its flight test on ETS-VII~\cite{yoshida2001}
 show zero-reaction manoeuvres, and the loss of reach that comes with them is the dynamic singularity
 of~\cite{dubowsky1993}. Null-space impedance toward a rest posture keeps the arm's shape repeatable for the
 operator~\cite{hogan1985,dragan2013}. Virtual fixtures~\cite{rosenberg1993,abbott2007} constrain or guide
 the operator's commands in telemanipulation; our hard stop on the target is a forbidden-region fixture
-whose region is defined by base tilt instead of by geometry.
+whose region is defined by base tilt instead of by geometry. In the work we have read, the reach left by
+a limit on base tilt is a result for the controller; it is not shown to the operator before the command.
 
 \section{Model and Controller}
 The system is a rigid base on a free joint with a 7-revolute arm (z-y-z-y-z-y-z, reach 1.09\,m, 12.5\,kg),
@@ -73,7 +73,8 @@ $10^{-6}$ in SI units, and $J^{*}\qd$ and $W\qd$ match the simulated hand and ba
 
 The controller tracks a hand position target with the task and the reactionless condition solved
 together, and a pull toward a rest posture in the freedom that is left (null-space impedance plus
-reaction null space). \todo{P2: state the weighting between hand and base as set in teleop.py.} Joints
+reaction null space). The hand rows are weighted 2 to 1 against the base rows. The weight changes nothing while the arm can
+satisfy both; when it cannot, the hand keeps its path and the base takes the rest. Joints
 are held inside their ranges by locking a joint that is within 0.05\,rad of its limit and still commanded
 outward. Five redundancy schemes were compared before this one was chosen; on the 300\,kg spacecraft the
 reactionless schemes cut peak base drift sixfold on a position-only path (0.20$^\circ$ against
@@ -118,7 +119,14 @@ exceeds a time limit, the hand is sent back to where the move started.
 \item \textbf{Joint limits}, as above.
 \end{enumerate}
 Layers 1 to 3 act while the operator is still choosing; 4 acts at the command; 5 and 6 act during the move.
-\todo{Fig.: screenshot of the operator view with the three cages and a yellow target.}
+Fig.~\ref{fig:opview} shows what the operator sees. The map is probed from rest, and from another start it
+is less right: after a 0.3\,m detour of the hand the rehearsal changed its answer on 5 of 100 goals at 0.8 of
+the edge and on 24 of 100 at the edge. So the cages are a guide, and the rehearsal, which runs from the true
+state, decides.
+\begin{figure}[t]\centering\includegraphics[width=\columnwidth]{figs/fig_opview}
+\caption{Operator view, two camera angles, 300\,kg spacecraft with the arm at rest inside the cages. Blue cage:
+base tilt reaches 2$^\circ$. Orange and green volumes: 1$^\circ$ and 0.5$^\circ$. Yellow dot: a target at
+depth 1.0, in the caution zone. Rendered offscreen with the viewer's drawing code.}\label{fig:opview}\end{figure}
 
 \section{Results}
 All results are from simulation. The 300\,kg spacecraft is used unless stated.
@@ -191,8 +199,9 @@ the edge and records every command, refusal and time. Planned design: within-sub
 shuffled order: no cue (cages hidden), colour cue, colour cue plus hard stop. The runtime fence is on in
 all three. Measures: time per target reached, number of refused or aborted commands, peak base tilt, and
 NASA-TLX~\cite{hart1988} after each condition. Hypothesis: the colour cue reduces refused and aborted
-commands and time per target, and the hard stop reduces them further. \todo{The tool still scores in points
-(20, 5, 1) from before Section~\ref{sec:fence}; re-score in seconds. Ethics statement, statistics.}
+commands and time per target, and the hard stop reduces them further. The tool scores each
+target in seconds: the time to reach it, plus 30\,s when the operator gives it up as out of reach. The 30\,s
+is a set value. Every target starts from rest, as the map was probed. \todo{Ethics statement, statistics.}
 
 \section{Discussion}
 \textbf{A premise that failed.} We began by treating the go or no-go decision as the operator's risky

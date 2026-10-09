@@ -237,7 +237,7 @@ What's inside:
 - `src/safety.py`, `src/task.py`, `src/view.py`: contact safety map, scripted trial, viewer
 - `analysis/`: sweeps, envelope and ready pose measurements, figures
 - `paper/`: IEEE draft
-- `DECISIONS.md`: D1 to D34, every decision with the number behind it
+- `DECISIONS.md`: D1 to D35, every decision with the number behind it
 - `P2_Explainer.docx` and `P2_Literature_Survey.xlsx` if you want the background
 
 Things that are not done yet, so nobody gets surprised:
@@ -246,6 +246,6 @@ Things that are not done yet, so nobody gets surprised:
   scheme 5 does not. See D32.
 - `data/sweep.csv`, the paper tables and figs 1, 2, 3, 5 are redone on the new ready pose and loop (D33).
   Wrong-mass numbers, fig_band and fig6 are redone too (D34). On the new pose the full reach needs a much bigger bus: about 1700 kg at 0.5 deg, 950 kg at 2 deg.
-- The envelope holds when the hand starts away from rest, except right at the edge: 72 of 72 goals away from the edge got the same answer after a 0.15 m detour, but at 1.05 of the edge 18 of 80 changed (`analysis/envelope/start.py`, D34).
+- The envelope holds when the hand starts away from rest, except right at the edge: 72 of 72 goals away from the edge got the same answer after a 0.15 m detour, but at 1.05 of the edge 18 of 80 changed (`analysis/envelope/start.py`, D34). With 0.3 m detours it gets worse: 5 of 100 change at 0.8 of the edge and 24 of 100 at the edge. So the cage is a guide and the rehearsal decides (D35).
 - The "base comes back with the hand" claim failed on the new pose (0.30 deg left after 0.3 m out and back). The paper says so now.
 - Everything here is scripted runs. No participant data yet.

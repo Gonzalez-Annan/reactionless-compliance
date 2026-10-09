@@ -3,6 +3,7 @@ Each goal is rehearsed from rest and after a detour that parks the hand elsewher
 leaves is kept, as it would be in use.
 easy: 12 probe directions, goals at 0.6, 0.9, 1.15 of the 2 deg edge, two detours.
 hard: 20 random directions between the probe lines, goals at 0.95, 1.0, 1.05 of the map's edge, four detours.
+far: the same 20 directions, goals at 0.6 to 1.05 of the edge, five 0.3 m detours (one that does not arrive says so).
 -> counts of goals where the detour changes the answer."""
 import sys; sys.path.insert(0, "src")
 import numpy as np, mujoco
@@ -10,7 +11,8 @@ from multiprocessing import Pool
 import teleop as T
 
 Y, Z = (0, 0.15, 0), (0, 0, 0.15)
-SETS = dict(easy=((0.6, 0.9, 1.15), (Y, Z)), hard=((0.95, 1.0, 1.05), (Y, Z, (-0.15, 0, 0), (0.1, 0, 0.1))))
+SETS = dict(easy=((0.6, 0.9, 1.15), (Y, Z)), hard=((0.95, 1.0, 1.05), (Y, Z, (-0.15, 0, 0), (0.1, 0, 0.1))),
+            far=((0.6, 0.8, 0.9, 1.0, 1.05), ((0, 0, 0.3), (0, 0, -0.3), (-0.3, 0, 0), (0.3, 0, 0), (0, 0.3, 0))))
 
 
 def one(job):
@@ -35,6 +37,7 @@ if __name__ == "__main__":
     U = rng.normal(size=(20, 3)); U /= np.linalg.norm(U, axis=1)[:, None]
     E = dict(easy=tips[rng.choice(len(tips), 12, replace=False)] - p0,
              hard=np.array([u / T.depth(list(tips), p0, p0 + u) for u in U]))
+    E["far"] = E["hard"]
     assert all(abs(T.depth(list(tips), p0, p0 + e) - 1) < 1e-6 for e in E["hard"])       # depth 1 is the map's edge
     for name in sys.argv[1:] or SETS:
         fracs, dets = SETS[name]
