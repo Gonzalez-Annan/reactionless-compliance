@@ -1,7 +1,9 @@
-% DRAFT, NOT COMPILED (no LaTeX on the build machine). All numbers are simulation, from analysis/ and data/.
+% DRAFT. Compiles with Tectonic or pdflatex. All numbers are simulation, from analysis/ and data/.
 % No participant has been tested. Everything marked TODO needs the team. The earlier five-scheme draft is main_v1_schemes.tex.
 \documentclass[conference]{IEEEtran}
 \usepackage{amsmath,amssymb,graphicx,booktabs,xcolor}
+\usepackage{iftex}\ifPDFTeX\else\usepackage{fontspec}      % Times under XeTeX (Tectonic); pdflatex needs nothing
+\setmainfont{texgyretermes}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]\fi
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
 \newcommand{\qd}{\dot{q}}
 \begin{document}
@@ -166,7 +168,7 @@ Tilt trip & 33 & 2.020$^\circ$ & 0.12$^\circ$ & 14 (19)\,s\\
 Stall & 10 & 1.76$^\circ$ & 0.04$^\circ$ & 11 (14)\,s\\
 Time limit & 1 & 1.53$^\circ$ & 0.00$^\circ$ & 18\,s\\
 Arrived & 2 & 1.93$^\circ$ & 1.93$^\circ$ & 7 (8)\,s\\\bottomrule
-\multicolumn{5}{l}{\footnotesize Peak tilt and tilt left: worst case. Time: median (worst), out and home.}
+\multicolumn{5}{l}{\footnotesize Tilt: worst case. Time: median (worst), out and home.}
 \end{tabular}\end{table}
 % FENCE-TABLE-END
 The time limit is 13.1\,s, 1.5 times the slowest of 41 reachable moves from rest (median 4.8\,s, slowest

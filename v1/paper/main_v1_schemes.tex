@@ -1,6 +1,8 @@
 % DRAFT. Simulation results are measured (data/sweep.csv). Everything marked TODO needs the team.
 \documentclass[conference]{IEEEtran}
 \usepackage{amsmath,amssymb,graphicx,booktabs,xcolor}
+\usepackage{iftex}\ifPDFTeX\else\usepackage{fontspec}      % Times under XeTeX (Tectonic); pdflatex needs nothing
+\setmainfont{texgyretermes}[Extension=.otf,UprightFont=*-regular,BoldFont=*-bold,ItalicFont=*-italic,BoldItalicFont=*-bolditalic]\fi
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
 \newcommand{\qd}{\dot{q}}
 \begin{document}

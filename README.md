@@ -238,6 +238,7 @@ What's inside:
 - `analysis/`: sweeps, envelope and ready pose measurements, figures
 - `paper/`: IEEE draft
 - `DECISIONS.md`: D1 to D35, every decision with the number behind it
+- `paper/main.pdf`: the compiled draft, 4 pages so far. To rebuild: `tectonic main.tex` in `paper/` (or pdflatex, or Overleaf)
 - `P2_Explainer.docx` and `P2_Literature_Survey.xlsx` if you want the background
 
 Things that are not done yet, so nobody gets surprised:
