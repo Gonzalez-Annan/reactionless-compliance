@@ -206,3 +206,33 @@ pytest -v
 3. `pytest` -- includes the momentum-conservation gate. All downstream
    results are invalid until it passes on all three servicers.
 4. See DECISIONS.md for the history of design choices and why they were made.
+
+## Version 1 - P2 updates (10 Oct)
+
+All of our work so far is in [`v1/`](v1/). It has its own models, src, tests, analysis, paper draft and
+decision log, so nothing outside that folder was touched. It runs on the same setup as above, no extra installs.
+
+```bash
+source .venv/bin/activate
+cd v1
+pytest -q tests
+python src/teleop.py
+```
+
+What's inside:
+
+- `src/dynamics.py`: generalized Jacobian, base reaction matrix, reaction null space, momentum check
+- `src/schemes.py`: the five schemes in 3-D and 6-D, with joint limit geofencing
+- `src/teleop.py`: keyboard teleop (set a goal, press enter, it goes), the work envelope, singularity margin on the hand, feedback study mode
+- `src/safety.py`, `src/task.py`, `src/view.py`: contact safety map, scripted trial, viewer
+- `analysis/`: sweeps, envelope and ready pose measurements, figures
+- `paper/`: IEEE draft
+- `DECISIONS.md`: D1 to D32, every decision with the number behind it
+- `P2_Explainer.docx` and `P2_Literature_Survey.xlsx` if you want the background
+
+Things that are not done yet, so nobody gets surprised:
+
+- All 14 tests pass. Plain RNS (scheme 4) ends the loop 0.07 deg off because one joint drifts onto its limit;
+  scheme 5 does not. See D32.
+- `data/sweep.csv`, the paper tables and a few figures are from before the new ready pose and loop. They need a re-run.
+- Everything here is scripted runs. No participant data yet.

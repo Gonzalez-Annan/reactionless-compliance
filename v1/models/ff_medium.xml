@@ -1,0 +1,20 @@
+<mujoco model="ff_medium">
+<option gravity="0 0 0" timestep="0.0005" integrator="RK4"/>
+<default><joint armature="0.5"/><geom contype="0" conaffinity="0" rgba=".7 .7 .8 1"/></default>
+<worldbody>
+<light pos="0 -3 3" dir="0 1 -1"/>
+<body name="base"><freejoint name="root"/>
+<geom type="box" size="0.5 0.5 0.5" mass="300.0" rgba=".9 .75 .3 1"/>
+<geom type="cylinder" fromto="0 0 0 -1.1 0 0" size=".02" mass="0.001" rgba=".2 .6 1 1"/>
+<body name="l1" pos="0 0 0.5"><joint name="j1" axis="0 0 1"/><geom type="capsule" fromto="0 0 0 0 0 0.12" size=".04" mass="2.5"/>
+<body name="l2" pos="0 0 0.12"><joint name="j2" axis="0 1 0"/><geom type="capsule" fromto="0 0 0 0 0 0.225" size=".04" mass="2.5"/>
+<body name="l3" pos="0 0 0.225"><joint name="j3" axis="0 0 1"/><geom type="capsule" fromto="0 0 0 0 0 0.225" size=".04" mass="2.0"/>
+<body name="l4" pos="0 0 0.225"><joint name="j4" axis="0 1 0"/><geom type="capsule" fromto="0 0 0 0 0 0.2" size=".04" mass="2.0"/>
+<body name="l5" pos="0 0 0.2"><joint name="j5" axis="0 0 1"/><geom type="capsule" fromto="0 0 0 0 0 0.2" size=".04" mass="1.5"/>
+<body name="l6" pos="0 0 0.2"><joint name="j6" axis="0 1 0"/><geom type="capsule" fromto="0 0 0 0 0 0.06" size=".04" mass="1.0"/>
+<body name="l7" pos="0 0 0.06"><joint name="j7" axis="0 0 1"/><geom type="capsule" fromto="0 0 0 0 0 0.06" size=".04" mass="1.0"/>
+<site name="ee" pos="0 0 0.06" size=".02" rgba="1 0 0 1"/></body></body></body></body></body></body></body>
+</body>
+</worldbody>
+<actuator><velocity joint="j1" kv="150"/><velocity joint="j2" kv="150"/><velocity joint="j3" kv="150"/><velocity joint="j4" kv="150"/><velocity joint="j5" kv="150"/><velocity joint="j6" kv="150"/><velocity joint="j7" kv="150"/></actuator>
+</mujoco>
