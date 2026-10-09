@@ -241,5 +241,8 @@ All measured, 300 kg model unless said.
 - Singularity: smallest restricted singular value is 0.077 at rest, 0.007 after 0.15 m in +x or -x, under 0.0001
   after 0.14 m in -y. +y and z stay near 0.06 to 0.08. The 6000 random postures are not tied to the rest pose.
 - 8 s rehearsal time is `CHECK_S` in teleop.py, a number we set. The paper says so now.
-- Dropped, not re-measured: the 30 of 30 start-independence check and the 37 of 42 / 16 of 18 counts. Their scratch
-  scripts are gone. The schemes paper now quotes 271 of 300 from the map table and says start-independence is untested.
+- Start-independence re-tested with a new script, `analysis/envelope/start.py`: 12 of the 98 directions, goals at
+  0.6, 0.9, 1.15 of the 2 deg edge, rehearsed from rest and after a 0.15 m detour to +y (leaves the base 0.80 deg off)
+  and to +z (0.00 deg). Same answer on 72 of 72. From rest: 12, 12, 0 of 12 reachable. Limits of this test: goals sit
+  ON probed lines, none between 0.9 and 1.15 where the map is unsure, and only two detours of 0.15 m.
+- Dropped: the 37 of 42 / 16 of 18 counts (scratch scripts gone). The schemes paper quotes 271 of 300 from the map table.

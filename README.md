@@ -246,5 +246,6 @@ Things that are not done yet, so nobody gets surprised:
   scheme 5 does not. See D32.
 - `data/sweep.csv`, the paper tables and figs 1, 2, 3, 5 are redone on the new ready pose and loop (D33).
   Wrong-mass numbers, fig_band and fig6 are redone too (D34). On the new pose the full reach needs a much bigger bus: about 1700 kg at 0.5 deg, 950 kg at 2 deg.
+- The envelope still holds when the hand starts away from rest: 72 of 72 goals got the same answer after a 0.15 m detour (`analysis/envelope/start.py`, D34).
 - The "base comes back with the hand" claim failed on the new pose (0.30 deg left after 0.3 m out and back). The paper says so now.
 - Everything here is scripted runs. No participant data yet.
