@@ -275,3 +275,39 @@ All measured, 300 kg model unless said.
 - Analysis written before any participant: `analysis/study/feedback.py` (seconds per goal, wrong goes, give-ups,
   Friedman across cues, Wilcoxon pairs from 6 participants). `--check` runs it on made-up rows that are never saved.
   pid 0 is the self-test and is left out. NASA-TLX is not recorded by the tool yet.
+
+## D37 New problem statement: the tilt-bounded workspace as something an operator works against (2026-10-10)
+- Why: the old gap (show the operator a reach map) is too thin for a journal. Start-dependent workspaces are old news:
+  Umetani and Yoshida already have a straight-path workspace from a given start posture and a guaranteed workspace,
+  Papadopoulos and Dubowsky have path-dependent and path-independent workspaces.
+- What is still open, after five searches (a hypothesis, not a proof): those workspaces are bounded by singularity,
+  not by a base tilt budget, and no human works against them. Sato 2002 keeps the tilt in limits by slowing the arm
+  silently, no user study. The JHU virtual fixture studies have users but the limits are fixed in space. The DLR
+  null-space wall is a haptic wall that moves with the state, simulation only, no users.
+- So the paper is two things. (1) The 2 deg workspace as an object: how its edge moves with where the hand starts,
+  an inner set that holds from any start, and a live estimate cheap enough to redraw. (2) A study, about 20 people:
+  guaranteed map (small, never wrong) against live map (bigger, sometimes wrong) against rehearsal only.
+- Working guess for (1): tilt is counted from the rest attitude, so a detour leaves tilt behind and that eats the
+  budget. If that is most of the shift, the live map is the rest map with the budget corrected. `analysis/envelope/guar.py`
+  tests it (edge with the leftover tilt kept, and with it forgiven). Numbers go in the next entry.
+- Analysis for (2) is written before any participant: `analysis/study/feedback.py --maps` (files `maps_*.csv`, same
+  columns and tests as the cue study). `--maps --check` runs on made-up rows. The tool does not run this study yet.
+- CA3 paper stays as it is. This is the follow-on.
+
+## D38 The guess in D37 was wrong: leftover tilt does not explain the moved edge (2026-10-10)
+- Run: `analysis/envelope/guar.py`, 20 directions, edge found by bisection (to 0.016 of the map edge) from rest and
+  after five 0.3 m detours. Scripted, no participants. Saved in `data/guar_medium.npz`.
+- Mostly the edge does not move. 77 of 100 direction and detour pairs are within 0.05 of the rest edge. Median edge
+  1.03 from rest, 0.99 to 1.08 after a detour.
+- A few collapse: worst 0.49, then 0.60, 0.66, 0.68, 0.77. Four of the five are hand at +y going far to -x, the fifth
+  is hand at -x going to +y. Long cross moves. Replayed all five, every one stops on the 2 deg tilt, not the bus
+  and not a stall.
+- Guaranteed edge (worst of the six starts): median 0.97, worst 0.49. As volume it keeps 70% of the rest reach.
+  Only over these six starts, so it is not a guarantee for any start yet.
+- Forgiving the leftover tilt does not put the edge back: median distance to the rest edge 0.05 forgiven against
+  0.03 kept. It moves the edge both ways depending on direction (tilt is a vector, the budget is a ball around the
+  rest attitude). It does help the collapsed ones partly (0.49 to 0.61, 0.77 to 1.14). So "rest map with a corrected
+  budget" is dead as the live estimate.
+- Second guess, also weak: shift against the area of the triangle rest, start, goal. Big shifts only happen at big
+  area (worst -0.29 m above 0.09 m2, -0.05 m below 0.03 m2) but a signed linear fit explains 7%. Not a predictor.
+- Where that leaves the live map: no cheap formula yet. Rehearsal is still the only thing that is right.
