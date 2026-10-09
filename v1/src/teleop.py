@@ -374,6 +374,12 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
             if direct:
                 vel = x
             else:
+                if aid and np.linalg.norm(p - home) > TOL:      # every send starts from rest, as the map was probed (D36).
+                    tt = d.time                                 # ponytail: the jump home is free, a miss costs only its own travel
+                    mujoco.mj_resetData(m, d)
+                    d.qpos[7:] = Q_REST
+                    mujoco.mj_forward(m, d)
+                    d.time, p = tt, home
                 start, target, tgo = p, x, d.time
         if direct:
             target = p + vel * V_GO / KX_GO         # ctrl turns this into a hand speed of V_GO * stick

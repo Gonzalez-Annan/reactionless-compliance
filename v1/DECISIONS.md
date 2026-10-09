@@ -266,3 +266,12 @@ All measured, 300 kg model unless said.
 - Not done: redrawing the cage from the current start. 98 probe moves take about 85 s, too slow to do live.
 - Paper: P2 TODOs closed (hand to base weight 2 to 1 from TW_BASE, related work), the stale 'scores in points' TODO
   replaced (feedback() already scores seconds), operator view figure added (`analysis/envelope/opview.py`).
+
+## D36 Every send in the feedback study starts from rest (2026-10-10)
+- D35 left one hole: a second send on the same target started from wherever the first move ended, where the map is
+  less right. Now a send with the hand away from rest first puts the arm back at rest (`free_drive`, aid mode only).
+- The jump home costs no time. A miss still costs its own travel and the travel of the next send.
+- Check: `tests/test_resend.py`, the hand is 0.085 m out before the second send and 0.0006 m from home just after.
+- Analysis written before any participant: `analysis/study/feedback.py` (seconds per goal, wrong goes, give-ups,
+  Friedman across cues, Wilcoxon pairs from 6 participants). `--check` runs it on made-up rows that are never saved.
+  pid 0 is the self-test and is left out. NASA-TLX is not recorded by the tool yet.
