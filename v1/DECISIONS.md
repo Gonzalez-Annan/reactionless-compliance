@@ -202,3 +202,26 @@ Study mode for the feedback conditions NOT built: the teleop has not been watche
 - Picked out +x in the x-z plane: it is the old loop with y swapped for x, not the best case. Scheme 5: peak 0.182 deg vs DLS 1.045, back to 0.006 deg, limits never hit, 0.18 mm rms hand error.
 - Scheme 4 on the same loop: peak 0.179 deg, but it ends 0.066 deg off. It has no posture pull, so joint 5 wanders 3 rad in the null space and parks on its limit for 32 percent of the run. With limits off it returns to 0.000. So the gate now asks scheme 4 for under 0.1 deg at the end and scheme 5 for under 0.02 as before. This is a real weakness of plain RNS, worth a line in the paper.
 - 14 of 14 gates pass. Still stale: data/sweep.csv and the paper tables (old pose and old loop).
+
+## D33: sweep and paper tables redone on the new ready pose and loop (2026-10-10)
+
+Re-ran `analysis/sweep.py` (84 runs, all stable, no limit violation), `analysis/figures.py`, `analysis/envelope/v4.py`,
+`fence.py` and `analysis/level_base.py`, then put the numbers into both tex files. This closes the stale list in D32.
+
+- Position-only, 300 kg: scheme 5 peaks at 0.20 deg against 1.22 for DLS (sixfold, was fourfold). Tracking 0.16 mm.
+- 30 kg, position-only: schemes 4 and 5 sit on a joint limit 24 to 44% of the run, hand 47 to 50 mm behind.
+- 6-D, 30 kg: schemes 1 to 3 drift 45 to 48 deg. Getting inside 5 deg needs beta >= 1 and costs 81 to 84 mm.
+- Map: 162 of 300 targets reachable. 98 lines at depth < 1: 8 false go, 21 false no-go, 271 right.
+- Fence: 46 refused commands. 33 tilt trips (peak 2.020 deg), 10 stalls, 1 time limit, 2 arrived. Time limit is now
+  13.1 s (1.5 x the slowest of 41 reachable moves, 8.8 s), so `T_REST` in teleop.py went from 15.3 to 13.1.
+- Rest-pose singular values of the hand Jacobian with the base held level: 0.36, 0.10, 0.08 (were 0.51, 0.07, 0.04).
+
+One claim did not survive. We wrote that the tilt is borrowed and comes back with the hand (0.00 deg after 0.3 m out
+and back). From the new ready pose 0.30 deg is left and the joints end 1.24 rad from the start. Square laps leave
+0.67, 0.11, 0.14 deg. Both papers now say this.
+
+The fence also showed the rehearsal is wrong about 2 of 46 targets: it refused them and the arm reached them
+(base at 1.2 and 1.9 deg).
+
+Not re-run, marked with a red TODO in the tex: `v6.py` (wrong mass), `v8.py` and `band.py` (fig_band), `sizing.py`
+(fig6), the 0.0003 singularity number, the 30 of 30 / 37 of 42 / 16 of 18 counts, the 8 s rehearsal time.

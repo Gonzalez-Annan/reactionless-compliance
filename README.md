@@ -227,12 +227,14 @@ What's inside:
 - `src/safety.py`, `src/task.py`, `src/view.py`: contact safety map, scripted trial, viewer
 - `analysis/`: sweeps, envelope and ready pose measurements, figures
 - `paper/`: IEEE draft
-- `DECISIONS.md`: D1 to D32, every decision with the number behind it
+- `DECISIONS.md`: D1 to D33, every decision with the number behind it
 - `P2_Explainer.docx` and `P2_Literature_Survey.xlsx` if you want the background
 
 Things that are not done yet, so nobody gets surprised:
 
 - All 14 tests pass. Plain RNS (scheme 4) ends the loop 0.07 deg off because one joint drifts onto its limit;
   scheme 5 does not. See D32.
-- `data/sweep.csv`, the paper tables and a few figures are from before the new ready pose and loop. They need a re-run.
+- `data/sweep.csv`, the paper tables and figs 1, 2, 3, 5 are redone on the new ready pose and loop (D33).
+  Wrong-mass numbers, fig_band and fig6 are not, they have a red TODO in the tex.
+- The "base comes back with the hand" claim failed on the new pose (0.30 deg left after 0.3 m out and back). The paper says so now.
 - Everything here is scripted runs. No participant data yet.

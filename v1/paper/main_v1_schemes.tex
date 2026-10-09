@@ -14,12 +14,12 @@ arm has spare freedom that can be spent on cancelling that push, on keeping the 
 predictable for the operator, or on neither. We compare five redundancy resolution schemes in a
 momentum-conserving MuJoCo simulation, on three servicer sizes (30, 300 and 3000\,kg base, 12.5\,kg
 arm) and two task types (position only, and position plus orientation). With a position-only task
-the reactionless schemes cut peak base attitude drift by a factor of four on the 300\,kg servicer
-(0.28$^\circ$ against 1.15$^\circ$) at no cost in tracking. With a full 6-D task the freedoms run
+the reactionless schemes cut peak base attitude drift by a factor of six on the 300\,kg servicer
+(0.20$^\circ$ against 1.22$^\circ$) with tracking still under 0.2\,mm. With a full 6-D task the freedoms run
 out, and drift can only be bought with tracking error: on the 30\,kg servicer, staying inside a
-5$^\circ$ pointing limit costs 75\,mm of hand error. On the 3000\,kg servicer the choice of scheme
+5$^\circ$ pointing limit costs about 80\,mm of hand error. On the 3000\,kg servicer the choice of scheme
 changes base drift by less than 0.01$^\circ$, so the spare freedom is better spent on the operator.
-A contact-speed map from ISO/TS 15066 gives 0.28 to 0.72\,m/s depending on servicer size and
+A contact-speed map from ISO/TS 15066 gives 0.28 to 0.76\,m/s depending on servicer size and
 posture. A participant study of operator predictability is specified but not yet run.
 \end{abstract}
 
@@ -99,7 +99,7 @@ rather than hand error. In the scripted benchmark only pure RNS reaches a limit 
 on the 300\,kg servicer); no run exceeds one.
 
 \section{Experiment}
-The hand follows a 0.10\,m circle in the inertial frame, twice, 15\,s per loop, starting and
+The hand follows a 0.10\,m circle in the x-z plane of the inertial frame, twice, 15\,s per loop, starting and
 ending at rest; the 6-D task adds a 0.25\,rad tool tilt. A scripted operator (feed-forward plus
 proportional correction) stands in for the human so that runs are repeatable. Design: 5 schemes
 $\times$ 2 tasks $\times$ 3 sizes, plus $\beta\in[10^{-2},10^{6}]$ for schemes 4 and 5 in 6-D.
@@ -111,46 +111,46 @@ $\|q_{\mathrm{end}}-q_{\mathrm{rest}}\|$, smallest singular value of $J^{*}$. Al
 \caption{Position-only task: hand error / peak base drift}\label{tab:3d}
 \centering\begin{tabular}{lccc}\toprule
 Scheme & 30\,kg & 300\,kg & 3000\,kg\\\midrule
-DLS & 0.15\,mm / 19.3$^\circ$ & 0.14 / 1.15 & 0.15 / 0.040\\
-Grad. proj. & 0.09 / 19.4 & 0.13 / 1.24 & 0.14 / 0.044\\
-Impedance & 0.10 / 17.1 & 0.14 / 1.11 & 0.14 / 0.039\\
-RNS & 87.6 / 1.85 & 0.16 / 0.28 & 0.13 / 0.015\\
-Imp.+RNS & 87.9 / 1.82 & 0.17 / 0.29 & 0.13 / 0.014\\\bottomrule
+DLS & 0.14\,mm / 17.9$^\circ$ & 0.12 / 1.22 & 0.12 / 0.040\\
+Grad. proj. & 0.08 / 16.4 & 0.11 / 1.08 & 0.12 / 0.037\\
+Impedance & 0.08 / 19.7 & 0.11 / 1.23 & 0.12 / 0.040\\
+RNS & 47.0 / 3.97 & 0.16 / 0.22 & 0.10 / 0.016\\
+Imp.+RNS & 49.7 / 1.94 & 0.16 / 0.20 & 0.11 / 0.027\\\bottomrule
 \end{tabular}\end{table}
 
 \textbf{Position-only task (Table~\ref{tab:3d}).} On the 300\,kg servicer the reactionless schemes
-cut peak drift fourfold with tracking still under 0.3\,mm, and the base returns to its start
-attitude (about 0.01$^\circ$) where the others end 0.5 to 0.6$^\circ$ off. Drift is not exactly
+cut peak drift five to sixfold with tracking still under 0.2\,mm. With scheme 5 the base returns to its start
+attitude (0.01$^\circ$). Plain RNS ends 0.13$^\circ$ off because one joint drifts onto its limit, and the others end 0.4 to 0.7$^\circ$ off. Drift is not exactly
 zero as the freedom count predicts; we attribute the remainder to velocity-servo lag, which the
 attitude feedback corrects only after it appears. \todo{confirm by rerunning with ideal joint
-rates.} On the 30\,kg servicer the reactionless solution needs joint rates above the 2\,rad/s
-limit, so the hand falls 88\,mm behind: a quiet base is feasible in principle and not at this speed.
+rates.} On the 30\,kg servicer the reactionless solution holds a joint on its limit for 24 to 44\% of the run,
+so the hand falls 47 to 50\,mm behind and the base still turns 2 to 4$^\circ$: a quiet base is feasible in principle and not on this path.
 
 \begin{figure}[t]\centering\includegraphics[width=\columnwidth]{figs/fig1_tradeoff}
 \caption{6-D task. Each line is one reactionless scheme as $\beta$ goes from $10^{-2}$ to $10^{6}$.
 Dashed: 5$^\circ$ pointing limit.}\label{fig:trade}\end{figure}
 
 \textbf{6-D task (Fig.~\ref{fig:trade}).} There is no free lunch. On the 300\,kg servicer RNS moves
-from 0.8\,mm error and 1.4$^\circ$ drift ($\beta=10^{-2}$) to 31\,mm and 0.27$^\circ$
-($\beta=10^{2}$), and at $\beta=10^{6}$ the base is still and the hand barely follows (112\,mm).
-On the 30\,kg servicer schemes 1 to 3 drift 25 to 28$^\circ$, far outside a 5$^\circ$ limit; getting
-inside it needs $\beta\ge1$ and costs 75\,mm.
+from 1.7\,mm error and 1.5$^\circ$ drift ($\beta=10^{-2}$) to 56\,mm and 0.32$^\circ$
+($\beta=10^{2}$), and at $\beta=10^{6}$ the base is still and the hand barely follows (114\,mm).
+On the 30\,kg servicer schemes 1 to 3 drift 45 to 48$^\circ$, far outside a 5$^\circ$ limit; getting
+inside it needs $\beta\ge1$ and costs 81 to 84\,mm.
 
 \begin{figure}[t]\centering\includegraphics[width=.9\columnwidth]{figs/fig2_size}
 \caption{Peak base drift against base mass, 6-D task, $\beta=10$.}\label{fig:size}\end{figure}
 
-\textbf{Servicer size (Fig.~\ref{fig:size}).} Drift falls roughly in proportion to base mass. At
-3000\,kg every scheme stays under 0.06$^\circ$ and the reactionless term buys nothing measurable
-in 6-D, while costing 0.7 to 1.9\,mm of tracking.
+\textbf{Servicer size (Fig.~\ref{fig:size}).} Drift falls about 30 times for each tenfold step in base mass. At
+3000\,kg every scheme stays under 0.05$^\circ$ and the reactionless term buys nothing measurable
+in 6-D, while costing 1.3 to 3.7\,mm of tracking.
 
 \begin{figure}[t]\centering\includegraphics[width=.9\columnwidth]{figs/fig3_jointdrift}
 \caption{Joint return error after two loops, 300\,kg servicer.}\label{fig:drift}\end{figure}
 
 \textbf{Joint drift (Fig.~\ref{fig:drift}).} Null-space impedance returns the arm to its rest shape
-(0.006\,rad position-only, 0.022\,rad 6-D); DLS ends 0.06 to 0.16\,rad away. Pure RNS is the worst
-by far (2.4\,rad position-only, stopped only by its joint limits), because it spends all spare freedom on the base. Adding impedance
-to RNS recovers most of that (0.48 and 0.18\,rad) with no change in base drift for the
-position-only task.
+(0.010\,rad position-only, 0.021\,rad 6-D); DLS ends 0.05 to 0.20\,rad away. Pure RNS is the worst
+by far (3.1\,rad position-only, on a joint limit for half the run), because it spends all spare freedom on the base. Adding impedance
+to RNS recovers part of that position-only (1.18\,rad) and most of it in 6-D (0.14 against 0.97\,rad), with
+slightly less base drift in the position-only task (0.20 against 0.22$^\circ$).
 
 \begin{table}[t]
 \caption{Straight-line hand reach from rest against base drift allowed (hand first, $w=2$)}\label{tab:reach}
@@ -158,33 +158,33 @@ position-only task.
 \hline
 Drift allowed & 30\,kg & 300\,kg & 3000\,kg\\
 \hline
-0.5$^\circ$ & 0.09 & 0.23 (0.14--0.34) & 0.59\\
-1$^\circ$ & -- & 0.32 (0.25--0.45) & --\\
-2$^\circ$ & 0.20 & 0.52 (0.32--0.85) & 0.59\\
-none & -- & 0.59 (0.32--0.96) & --\\
+0.5$^\circ$ & 0.15 & 0.25 (0.11--0.37) & 0.61\\
+1$^\circ$ & -- & 0.31 (0.17--0.48) & --\\
+2$^\circ$ & 0.18 & 0.46 (0.27--0.70) & 0.61\\
+none & -- & 0.59 (0.27--1.20) & --\\
 \hline
 \multicolumn{4}{l}{\footnotesize Mean over $\pm x,\pm y,\pm z$ in metres (range); arrival within 5\,mm.}
 \end{tabular}\end{table}
 
 \textbf{What a level base costs in reach (Table~\ref{tab:reach}).} Restricted to the joint motions
 that do not turn the base, the hand Jacobian of the 300\,kg servicer at rest has singular values
-0.51, 0.07 and 0.04, against 0.2 to 0.85 unrestricted: the hand keeps one free direction and loses
-about ten times of the other two. Over 6000 random postures the smallest value has median 0.01 and
+0.36, 0.10 and 0.08, against 0.22 to 0.74 unrestricted: one direction stays about four times freer
+than the other two. Over 6000 random postures the smallest value has median 0.01 and
 never exceeds 0.10, so no starting posture removes the limit, and it falls to 0.0003 after 0.15\,m
-of travel, a dynamic singularity \cite{dubowsky1993}. Reach is therefore bought with drift. The
-price is set by base inertia: at rest the worst hand direction turns the base by 12$^\circ$,
-0.6$^\circ$ and 0.02$^\circ$ per 10\,cm on the 30, 300 and 3000\,kg servicers. The drift is
-borrowed, not lost. Holding the hand still leaves the spare joints 10 to 20\% of their authority
-over the base, and almost none about one axis, so the base does not re-level at the goal
-(0.24$^\circ$ on arrival, 0.25$^\circ$ after 8\,s); but when the hand returns the base returns with
-it (0.00$^\circ$ after 0.3\,m out and back, 0.01$^\circ$ per lap of a 0.25\,m square). Under
-null-space impedance, base tilt is in effect a function of where the hand is.
+of travel, a dynamic singularity \cite{dubowsky1993}. \todo{not re-run on the new ready pose (D33).} Reach is therefore bought with drift. The
+price is set by base inertia: at rest the worst hand direction turns the base by 9.9$^\circ$,
+0.76$^\circ$ and 0.03$^\circ$ per 10\,cm on the 30, 300 and 3000\,kg servicers. Holding the hand still leaves the spare joints 10 to 20\% of their authority
+over the base, so the base only partly re-levels at the goal
+(1.52$^\circ$ on arrival, 0.79$^\circ$ after 8\,s, one joint on its limit). The drift does not fully come back
+with the hand either. From the earlier rest pose it did (0.00$^\circ$ after 0.3\,m out and back). From the ready
+pose 0.30$^\circ$ is left, with the joints 1.24\,rad from where they started, and three laps of a square leave
+0.67, 0.11 and 0.14$^\circ$. Base tilt is only roughly a function of where the hand is.
 
 \begin{figure}[t]\centering\includegraphics[width=\columnwidth]{figs/fig6_sizing}
 \caption{Left: mean straight-line reach against base mass for three drift limits. Right: base turn per 10\,cm of hand
 travel (solid) and the momentum reaction wheels would carry to cancel it at 0.1\,m/s (dashed).}\label{fig:sizing}\end{figure}
 
-\textbf{Sizing (Fig.~\ref{fig:sizing}).} Nine base masses from 30 to 3000\,kg give a design chart for this 12.5\,kg arm:
+\textbf{Sizing (Fig.~\ref{fig:sizing}).} \todo{not re-run on the new ready pose (D33).} Nine base masses from 30 to 3000\,kg give a design chart for this 12.5\,kg arm:
 the full 0.59\,m straight-line reach needs about 950\,kg at a 0.5$^\circ$ limit and about 530\,kg at 2$^\circ$; a
 100\,kg servicer keeps 0.13 to 0.22\,m. Holding the base with reaction wheels instead does not get cheaper on a
 bigger bus: the momentum they must carry is $h=Kv$ for hand speed $v$, with $K$ between 6 and 9\,kg\,m at rest across
@@ -207,7 +207,7 @@ against Annex A}), $v_{\max}=F_{\max}/\sqrt{\mu k}$ with $\mu$ the reduced mass.
 \begin{figure*}[t]\centering\includegraphics[width=.8\textwidth]{figs/fig5_vmax}
 \caption{Permitted hand speed over shoulder and elbow angle.}\label{fig:vmax}\end{figure*}
 
-Fig.~\ref{fig:vmax}: 0.39 to 0.72\,m/s on the 30\,kg servicer, 0.30 to 0.42 on 300\,kg, and 0.28 to
+Fig.~\ref{fig:vmax}: 0.39 to 0.76\,m/s on the 30\,kg servicer, 0.30 to 0.44 on 300\,kg, and 0.28 to
 0.29 on 3000\,kg, where the base is so heavy that posture stops mattering. The task's peak hand
 speed is 0.063\,m/s, well inside all three. A floating base makes contact gentler, and a light
 one more so.
@@ -226,11 +226,11 @@ repeatable arm. For 6-D
 work on a small servicer the operator must be given, or must choose, a point on the trade-off
 curve. On a large servicer reaction is negligible and the freedom should go to the operator.
 For teleoperation the same trade-off sets the work envelope: the space an operator can be offered
-is a choice of how far the base may tilt, and because that tilt is repeatable it can be shown to
+is a choice of how far the base may tilt, and because that tilt is roughly repeatable it can be shown to
 the operator before the move rather than discovered during it. Whether a goal is accepted did not depend
 on where the hand started (30 of 30 goals, from rest and after a 0.15\,m detour), so one envelope probed
 from rest along 98 directions can be drawn once: it agreed with a rehearsal of the move on 37 of 42 goals
-placed near its edge, and the tilt band it predicted on 16 of 18.
+placed near its edge, and the tilt band it predicted on 16 of 18. \todo{these counts are from the old rest pose (D33).}
 
 \textbf{Limitations.} One arm, one path, one rest posture; gains tuned by hand on one servicer;
 scripted operator only; no flexible appendages, joint friction or sensor noise; initial momentum

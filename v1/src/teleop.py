@@ -77,7 +77,7 @@ VK = dict(left=0x25, up=0x26, right=0x27, down=0x28, pgup=0x21, pgdn=0x22, home=
 LIMITS = (0.5, 1.0, 2.0)                # deg of base tilt: the three shells of the envelope
 GREEN, YELLOW, RED, WHITE = [0, 1, 0, 0.6], [1, 1, 0, 0.6], [1, 0, 0, 0.8], [1, 1, 1, 0.6]
 LINE = ([0.2, 1, 0.3, 1], [1, 0.55, 0.1, 1], [0.3, 0.6, 1, 1])     # slice rings: base tilt 0.5, 1, 2 deg
-FENCE = (0.9, 1.1)                      # depth on the 2 deg cage: inside 0.9 the map is right 87 times in 89, past 1.1 nothing is reachable (D25)
+FENCE = (0.9, 1.1)                      # depth on the 2 deg cage: inside 0.9 the map is right 86 times in 89, past 1.1 nothing is reachable (D25)
 
 
 def down(n):
@@ -273,9 +273,9 @@ def preview(m, sid, Rb0, scheme, mode, s):
 
 
 TARGETS = np.array([[0, .2, 0], [0, .2, .2], [.1, 0, .2], [0, -.15, .1], [0, 0, 0]])   # pilot goals, from the starting hand position
-T_MOVE = 30.0                           # s a move may take before the fence calls it back. 42 reachable moves from rest took at most 10.2 s (analysis/envelope/fence.py)
+T_MOVE = 30.0                           # s a move may take before the fence calls it back. 41 reachable moves from rest took at most 8.8 s (analysis/envelope/fence.py)
                                         # ponytail: one number, 3x the slowest from-rest move, to leave room for a move across the cage; scale with distance if it trips on good moves
-T_REST = 15.3                           # the same limit for the feedback study, where every move starts from rest: 1.5 x the slowest of those 42
+T_REST = 13.1                           # the same limit for the feedback study, where every move starts from rest: 1.5 x the slowest of those 41
 NEAR, DWELL, T_OUT = 0.02, 0.5, 90.0    # a pilot goal is reached after DWELL s within NEAR m; given up after T_OUT s
 
 
