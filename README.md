@@ -219,6 +219,16 @@ pytest -q tests
 python src/teleop.py
 ```
 
+Checked on a fresh clone with a clean `pip install -r requirements.txt` (Windows, Python 3.12, MuJoCo 3.15):
+15 tests pass in about a minute and the teleop window opens. The code also compiles on Python 3.11.
+
+- Run everything from inside `v1/`. The scripts look for `src/` and `models/` relative to where you are.
+- Windows: activate with `.venv\Scripts\activate` instead of the `source` line.
+- Linux: click the viewer window first, the keys are read from it. Arrows, PgUp/PgDn move the dot, Enter sends it.
+  This path has a test but nobody has driven it on Linux yet, tell me if a key does nothing.
+- macOS: MuJoCo needs `mjpython src/teleop.py` instead of `python`. Also not tried yet.
+- First start takes about a minute before the envelope shows up, it probes 98 directions.
+
 What's inside:
 
 - `src/dynamics.py`: generalized Jacobian, base reaction matrix, reaction null space, momentum check
@@ -232,7 +242,7 @@ What's inside:
 
 Things that are not done yet, so nobody gets surprised:
 
-- All 14 tests pass. Plain RNS (scheme 4) ends the loop 0.07 deg off because one joint drifts onto its limit;
+- All 15 tests pass. Plain RNS (scheme 4) ends the loop 0.07 deg off because one joint drifts onto its limit;
   scheme 5 does not. See D32.
 - `data/sweep.csv`, the paper tables and figs 1, 2, 3, 5 are redone on the new ready pose and loop (D33).
   Wrong-mass numbers, fig_band and fig6 are not, they have a red TODO in the tex.
