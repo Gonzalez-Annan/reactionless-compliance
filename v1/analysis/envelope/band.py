@@ -11,7 +11,7 @@ for k in ks:
     z = np.load(here / ("v8_%g.npz" % k)); R = np.linalg.norm(z["rays"] - d.site_xpos[sid], axis=2)
     bind.append([(z["bind"] > j).sum() for j in range(3)]); short.append((R < PARK).sum(axis=0))
 bind, short, mass = np.array(bind), np.array(short), 300 * np.array(ks)
-assert list(bind[4]) == [96, 90, 65] and list(short[4]) == [44, 16, 0]     # the 300 kg row printed by v8.py
+assert list(bind[4]) == [97, 93, 63] and list(short[4]) == [45, 25, 4]     # the 300 kg row printed by v8.py
 fig, ax = plt.subplots(1, 2, figsize=(7, 2.6), sharex=True)
 for j, lim in enumerate(teleop.LIMITS):
     ax[0].semilogx(mass, bind[:, j], "o-", label="%g deg" % lim); ax[1].semilogx(mass, short[:, j], "o-")

@@ -225,3 +225,21 @@ The fence also showed the rehearsal is wrong about 2 of 46 targets: it refused t
 
 Not re-run, marked with a red TODO in the tex: `v6.py` (wrong mass), `v8.py` and `band.py` (fig_band), `sizing.py`
 (fig6), the 0.0003 singularity number, the 30 of 30 / 37 of 42 / 16 of 18 counts, the 8 s rehearsal time.
+
+## D34 The rest of the analyses redone on the new ready pose (2026-10-10)
+
+All measured, 300 kg model unless said.
+- Band (`v8.py`, `band.py`, fig_band). Directions where tilt binds / under 0.25 m reach, at 0.5, 1, 2 deg:
+  30 kg 96,95,88 / 90,84,53. 150 kg 97,96,81 / 62,44,24. 300 kg 97,93,63 / 45,25,4. 600 kg 96,72,33 / 26,2,2.
+  990 kg 80,48,1 / 3,2,2. 3000 kg 15,0,0 / 0,0,0. Same story as D28: the band is about 150 to 600 kg at 2 deg
+  and moves up when the limit tightens.
+- Wrong mass (`v6.py`, 120 goals, true mass x0.9 / x1 / x1.1): nominal map false go 4, 1, 1, false no-go 4, 6, 10.
+  1 of 98 directions changes reach over 30%. Rehearsing on the wrong mass is wrong on 5 and 4 of 120. Still small.
+- Sizing (`sizing.py`, fig6): full 0.61 m reach needs about 1700 kg at 0.5 deg and about 950 kg at 2 deg, which is
+  a lot more bus than the old pose said (950 and 530). 100 kg keeps 0.17 to 0.23 m. K is 8 to 11 kg m across the
+  nine masses, so 0.8 to 1.1 N m s at 0.1 m/s.
+- Singularity: smallest restricted singular value is 0.077 at rest, 0.007 after 0.15 m in +x or -x, under 0.0001
+  after 0.14 m in -y. +y and z stay near 0.06 to 0.08. The 6000 random postures are not tied to the rest pose.
+- 8 s rehearsal time is `CHECK_S` in teleop.py, a number we set. The paper says so now.
+- Dropped, not re-measured: the 30 of 30 start-independence check and the 37 of 42 / 16 of 18 counts. Their scratch
+  scripts are gone. The schemes paper now quotes 271 of 300 from the map table and says start-independence is untested.

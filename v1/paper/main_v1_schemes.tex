@@ -170,8 +170,8 @@ none & -- & 0.59 (0.27--1.20) & --\\
 that do not turn the base, the hand Jacobian of the 300\,kg servicer at rest has singular values
 0.36, 0.10 and 0.08, against 0.22 to 0.74 unrestricted: one direction stays about four times freer
 than the other two. Over 6000 random postures the smallest value has median 0.01 and
-never exceeds 0.10, so no starting posture removes the limit, and it falls to 0.0003 after 0.15\,m
-of travel, a dynamic singularity \cite{dubowsky1993}. \todo{not re-run on the new ready pose (D33).} Reach is therefore bought with drift. The
+never exceeds 0.10, so no starting posture removes the limit, and from 0.08 at rest it falls to 0.007
+after 0.15\,m forward and below 0.0001 after 0.14\,m sideways, a dynamic singularity \cite{dubowsky1993}. Reach is therefore bought with drift. The
 price is set by base inertia: at rest the worst hand direction turns the base by 9.9$^\circ$,
 0.76$^\circ$ and 0.03$^\circ$ per 10\,cm on the 30, 300 and 3000\,kg servicers. Holding the hand still leaves the spare joints 10 to 20\% of their authority
 over the base, so the base only partly re-levels at the goal
@@ -184,12 +184,12 @@ pose 0.30$^\circ$ is left, with the joints 1.24\,rad from where they started, an
 \caption{Left: mean straight-line reach against base mass for three drift limits. Right: base turn per 10\,cm of hand
 travel (solid) and the momentum reaction wheels would carry to cancel it at 0.1\,m/s (dashed).}\label{fig:sizing}\end{figure}
 
-\textbf{Sizing (Fig.~\ref{fig:sizing}).} \todo{not re-run on the new ready pose (D33).} Nine base masses from 30 to 3000\,kg give a design chart for this 12.5\,kg arm:
-the full 0.59\,m straight-line reach needs about 950\,kg at a 0.5$^\circ$ limit and about 530\,kg at 2$^\circ$; a
-100\,kg servicer keeps 0.13 to 0.22\,m. Holding the base with reaction wheels instead does not get cheaper on a
-bigger bus: the momentum they must carry is $h=Kv$ for hand speed $v$, with $K$ between 6 and 9\,kg\,m at rest across
+\textbf{Sizing (Fig.~\ref{fig:sizing}).} Nine base masses from 30 to 3000\,kg give a design chart for this 12.5\,kg arm:
+the full 0.61\,m straight-line reach needs about 1700\,kg at a 0.5$^\circ$ limit and about 950\,kg at 2$^\circ$; a
+100\,kg servicer keeps 0.17 to 0.23\,m. Holding the base with reaction wheels instead does not get cheaper on a
+bigger bus: the momentum they must carry is $h=Kv$ for hand speed $v$, with $K$ between 8 and 11\,kg\,m at rest across
 all nine masses (median 8, 90th percentile 13 over 2000 postures at 300\,kg), because it is the arm's momentum and
-not the base's. At the 0.1\,m/s used here that is 0.6 to 0.9\,N\,m\,s. Base drift scales with the bus; wheel
+not the base's. At the 0.1\,m/s used here that is 0.8 to 1.1\,N\,m\,s. Base drift scales with the bus; wheel
 demand scales with the arm and with hand speed. Against catalogue small-satellite wheels (vendor
 datasheet values: 0.5\,N\,m\,s at 25\,mN\,m, 1.0\,N\,m\,s at 60\,mN\,m, 12\,N\,m\,s at 200\,mN\,m) the
 momentum is affordable and the torque is not: with $K=8$\,kg\,m a 1\,N\,m\,s wheel holds the base up to
@@ -227,10 +227,9 @@ work on a small servicer the operator must be given, or must choose, a point on 
 curve. On a large servicer reaction is negligible and the freedom should go to the operator.
 For teleoperation the same trade-off sets the work envelope: the space an operator can be offered
 is a choice of how far the base may tilt, and because that tilt is roughly repeatable it can be shown to
-the operator before the move rather than discovered during it. Whether a goal is accepted did not depend
-on where the hand started (30 of 30 goals, from rest and after a 0.15\,m detour), so one envelope probed
-from rest along 98 directions can be drawn once: it agreed with a rehearsal of the move on 37 of 42 goals
-placed near its edge, and the tilt band it predicted on 16 of 18. \todo{these counts are from the old rest pose (D33).}
+the operator before the move rather than discovered during it. One envelope probed from rest along 98
+directions agreed with a rehearsal of the move on 271 of 300 goals placed near its edge. We have not
+re-tested whether that holds when the hand starts somewhere other than rest.
 
 \textbf{Limitations.} One arm, one path, one rest posture; gains tuned by hand on one servicer;
 scripted operator only; no flexible appendages, joint friction or sensor noise; initial momentum
