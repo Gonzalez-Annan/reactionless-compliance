@@ -245,4 +245,10 @@ All measured, 300 kg model unless said.
   0.6, 0.9, 1.15 of the 2 deg edge, rehearsed from rest and after a 0.15 m detour to +y (leaves the base 0.80 deg off)
   and to +z (0.00 deg). Same answer on 72 of 72. From rest: 12, 12, 0 of 12 reachable. Limits of this test: goals sit
   ON probed lines, none between 0.9 and 1.15 where the map is unsure, and only two detours of 0.15 m.
+- Harder version (`start.py hard`): 20 random directions between the lines, goals at 0.95, 1.0, 1.05 of the map's
+  edge, four 0.15 m detours (+y, +z, -x, and 0.1 +x 0.1 +z). Same answer on 217 of 240. By depth: 79 of 80, 76 of 80,
+  62 of 80. Flips go both ways: 14 go -> no-go, 9 no-go -> go. From rest 20, 20, 6 of 20 are reachable, so between
+  lines the map sits a little inside the real edge.
+  Reading: start-independence holds away from the edge and fails within about 5% of it. That is inside the caution
+  zone (0.90 to 1.10) the fence already has, so the three zones stand, but 'drawn once' needs the margin said with it.
 - Dropped: the 37 of 42 / 16 of 18 counts (scratch scripts gone). The schemes paper quotes 271 of 300 from the map table.
