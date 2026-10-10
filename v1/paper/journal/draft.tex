@@ -1,17 +1,16 @@
-% Journal follow-on to the CA3 paper. Plain article class for now, the Springer class goes in when we pick the venue.
+% Journal follow-on to the CA3 paper. Springer Nature class (sn-jnl.cls, Dec 2024 template, kept next to this file).
+% Reference style is sn-mathphys-num for now, change the option when we pick the journal.
 % Rebuild: tectonic draft.tex (in paper/journal). Every number here is from a scripted run, the decision that
 % holds it is named in a comment. Red text = not done yet. No participant has been run.
-\documentclass[11pt]{article}
-\usepackage[margin=1in]{geometry}
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}
 \usepackage{graphicx,amsmath,booktabs,xcolor}
 \newcommand{\todo}[1]{\textcolor{red}{[#1]}}
-\title{A reach map that moves: showing an operator the tilt-bounded workspace of a free-floating arm}
-\author{\todo{authors, order to agree}}
-\date{}
 \begin{document}
-\maketitle
+\title[A reach map that moves]{A reach map that moves: showing an operator the tilt-bounded workspace of a free-floating arm}
+\author[1]{\todo{authors, order to agree}}
+\affil[1]{\orgname{Nanyang Technological University}, \orgaddress{\country{Singapore}}}
 
-\begin{abstract}
+\abstract{
 An arm on a free-floating spacecraft turns the spacecraft when it moves. If the base must stay within a tilt
 budget, here 2 degrees, only part of the arm's reach can be used, and an operator needs to know which part.
 The obvious aid is a map of that part, drawn once. We show in simulation that such a map is wrong: the edge of the
@@ -20,8 +19,11 @@ of the map in 80\% of cases and falls below 80\% of it in 7\%, down to 35\% at w
 that says which. This leaves three honest things to show an operator: a small map that held from every start we
 tested, a map recomputed from the current state that is right but 12 to 13 s late, or no map and a rehearsal that
 refuses a bad command. We describe the three, a tool that runs them, and a within-subject study protocol that
-compares them against the fixed map. \todo{study results: no participant has been run}
-\end{abstract}
+compares them against the fixed map. \todo{study results: no participant has been run}}
+
+\keywords{free-floating manipulator, teleoperation, workspace, base attitude, operator feedback}
+
+\maketitle
 
 \section{Introduction}
 A manipulator on a free-floating base has no fixed workspace in the usual sense. Momentum is conserved, so every
