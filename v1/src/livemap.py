@@ -4,6 +4,7 @@
     job.ready(), np.array(job.get())     98 tips, same order as teleop.DIRS, lines start at the hand as it was at ask()
 About 13 s from rest and 7 s from a detour on 10 processes (analysis/envelope/live.py). Tilt is counted from rest.
 The map is as old as the wait: it is for a hand that has settled, not one that is moving."""
+import mujoco
 import teleop as T
 
 
@@ -15,6 +16,7 @@ def init():
 def probe(a):
     qpos, qvel, u = a; m, d, sid, Rb0 = G
     d.qpos[:], d.qvel[:] = qpos, qvel
+    mujoco.mj_forward(m, d)                              # or the line starts from where the hand was at rest
     return T.ray(m, d, sid, Rb0, u, 5, "3d")
 
 

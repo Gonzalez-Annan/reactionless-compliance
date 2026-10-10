@@ -18,7 +18,7 @@ The obvious aid is a map of that part, drawn once. We show in simulation that su
 tilt-bounded reach depends on where the hand starts. Over 40 starts and 20 directions the edge stays within 5\%
 of the map in 80\% of cases and falls below 80\% of it in 7\%, down to 35\% at worst, and we found no cheap rule
 that says which. This leaves three honest things to show an operator: a small map that held from every start we
-tested, a map recomputed from the current state that is right but 7 to 13 s late, or no map and a rehearsal that
+tested, a map recomputed from the current state that is right but 12 to 13 s late, or no map and a rehearsal that
 refuses a bad command. We describe the three, a tool that runs them, and a within-subject study protocol that
 compares them against the fixed map. \todo{study results: no participant has been run}
 \end{abstract}
@@ -130,7 +130,7 @@ less than half and 5 keep everything. % D41, data/wide98_medium.npz
 \subsection{A map from where the arm is}
 Run the 98 probes again from the current state. On one thread this takes 85 s. Shared over 10 processes it takes
 12.6 s from rest and 7.4 s after a 0.3 m move, and 12 processes are no faster. % D39
-So this map is right, for a hand that has stopped, and 7 to 13 s old. The tool shows a yellow marker on the hand
+So this map is right, for a hand that has stopped, and 12 to 13 s old. The tool shows a yellow marker on the hand
 while the map is old and a green one when it is current.
 
 \subsection{No map}

@@ -14,7 +14,7 @@ A map drawn once from rest is wrong on roughly 1 goal in 14 near the edge. What 
 | --- | --- | --- |
 | rest | the full cage, drawn once from rest. Dot stops at it. | wrong sometimes: a go that the fence has to bring back |
 | guaranteed | the small cage that held from every tested start. Dot stops at it. | reachable goals outside it have to be given up |
-| live | the cage probed again from wherever the hand stopped. Dot stops at it. | 7 to 13 s old after every move |
+| live | the cage probed again from wherever the hand stopped. Dot stops at it. | 12 to 13 s old after every move |
 | gate | no cage. Every go is rehearsed and refused if it cannot work. | the rehearsal time on every go, and no picture to plan with |
 
 `rest` is the control. It is what the CA3 tool already does.

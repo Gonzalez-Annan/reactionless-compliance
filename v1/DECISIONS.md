@@ -366,3 +366,18 @@ All measured, 300 kg model unless said.
 - `analysis/study/prestudy.py`: a fixed rule plays the operator through all four maps, saved to `data/scripted/`.
   It is there to see if the maps can differ at all on these goals. Not participant data.
 - Check: 18 tests pass. No participant has run it.
+
+## D42 The live map was drawn from the wrong place, fixed (2026-10-10)
+- Found by the scripted pre-study, id 1: in the live block 4 of 7 scored goals that the rehearsal says are reachable
+  were given up with no send, because the dot was held short of them.
+- Cause: a pool worker got the joint state but never recomputed positions, so every line started from where the
+  hand is at rest and stopped after about 0.05 m. From rest it was right, which is why D40 saw tips matching the
+  cached cage. After any move the live cage was close to nothing.
+- Fix: one `mj_forward` in `livemap.probe`. Checked on 4 states from that block: the 3 lines nearest the goal are
+  the same from a worker and in process to the mm (0.31 to 0.86 m, not 0.05), and the goals sit at 0.95 to 1.05
+  of the live cage against 0.92 to 1.06 of the rest cage. New test `test_live_line_starts_at_the_hand`.
+- The 7 s after a detour in D40 was the broken map being quick. Timed again: 13.0 s from rest, 12.2 s after a
+  detour, 10 processes. So "right but 12 to 13 s old". Protocol and draft changed.
+- `prestudy.py` had its own bug: the "updating" flag from the live block carried into the next block and the rule
+  never sent or parked there (rest and gate blocks of id 1, all 90 s timeouts). State is now cleared per block.
+- The id 1 rows from before the fix are deleted. No participant ever saw the broken map.

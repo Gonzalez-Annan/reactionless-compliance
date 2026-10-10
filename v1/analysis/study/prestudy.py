@@ -57,7 +57,11 @@ def operator():
         return list(s.get("rgba", [])) == T.RED or n[0] - at[2] > AFTER_GO
 
     axes.park = park
-    return axes, lambda: (s, hook)
+    def fresh():                                         # a new block: nothing left over from the last one but the camera
+        v = s["v"]; s.clear(); s["v"] = v
+        return s, hook
+
+    return axes, fresh
 
 
 if __name__ == "__main__":

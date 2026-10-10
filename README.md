@@ -237,7 +237,7 @@ What's inside:
 - `src/safety.py`, `src/task.py`, `src/view.py`: contact safety map, scripted trial, viewer
 - `analysis/`: sweeps, envelope and ready pose measurements, figures
 - `paper/`: IEEE draft
-- `DECISIONS.md`: D1 to D40, every decision with the number behind it
+- `DECISIONS.md`: D1 to D42, every decision with the number behind it
 - `analysis/study/PROTOCOL_maps.md`: the plan for the maps study (what the operator is shown when the reach moves with the start), written before anyone is run
 - `analysis/study/feedback.py --maps`: the analysis for it. `--maps --check` runs it on made-up rows so we know it works before there is data
 - `analysis/envelope/wide.py` and `widefig.py`: how far the 2 deg edge moves over 40 starts, and the figure

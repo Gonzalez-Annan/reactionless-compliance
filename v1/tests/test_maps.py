@@ -73,3 +73,15 @@ def test_maps():
 if __name__ == "__main__":
     test_maps()
     print("ok")
+
+
+def test_live_line_starts_at_the_hand():
+    """A line probed by a pool worker is the line probed here, from a hand that is not at rest."""
+    import mujoco, livemap
+    m, d, sid, Rb0 = T.setup("medium"); g = d.site_xpos[sid] + [0.15, 0.1, 0.1]
+    for i in range(int(8 / m.opt.timestep)):
+        if i % T.DECIM == 0:
+            T.ctrl(m, d, sid, Rb0, g, 5, "3d")
+        mujoco.mj_step(m, d)
+    livemap.init(); u = T.DIRS[0]
+    assert np.allclose(livemap.probe((d.qpos.copy(), d.qvel.copy(), u)), T.ray(m, d, sid, Rb0, u, 5, "3d"), atol=1e-6)
