@@ -190,9 +190,14 @@ def reachable(m, d, sid, Rb0, target, scheme, mode):
     return None
 
 
-def ray(m, d, sid, Rb0, u, scheme, mode, reach=REACH, stall=0.002, marks=None):
+def ray(m, d, sid, Rb0, u, scheme, mode, reach=REACH, stall=0.002, marks=None, why=None):
     """Pull the hand along u on a copy of the simulation. -> the furthest point it got to with the base level.
-    marks: a list that gets the last point inside each of LIMITS, as the base passes them."""
+    marks: a list that gets the last point inside each of LIMITS, as the base passes them.
+    why: a list that gets what ended the line ("tilt", "bus" or "stall") and how many joints sat at a limit then.
+    Left empty if the hand got the whole way."""
+    def end(r):
+        if why is not None:
+            why.extend([r, int((np.abs(d2.qpos[7:, None] - Q_LIM) < MARGIN + 1e-3).any(1).sum())])
     d2 = copy.copy(d)
     p0 = best = d.site_xpos[sid].copy()
     last = 0.0
@@ -202,10 +207,12 @@ def ray(m, d, sid, Rb0, u, scheme, mode, reach=REACH, stall=0.002, marks=None):
             while marks is not None and len(marks) < len(LIMITS) and base > LIMITS[len(marks)]:
                 marks.append(best)
             if base > BASE_MAX or clear(m, d2) < CLEAR:    # the arm may not pass through the bus either
+                end("tilt" if base > BASE_MAX else "bus")
                 break
             best = p
             if i and i % (50 * DECIM) == 0:          # every 0.5 s: stalled if under `stall` m of progress
                 if (p - p0) @ u - last < stall:
+                    end("stall")
                     break
                 last = (p - p0) @ u
         mujoco.mj_step(m, d2)

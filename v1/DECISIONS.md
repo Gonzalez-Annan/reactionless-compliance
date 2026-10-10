@@ -437,3 +437,26 @@ All measured, 300 kg model unless said.
   0.05 m more than is there. Not wired in. More states would help, by how much is not measured.
 - Labels come from `livemap.fast`, 8 mm median off the simulation (D44), not from the simulation.
 - The mean map is not the rest cage the tool draws. That comparison is not done.
+
+## D47 The moving edge belongs to the reactionless controllers, not to the arm (2026-10-11)
+- `analysis/envelope/second.py`: the same test under four controllers on the same arm. Map from rest (98 lines),
+  10 starts one move out, then a straight move from each start to every point of the rest map pulled in to
+  0.95, 0.8, 0.5. `T.ray` now also says what ended a line (`why=`).
+- 5 Imp.+RNS and 4 RNS (hold the base level while they can): reach from rest 0.24 to 0.75 m, median 0.45.
+  Pulled in to 0.8 the map holds for 90% and 91% of pairs, every tip from 0 of 10 starts. At 0.5: 98%, 5 of 10.
+- 1 DLS and 3 Impedance (do not look at the base): reach 0.24 to 0.64 m, median 0.39 and 0.37. Pulled in to 0.8
+  the map holds for 100% of pairs from 10 of 10 starts. At 0.95: 86% and 89%.
+- So a plain controller with a 0.8 margin has a fixed map on this arm. Holding the base level buys about 0.07 m
+  of median reach and costs the fixed map. The claim "no fixed map for a free-floating arm" is dead. What stands:
+  no fixed map for a reactionless controller under a tilt budget.
+- Why: the failed moves under 4 and 5 end on the tilt budget or the bus with 2 joints at a limit (median). Under
+  1 and 3 there are no joints at a limit. The level-base controllers park joints on their limits and what is left
+  depends on which ones. Believed, from the counts. Not shown joint by joint.
+- The short lines (0.24 to 0.30 m) are stalls with no joint at a limit, and they are there under all four
+  controllers (11 to 26 of 98 lines, median 0.28 to 0.30 m). That is the arm, not the controller. Which
+  singularity or reach limit it is: not looked at.
+- Fits the planar arm (D45): two joints cannot hold the base, and there 0.8 held for 99%.
+- Limits: 10 starts per controller, one move out, starts taken on each controller's own map. 20 to 55 failed
+  moves under 4 and 5 ended on nothing (ran out of time short of the goal), not counted as a cause.
+- Planar band checked against the masses: a + b - c = 0.41, a + b + c = 2.36 m, same as the grid. Assert in
+  `planar.py`.

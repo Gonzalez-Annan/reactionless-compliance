@@ -68,6 +68,10 @@ if __name__ == "__main__":
     lo, hi = rad[:, 1:][cut].min(), rad[:, 1:][cut].max()
     print("reach: radius %.2f to %.2f m from the centre of mass. dynamic singularities at radius %.2f to %.2f m" % (
         rad.min(), rad.max(), lo, hi))
+    m0, m01 = M[0] / M.sum(), (M[0] + M[1]) / M.sum()                 # the three lengths the hand position is a sum of
+    a, b, c = R0 * m0, L[0] / 2 * (m0 + m01), L[1] / 2 * (m01 + 1)
+    print("from the masses alone: a + b - c = %.2f, a + b + c = %.2f m" % (a + b - c, a + b + c))
+    assert abs(lo - (a + b - c)) < 0.03 and abs(hi - (a + b + c)) < 0.03     # the band found on the grid is that one
     fail = {"clear of the band": [0, 0], "through the band": [0, 0]}
     def draw(inner):
         while True:
