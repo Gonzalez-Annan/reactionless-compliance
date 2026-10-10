@@ -230,11 +230,14 @@ def envelope(m, d0, sid, Rb0, scheme, mode, s):
 
 def guaranteed(rays, home, size):
     """The rest cage pulled in to the edge that held from all 40 one-leg starts (analysis/envelope/wide.py, D39).
-    ponytail: that edge is known on 20 directions only; each of the 98 lines takes the worst of its 3 nearest.
-    Sweep the 98 lines themselves before calling it guaranteed in print."""
-    z = np.load(OUT.parent / f"wide_{size}.npz")
+    wide98: the edge measured on the 98 cage lines themselves (wide.py --98). Without that file the 20 directions of
+    D39 are used and each line takes the worst of its 3 nearest, which is smaller than it need be.
+    ponytail: between lines the cage is a straight join, nothing was probed there."""
+    f = OUT.parent / f"wide98_{size}.npz"
+    z = np.load(f if f.exists() else OUT.parent / f"wide_{size}.npz")
     g, E = np.nanmin(z["R"][:, 1:], 0), z["E"] / np.linalg.norm(z["E"], axis=1)[:, None]
-    return [np.tile(home + min(1, g[np.argsort(-E @ u)[:3]].min()) * (r[-1] - home), (3, 1)) for u, r in zip(DIRS, rays)]
+    n = 1 if f.exists() else 3
+    return [np.tile(home + min(1, g[np.argsort(-E @ u)[:n]].min()) * (r[-1] - home), (3, 1)) for u, r in zip(DIRS, rays)]
 
 
 def depth(tips, p0, g):
@@ -570,6 +573,7 @@ def decide(pid, size):
 
 CUES = ("none", "colour", "stop")       # feedback study: bare dot / envelope and zone colour on the dot / the same plus the hard stop (and rumble)
 MAPS = ("guaranteed", "live", "gate")   # maps study: small cage that never moved / cage probed from where the arm is, late / no cage, rehearsal says no
+LEAD = 0.6                              # maps study: depth in the small cage of the first goal of a pair
 REPARK_S = 30.0                         # s charged for giving a goal up. ponytail: a design choice, not a mission cost; a wrong go costs its real ~15-25 s
 
 
@@ -577,18 +581,26 @@ def feedback(axes, pid, size, cues=CUES, pre="feedback"):
     """Feedback study: put the hand on each pink ball, or give it up as out of reach (Right Ctrl). The score is time.
     Three blocks, one per cue; which goal set goes with which cue rotates with the participant id.
     Nothing is rehearsed: a go that cannot work costs the time the fence takes to bring the arm back.
-    cues=MAPS, pre="maps": the maps study, same blocks and goals, see free_drive."""
-    _, goals, dep, _, truth = pool(size)
+    cues=MAPS, pre="maps": the maps study, same blocks, see free_drive. Goals come in pairs (leg 1, leg 2): leg 1
+    is an easy one that moves the arm off rest, leg 2 is the pool goal that tests the map. The feedback study has
+    the leg column too, it means nothing there."""
+    rays, goals, dep, _, truth = pool(size)
     m, d, sid, _ = setup(size)
     home, order, rows = d.site_xpos[sid].copy(), list(range(len(cues))), []
+    small = [r[-1] for r in guaranteed(rays, home, size)] if cues is MAPS else None
     random.Random(pid).shuffle(order)
     for b, c in enumerate(order, 1):
         k, j = (c + pid) % len(goals), random.Random(pid * 10 + c).sample(range(goals.shape[1]), goals.shape[1])
+        tg, dp = goals[k, j] - home, dep[k, j]
+        if small:       # the first goal of each pair is pulled in to LEAD of the small cage. Every map lets the arm go
+            # there, so the second goal, the one that counts, starts away from rest
+            tg[::2] = [t * min(1, LEAD / depth(small, home, home + t)) for t in tg[::2]]
+            dp = [depth([r[-1] for r in rays], home, home + t) for t in tg]
         input(f"Block {b}/{len(cues)}, cue: {cues[c]}. Dot on the pink ball, Enter to send; Right Ctrl = out of reach "
               f"(+{REPARK_S:g} s). Fastest total wins. Enter to start.")
-        r = free_drive(axes, size, 5, "3d", targets=goals[k, j] - home, aid=cues[c])
-        rows += [{"true_go": bool(truth[k, i])} | x | {"pid": pid, "block": b, "cue": cues[c], "set": k, "goal": i, "depth": dep[k, i]}
-                 for x, i in zip(r, j)]
+        r = free_drive(axes, size, 5, "3d", targets=tg, aid=cues[c])
+        rows += [{"true_go": bool(truth[k, i])} | x | {"pid": pid, "block": b, "cue": cues[c], "set": k, "goal": i, "depth": dp[n], "leg": n % 2 + 1}
+                 for n, (x, i) in enumerate(zip(r, j))]
         print(f"block time {sum(x['time_s'] for x in r):.0f} s", flush=True)
         OUT.mkdir(parents=True, exist_ok=True)
         pd.DataFrame(rows).to_csv(OUT / f"{pre}_{pid}.csv", index=False)   # saved after every block
