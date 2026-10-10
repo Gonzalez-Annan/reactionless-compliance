@@ -397,3 +397,28 @@ All measured, 300 kg model unless said.
   rest 2 wrong goes and 4 reachable goals given up; guaranteed 0 and 9; live 0 and 4; gate 0 wrong goes, 0 given
   up, 15 refused sends. Seconds per goal 32.6, 34.7, 34.9, 22.1. The maps can differ on these goals.
 - One check per tip, so it says a line fails, not by how much.
+
+## D44 A map without the physics is right but only twice as fast (2026-10-10)
+- Tried to get the live map under a second: `livemap.fast`, the same control law, base moved by momentum
+  conservation, no physics step. Checked against `T.ray` from rest and 4 starts, 98 lines each
+  (`analysis/envelope/fastmap.py`, `data/fastmap_medium.npz`).
+- At a 0.02 s step: median error 7 to 8 mm, 95% under 0.06 m, 0 to 2 lines promise 0.05 m too much. About 60 s
+  for 98 lines on one process, so roughly half the cost of the simulated map. Timed with another job running.
+- Bigger steps are faster and wrong: at 0.05 s, 53 to 65 of 98 lines stop 0.05 m or more short. The time goes in
+  the control law per tick, not in the physics, and the law does not survive a coarse step.
+- Not wired into the tool. 2x does not change what the operator sees. A map in under a second needs something
+  other than replaying the controller.
+
+## D45 The textbook planar arm shows the same thing (2026-10-10)
+- `analysis/envelope/planar.py`: two-link arm on a free base, exact momentum, no MuJoCo. Base 200 kg, links 10 kg
+  and 1 m. Made-up numbers, not our arm.
+- Known result reproduced (Papadopoulos and Dubowsky): with no tilt limit, straight moves that stay clear of the
+  radii with a dynamic singularity never failed (0 of 131), moves through those radii failed 24 of 142.
+- Ours: 2 deg budget from rest, 36 lines, 40 one-move starts. The rest map at full size holds for 60% of
+  start-tip pairs and from none of the 40 starts on every line. Pulled in to 0.8: 99%, 33 of 40 starts.
+  Pulled in to 0.5: 100%.
+- First-order guess from the start state (tilt spent + tilt per metre x distance): agrees 57% at full size and
+  says yes when it is no on 18% of pairs. At 0.8: 87%, no false yes. So it is fine well inside and useless at the edge.
+- Two joints cannot hold the base level at all, so tilt builds from the first centimetre. Our 7-joint arm holds
+  it level until it runs out of joints. This is the harder case for a map, not a copy of ours.
+- Not checked: the singular radii against their closed form, only that moves clear of them never fail.
