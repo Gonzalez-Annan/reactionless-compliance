@@ -344,3 +344,25 @@ All measured, 300 kg model unless said.
 - Check: `tests/test_maps.py`, scripted operator, all three maps. 17 tests pass. No participant has run it.
 - Open: the first goal of a pair can be unreachable, then the second also starts from rest and tests nothing.
   A dropped live probe keeps the pool busy, so the next map after a reset can be later than 13 s.
+
+## D41 Guaranteed cage measured on its own 98 lines, a hole in it fixed, study mode made complete (2026-10-10)
+- Run: `analysis/envelope/wide.py --98`, the same 40 one-leg starts as D39, edge searched on the 98 lines of the
+  cage (1 = the tip from rest). 77 min on 10 processes, scripted. `data/wide98_medium.npz`, `paper/figs/fig_wide98`.
+- 3920 pairs. 74% within 0.05 of the rest edge, 7% under 0.8. Same picture as the 20 random directions.
+- Guaranteed cage: median line keeps 0.67, worst 0.24, 40% of the rest reach by volume. 28 of 98 lines keep less
+  than half, 5 keep all of it. The tool now draws this one, not the 27% cage D40 had to borrow from 20 directions.
+- A hole: on 22 pairs (7 starts, the 10 longest lines) even the near end at 0.3 was out of reach, the search gave
+  up and saved nothing, and the cage code skipped empty pairs. It would have drawn those lines longer than
+  anything measured. Fixed twice: `wide.py --98 --fill` searches those pairs below 0.3 (they came out 0.24 to
+  0.29), and `guaranteed()` now counts any pair with no measured edge as 0.
+- Not explained: the lowest edges pile up between 0.24 and 0.30 on the long lines, from different starts.
+- Still only one-leg starts. It is "held from 40 starts", not a guarantee.
+- Study mode: a fourth condition `rest` (the full cage from rest, dot stopped at it), which is the control the
+  other three are compared against. Block order is a balanced Latin square over the participant id (4 orders).
+  After each block the tool asks raw NASA-TLX (six numbers) and trust 1 to 7 and saves them. The live map uses
+  cores minus 2 processes, at most 10, and saves the number.
+- Analysis takes the four conditions, Holm on the Wilcoxon pairs. Protocol written before data:
+  `analysis/study/PROTOCOL_maps.md`. Journal draft with an empty results section: `paper/journal/draft.tex`.
+- `analysis/study/prestudy.py`: a fixed rule plays the operator through all four maps, saved to `data/scripted/`.
+  It is there to see if the maps can differ at all on these goals. Not participant data.
+- Check: 18 tests pass. No participant has run it.

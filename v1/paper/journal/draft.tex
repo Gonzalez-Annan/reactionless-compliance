@@ -123,8 +123,9 @@ rest edge and the worst keeps 0.35, which is 44\% of the rest reach by volume. T
 starts as at 40 (Fig.~\ref{fig:wide}, right), so for starts one move from rest it has probably stopped
 shrinking. % D39
 It is not a guarantee. It was tested on one-move starts only. \todo{two-move starts}
-\todo{the same sweep on the 98 map directions themselves is running; until then the drawn map takes the worst
-of the 3 nearest measured directions and keeps only 27\% of the volume}
+Measured again on the 98 directions of the map itself, same 40 starts, the map that held keeps 0.67 of the
+rest edge on the median direction, 0.24 on the worst, and 40\% of the volume. 28 of the 98 directions keep
+less than half and 5 keep everything. % D41, data/wide98_medium.npz
 
 \subsection{A map from where the arm is}
 Run the 98 probes again from the current state. On one thread this takes 85 s. Shared over 10 processes it takes

@@ -63,6 +63,9 @@ def test_maps():
     assert a["reached"] and a["trips"] == 0
     assert b["parked"] and b["sends"] == 0, "the dot stops at the small cage, so nothing is sent"
 
+    (a, b), s, _ = drive("rest", G[[near, far]])
+    assert a["reached"] and b["sends"] == 0 and len(s["rays"][0]) == 3, "rest: the full cage, dot stopped at its edge"
+
     (a, b), s, swapped = drive("live", G[[near, far]], 300000)
     assert a["reached"] and swapped, "the cage is probed again once the hand has stopped away from rest"
 

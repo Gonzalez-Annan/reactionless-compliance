@@ -41,6 +41,7 @@ import collections
 import ctypes
 import itertools
 import multiprocessing
+import os
 import random
 import threading
 import time
@@ -232,10 +233,12 @@ def guaranteed(rays, home, size):
     """The rest cage pulled in to the edge that held from all 40 one-leg starts (analysis/envelope/wide.py, D39).
     wide98: the edge measured on the 98 cage lines themselves (wide.py --98). Without that file the 20 directions of
     D39 are used and each line takes the worst of its 3 nearest, which is smaller than it need be.
+    A pair with no measured edge counts as 0: a hole in the data must not read as reach.
     ponytail: between lines the cage is a straight join, nothing was probed there."""
     f = OUT.parent / f"wide98_{size}.npz"
     z = np.load(f if f.exists() else OUT.parent / f"wide_{size}.npz")
-    g, E = np.nanmin(z["R"][:, 1:], 0), z["E"] / np.linalg.norm(z["E"], axis=1)[:, None]
+    K = z["R"][~np.isnan(z["R"][:, 1:]).all(1), 1:]             # the starts that arrived
+    g, E = np.nan_to_num(K).min(0), z["E"] / np.linalg.norm(z["E"], axis=1)[:, None]
     n = 1 if f.exists() else 3
     return [np.tile(home + min(1, g[np.argsort(-E @ u)[:n]].min()) * (r[-1] - home), (3, 1)) for u, r in zip(DIRS, rays)]
 
@@ -313,6 +316,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
     starts from rest, and Right Ctrl (pad: Triangle) gives a goal up as out of reach.
     aid in MAPS: the maps study. Nothing is put back to rest between sends, and only every second goal starts from
     rest, so the other one starts wherever the first left the arm (one leg, what the guaranteed set was tested on).
+    "rest": the full cage drawn once from rest, dot stopped at it; the control, wrong when the start moved the edge.
     "guaranteed": the small cage that held from every tested start, dot stopped at it. "live": the cage probed again
     from where the hand stopped, 7 to 13 s late (hand ball yellow while it is old), dot stopped at it. "gate": no cage,
     every go is rehearsed and refused if it cannot work; the rehearsal's wall time is charged to the goal.
@@ -328,7 +332,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
     start, tgo, kz, buzz = home, 0.0, 0, getattr(axes, "buzz", lambda x: None)
     view, park, wasv, wasp, trips, cutat = getattr(axes, "view", bool), getattr(axes, "park", bool), False, False, 0, None
     maps, gate = aid in MAPS, aid in (None, "gate")
-    stop = FENCE[1] if aid in (None, "stop") else float(aid in MAPS[:2])    # depth the dot is held at, 0 = not held
+    stop = FENCE[1] if aid in (None, "stop") else float(aid in MAPS[:3])    # depth the dot is held at, 0 = not held
     rest, centre, asked, job, lost, no, tg = bool(aid) and not maps, home, home, None, 0.0, False, None
     if direct:
         s["rgba"] = [0, 0, 0, 0]
@@ -346,7 +350,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
             s["rays"] = guaranteed(rest0, home, size)
         if aid == "live":
             import livemap
-            pl, s["label"] = multiprocessing.Pool(10, livemap.init), "map"
+            pl, s["label"] = multiprocessing.Pool(PROCS, livemap.init), "map"
         if not aid:
             threading.Thread(target=preview, args=(m, sid, Rb0, scheme, mode, s), daemon=True).start()
     while True:
@@ -572,7 +576,21 @@ def decide(pid, size):
 
 
 CUES = ("none", "colour", "stop")       # feedback study: bare dot / envelope and zone colour on the dot / the same plus the hard stop (and rumble)
-MAPS = ("guaranteed", "live", "gate")   # maps study: small cage that never moved / cage probed from where the arm is, late / no cage, rehearsal says no
+MAPS = ("rest", "guaranteed", "live", "gate")   # maps study: cage from rest / small cage that never moved / cage probed from where the arm is, late / no cage, rehearsal says no
+PROCS = max(1, min(10, (os.cpu_count() or 4) - 2))     # processes probing the live cage: 10 gave 7 to 13 s, 12 was no faster (D39)
+TLX = ("mental", "physical", "hurry", "how well it went (0 = perfect)", "effort", "frustration")
+
+
+def ask(q, n, lo, hi):
+    """n numbers between lo and hi from the keyboard, asked again until they are that."""
+    while True:
+        try:
+            v = [float(x) for x in input(q).split()]
+            if len(v) == n and all(lo <= x <= hi for x in v):
+                return v
+        except ValueError:
+            pass
+        print(f"need {n} number(s) from {lo} to {hi}, with spaces between")
 LEAD = 0.6                              # maps study: depth in the small cage of the first goal of a pair
 REPARK_S = 30.0                         # s charged for giving a goal up. ponytail: a design choice, not a mission cost; a wrong go costs its real ~15-25 s
 
@@ -583,12 +601,15 @@ def feedback(axes, pid, size, cues=CUES, pre="feedback"):
     Nothing is rehearsed: a go that cannot work costs the time the fence takes to bring the arm back.
     cues=MAPS, pre="maps": the maps study, same blocks, see free_drive. Goals come in pairs (leg 1, leg 2): leg 1
     is an easy one that moves the arm off rest, leg 2 is the pool goal that tests the map. The feedback study has
-    the leg column too, it means nothing there."""
+    the leg column too, it means nothing there. Block order is a balanced Latin square over the participant id,
+    and after each block the participant rates workload (raw NASA-TLX) and trust in what was shown."""
     rays, goals, dep, _, truth = pool(size)
     m, d, sid, _ = setup(size)
     home, order, rows = d.site_xpos[sid].copy(), list(range(len(cues))), []
     small = [r[-1] for r in guaranteed(rays, home, size)] if cues is MAPS else None
     random.Random(pid).shuffle(order)
+    if small:
+        order = [(pid + x) % 4 for x in (0, 1, 3, 2)]   # 4 orders, every map once in every place and once after every other
     for b, c in enumerate(order, 1):
         k, j = (c + pid) % len(goals), random.Random(pid * 10 + c).sample(range(goals.shape[1]), goals.shape[1])
         tg, dp = goals[k, j] - home, dep[k, j]
@@ -599,7 +620,12 @@ def feedback(axes, pid, size, cues=CUES, pre="feedback"):
         input(f"Block {b}/{len(cues)}, cue: {cues[c]}. Dot on the pink ball, Enter to send; Right Ctrl = out of reach "
               f"(+{REPARK_S:g} s). Fastest total wins. Enter to start.")
         r = free_drive(axes, size, 5, "3d", targets=tg, aid=cues[c])
-        rows += [{"true_go": bool(truth[k, i])} | x | {"pid": pid, "block": b, "cue": cues[c], "set": k, "goal": i, "depth": dp[n], "leg": n % 2 + 1}
+        ex = {}
+        if small:
+            w = ask("Workload, 0 (low) to 100 (high), six numbers: " + ", ".join(TLX) + ": ", 6, 0, 100)
+            ex = {"tlx": sum(w) / 6, "tlx6": " ".join(f"{x:g}" for x in w), "procs": PROCS,
+                  "trust": ask("How much did you trust what the screen showed, 1 (not at all) to 7 (fully): ", 1, 1, 7)[0]}
+        rows += [{"true_go": bool(truth[k, i])} | x | {"pid": pid, "block": b, "cue": cues[c], "set": k, "goal": i, "depth": dp[n], "leg": n % 2 + 1} | ex
                  for n, (x, i) in enumerate(zip(r, j))]
         print(f"block time {sum(x['time_s'] for x in r):.0f} s", flush=True)
         OUT.mkdir(parents=True, exist_ok=True)

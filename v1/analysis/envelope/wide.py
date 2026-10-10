@@ -10,7 +10,7 @@ import sys; sys.path.insert(0, "src"); sys.path.insert(0, "analysis/envelope")
 import time, numpy as np, mujoco
 from multiprocessing import Pool
 import teleop as T
-from guar import edge
+from guar import edge, LO
 
 N = 40
 
@@ -20,16 +20,33 @@ def dirs(seed, n, tips, p0):
     return np.array([u / T.depth(tips, p0, p0 + u) for u in U])
 
 
-def one(a):
-    start, E = a
+def arrive(start):
     m, d, sid, Rb0 = T.setup("medium"); p0 = d.site_xpos[sid].copy()
     for k in range(int(12 / m.opt.timestep)):                 # 12 s: the longest start is under 0.6 m away
         if k % T.DECIM == 0:
             p, base = T.ctrl(m, d, sid, Rb0, p0 + start, 5, "3d")
         mujoco.mj_step(m, d)
-    if np.linalg.norm(p - p0 - start) > T.TOL:
-        return [base] + [np.nan] * len(E)
-    return [base] + [edge(m, d, sid, Rb0, p0, e) for e in E]
+    return m, d, sid, Rb0, p0, base, np.linalg.norm(p - p0 - start) <= T.TOL
+
+
+def one(a):
+    start, E = a
+    m, d, sid, Rb0, p0, base, ok = arrive(start)
+    return [base] + [edge(m, d, sid, Rb0, p0, e) if ok else np.nan for e in E]
+
+
+def low(a):
+    """The pairs edge() gave up on (near end out of reach): the same search below the near end. 0 = nothing held."""
+    start, E = a
+    m, d, sid, Rb0, p0, _, _ = arrive(start)
+    out = []
+    for e in E:
+        lo, hi = 0.0, LO
+        for _ in range(5):                                    # to LO / 32 = 0.01
+            mid = (lo + hi) / 2
+            lo, hi = (mid, hi) if T.check(m, d, sid, Rb0, p0 + mid * e, 5, "3d")[0] else (lo, mid)
+        out.append(lo)
+    return out
 
 
 if __name__ == "__main__":
@@ -37,6 +54,16 @@ if __name__ == "__main__":
     m, d, sid, Rb0 = T.setup("medium"); p0 = d.site_xpos[sid].copy()
     tips = list(np.load(T.OUT.parent / "decide4_medium.npz")["rays"][:, -1])
     W = "--98" in sys.argv
+    if "--fill" in sys.argv:                                  # after a sweep: measure the pairs it left empty
+        f = T.OUT.parent / ("wide98_medium.npz" if W else "wide_medium.npz")
+        z = dict(np.load(f)); K = z["R"][:, 1:]
+        todo = [i for i in range(len(K)) if np.isnan(K[i]).any() and not np.isnan(K[i]).all()]
+        with Pool(10) as pl:
+            for i, v in zip(todo, pl.map(low, [(z["S"][i], z["E"][np.isnan(K[i])]) for i in todo], chunksize=1)):
+                print("start %d lines %s -> %s" % (i, np.flatnonzero(np.isnan(K[i])), np.round(v, 2)), flush=True)
+                K[i, np.isnan(K[i])] = v
+        np.savez(f, **z)
+        sys.exit()
     E = np.array(tips) - p0 if W else dirs(0, 20, tips, p0)   # the same 20 as guar.py
     S = dirs(1, N, tips, p0) * np.random.default_rng(2).uniform(0.3, 0.8, N)[:, None]
     with Pool(10) as pl:
