@@ -422,3 +422,18 @@ All measured, 300 kg model unless said.
 - Two joints cannot hold the base level at all, so tilt builds from the first centimetre. Our 7-joint arm holds
   it level until it runs out of joints. This is the harder case for a map, not a copy of ours.
 - Not checked: the singular radii against their closed form, only that moves clear of them never fail.
+
+## D46 A looked-up map is 3 to 4 times closer than a fixed one and still promises too much (2026-10-11)
+- `analysis/envelope/learn.py`: 200 states (100 one move from rest, 100 two moves), the 98 reaches from each
+  with `livemap.fast` (`data/learn_medium.npz`). Input 7 joint angles + base tilt, output the 98 reaches.
+  Numpy only: ridge, and the average of the 5 nearest states. Compared with the mean of the training maps,
+  which is what one fixed map amounts to.
+- States left out, 5 folds: mean map median error 0.120 m, ridge 0.043, 5 nearest 0.034. 95% of lines within
+  0.33, 0.21, 0.18 m. Promises 0.05 m too much on 43%, 20%, 18% of lines.
+- Two-move states are a bit worse than one-move (median 0.037 against 0.030, 5 nearest).
+- Against the simulated map (rest + 4 starts, 490 lines): 5 nearest median 0.026 m, 95% under 0.10 m, too much
+  on 4.9% of lines, short on 19%.
+- So it is instant and much closer than a fixed map, and it is not safe to act on: about one line in six says
+  0.05 m more than is there. Not wired in. More states would help, by how much is not measured.
+- Labels come from `livemap.fast`, 8 mm median off the simulation (D44), not from the simulation.
+- The mean map is not the rest cage the tool draws. That comparison is not done.
