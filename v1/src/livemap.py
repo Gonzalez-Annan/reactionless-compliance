@@ -2,7 +2,7 @@
     pl = Pool(10, livemap.init)          once, kept warm
     job = livemap.ask(pl, d)             returns at once
     job.ready(), np.array(job.get())     98 tips, same order as teleop.DIRS, lines start at the hand as it was at ask()
-About 13 s from rest and 7 s from a detour on 10 processes (analysis/envelope/live.py). Tilt is counted from rest.
+About 13 s from rest and 12 s from a detour on 10 processes (analysis/envelope/live.py). Tilt is counted from rest.
 The map is as old as the wait: it is for a hand that has settled, not one that is moving."""
 import mujoco
 import teleop as T

@@ -59,8 +59,9 @@ Holm corrected. Written and checked on made-up rows before data (`--maps --check
 
 - 7 scored goals per block is thin. The maps only disagree near the edge, so most goals will not separate them.
   The scripted pre-study (a scripted operator through all blocks) is there to see this before people are used.
-- The guaranteed cage was only tested on starts one move away from rest. The study keeps to that (leg 2 is one
-  move from rest).
+- The guaranteed cage only holds for starts one move away from rest. From 39 starts two moves away, 24 had at
+  least one cage tip the rehearsal refused (4.3% of pairs, D43). The study keeps to one move (leg 2 is one move
+  from rest), and the name is the label of the condition, not a claim. Do not add a third leg without redoing it.
 - The live map's delay depends on the laptop. Record the machine and the number of processes per session.
 
 ## Open, needs a decision from us

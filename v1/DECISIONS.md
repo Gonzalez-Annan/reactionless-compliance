@@ -381,3 +381,19 @@ All measured, 300 kg model unless said.
 - `prestudy.py` had its own bug: the "updating" flag from the live block carried into the next block and the rule
   never sent or parked there (rest and gate blocks of id 1, all 90 s timeouts). State is now cleared per block.
 - The id 1 rows from before the fix are deleted. No participant ever saw the broken map.
+
+## D43 The guaranteed cage does not hold two moves from rest (2026-10-10)
+- Run: `analysis/envelope/twoleg.py`, 40 starts reached by two moves (rest, a, b; a and b drawn like the D39
+  starts, other seeds). From each, one rehearsal to the tip of each of the 98 lines of the guaranteed cage.
+  5 min on 10 processes, scripted. `data/twoleg_medium.npz`.
+- All 40 arrived. One had 2.74 deg of tilt on arrival: two moves that are each fine can spend the budget together.
+- From the other 39: 24 starts have at least one tip the rehearsal refuses. 4.3% of pairs, 70 of 98 lines. Most
+  starts lose 1 to 9 tips, five lose 16 to 24. Lines already cut to 0.4 fail as well as lines left at full length.
+- Same test with every line pulled in to 0.8 (`twoleg.py 0.8`): 11 of 39 starts, 0.9% of pairs, 23 lines.
+- So the cage is "held from 40 one-move starts" and nothing more. Shrinking it further does not fix it.
+  The study only uses one-move starts on the scored leg, so the condition stands as designed. The name stays as a
+  label. Protocol and draft say so.
+- Scripted pre-study, ids 1 to 4, after the D42 fix, 28 scored goals per map (`data/scripted/`, not participants):
+  rest 2 wrong goes and 4 reachable goals given up; guaranteed 0 and 9; live 0 and 4; gate 0 wrong goes, 0 given
+  up, 15 refused sends. Seconds per goal 32.6, 34.7, 34.9, 22.1. The maps can differ on these goals.
+- One check per tip, so it says a line fails, not by how much.

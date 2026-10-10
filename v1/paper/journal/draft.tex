@@ -122,7 +122,10 @@ Take, for each direction, the worst edge over all starts. After 40 starts the me
 rest edge and the worst keeps 0.35, which is 44\% of the rest reach by volume. The figure was the same at 20
 starts as at 40 (Fig.~\ref{fig:wide}, right), so for starts one move from rest it has probably stopped
 shrinking. % D39
-It is not a guarantee. It was tested on one-move starts only. \todo{two-move starts}
+It is not a guarantee, and a second move shows it. From 40 starts two moves away from rest, one had already
+spent the budget on the way. From 24 of the other 39 the rehearsal refused at least one tip of this map, 4.3\% of
+all pairs, on 70 of the 98 directions. Pulling every direction in to 0.8 of its length leaves 11 starts and
+0.9\% of pairs. A fixed map cannot be made safe by shrinking it against sampled starts. % D43, data/twoleg*_medium.npz
 Measured again on the 98 directions of the map itself, same 40 starts, the map that held keeps 0.67 of the
 rest edge on the median direction, 0.24 on the worst, and 40\% of the volume. 28 of the 98 directions keep
 less than half and 5 keep everything. % D41, data/wide98_medium.npz
