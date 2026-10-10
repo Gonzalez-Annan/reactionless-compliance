@@ -5,7 +5,9 @@ Run from the repo root: python analysis/study/feedback.py            real partic
                         python analysis/study/feedback.py --maps     the second study (files maps_*.csv): which map the
                                                                      operator sees. guaranteed = small, never wrong;
                                                                      live = bigger, sometimes wrong; gate = no map,
-                                                                     rehearsal only. Same columns, same tests.
+                                                                     rehearsal only. Same columns, same tests,
+                                                                     but only leg 2 goals are scored: leg 1 is
+                                                                     the easy goal that moves the arm off rest.
 Per participant and cue: seconds per goal (the score), wrong goes (fence trips), reachable goals given up,
 unreachable goals given up, worst base tilt. Then the mean over participants and a Friedman test across the
 three conditions on seconds per goal, with Wilcoxon pairs if there are at least 6 participants."""
@@ -30,6 +32,10 @@ def per_block(df):
 
 
 def report(df):
+    if MAPS:
+        lead = df[df.leg == 1]
+        print("leg 1, not scored: %d of %d reached, %d wrong goes\n" % (lead.reached.sum(), len(lead), lead.trips.sum()))
+        df = df[df.leg == 2]
     b = per_block(df)
     n = b.pid.nunique()
     print(b.round(2).to_string(index=False))
@@ -53,8 +59,10 @@ if __name__ == "__main__":
         df = pd.DataFrame([dict(pid=q, cue=c, time_s=10 + q - 2 * (c == CUES[2]) + rng.uniform(0, 0.1), trips=int(c == CUES[0]),
                                 parked=k == 0, true_go=k != 0 or c == CUES[0], peak_base_deg=1.0 + k / 10)
                            for q in range(1, 7) for c in CUES for k in range(4)])
+        if MAPS:                        # leg 1 rows with an absurd time: they must not reach the score
+            df = pd.concat([df.assign(leg=2, reached=True), df.assign(leg=1, reached=True, time_s=999.0)])
         b, p = report(df)
-        assert len(b) == 18 and p < 0.05
+        assert len(b) == 18 and p < 0.05 and b.s_per_goal.max() < 100
         assert b[b.cue == CUES[0]].gave_up_reachable.eq(1).all() and b[b.cue == CUES[2]].gave_up_unreachable.eq(1).all()
         print("ok (made-up rows, not data)")
     else:
