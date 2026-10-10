@@ -233,7 +233,7 @@ What's inside:
 
 - `src/dynamics.py`: generalized Jacobian, base reaction matrix, reaction null space, momentum check
 - `src/schemes.py`: the five schemes in 3-D and 6-D, with joint limit geofencing
-- `src/teleop.py`: keyboard teleop (set a goal, press enter, it goes), the work envelope, singularity margin on the hand, feedback study mode
+- `src/teleop.py`: keyboard teleop (set a goal, press enter, it goes), the work envelope, singularity margin on the hand, feedback study mode, maps study mode (`--maps <pid>`, D40)
 - `src/safety.py`, `src/task.py`, `src/view.py`: contact safety map, scripted trial, viewer
 - `analysis/`: sweeps, envelope and ready pose measurements, figures
 - `paper/`: IEEE draft

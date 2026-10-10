@@ -40,6 +40,7 @@ import copy
 import collections
 import ctypes
 import itertools
+import multiprocessing
 import random
 import threading
 import time
@@ -227,6 +228,15 @@ def envelope(m, d0, sid, Rb0, scheme, mode, s):
     threading.Thread(target=work, daemon=True).start()
 
 
+def guaranteed(rays, home, size):
+    """The rest cage pulled in to the edge that held from all 40 one-leg starts (analysis/envelope/wide.py, D39).
+    ponytail: that edge is known on 20 directions only; each of the 98 lines takes the worst of its 3 nearest.
+    Sweep the 98 lines themselves before calling it guaranteed in print."""
+    z = np.load(OUT.parent / f"wide_{size}.npz")
+    g, E = np.nanmin(z["R"][:, 1:], 0), z["E"] / np.linalg.norm(z["E"], axis=1)[:, None]
+    return [np.tile(home + min(1, g[np.argsort(-E @ u)[:3]].min()) * (r[-1] - home), (3, 1)) for u, r in zip(DIRS, rays)]
+
+
 def depth(tips, p0, g):
     """How far out g is: 0 at p0, 1 on the cage through tips (26 points), along the line from p0."""
     for t in TRIS:
@@ -298,6 +308,11 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
     targets: pilot goals to touch in turn. -> one row per goal.
     aid: feedback study, one of CUES. Every go is sent (no rehearsal), the runtime fence is the only gate, each goal
     starts from rest, and Right Ctrl (pad: Triangle) gives a goal up as out of reach.
+    aid in MAPS: the maps study. Nothing is put back to rest between sends, and only every second goal starts from
+    rest, so the other one starts wherever the first left the arm (one leg, what the guaranteed set was tested on).
+    "guaranteed": the small cage that held from every tested start, dot stopped at it. "live": the cage probed again
+    from where the hand stopped, 7 to 13 s late (hand ball yellow while it is old), dot stopped at it. "gate": no cage,
+    every go is rehearsed and refused if it cannot work; the rehearsal's wall time is charged to the goal.
     ponytail: with a delay the rehearsal is of the state at the key press, not at arrival of the command."""
     m, d, sid, Rb0 = setup(size)
     s, hook = viewer_hook()
@@ -308,18 +323,27 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
     todo = [goal + t for t in targets] if targets is not None else []
     t0, sends, refused, path, gpeak, dwell = 0.0, 0, 0, 0.0, 0.0, 0.0
     start, tgo, kz, buzz = home, 0.0, 0, getattr(axes, "buzz", lambda x: None)
-    view, park, wasv, wasp, trips, cutat, stop = getattr(axes, "view", bool), getattr(axes, "park", bool), False, False, 0, None, aid in (None, "stop")
+    view, park, wasv, wasp, trips, cutat = getattr(axes, "view", bool), getattr(axes, "park", bool), False, False, 0, None
+    maps, gate = aid in MAPS, aid in (None, "gate")
+    stop = FENCE[1] if aid in (None, "stop") else float(aid in MAPS[:2])    # depth the dot is held at, 0 = not held
+    rest, centre, asked, job, lost, no, tg = bool(aid) and not maps, home, home, None, 0.0, False, None
     if direct:
         s["rgba"] = [0, 0, 0, 0]
     else:
         s["rgba"], s["ask"], s["show"] = (WHITE if aid else YELLOW), (goal.copy(), copy.copy(d)), 0
-        if aid != "none":
+        if aid not in ("none", "gate"):
             s["cage"] = (TRIS, EDGES)
         f = OUT.parent / f"decide4_{size}.npz"
         if f.exists() and (scheme, mode) == (5, "3d"):     # the cached cage: the fence is live from the first second,
             s["rays"] = list(np.load(f)["rays"])            # not after the 85 s the probe moves take
         else:
             envelope(m, copy.copy(d), sid, Rb0, scheme, mode, s)
+        rest0 = s["rays"]
+        if aid == "guaranteed":
+            s["rays"] = guaranteed(rest0, home, size)
+        if aid == "live":
+            import livemap
+            pl, s["label"] = multiprocessing.Pool(10, livemap.init), "map"
         if not aid:
             threading.Thread(target=preview, args=(m, sid, Rb0, scheme, mode, s), daemon=True).start()
     while True:
@@ -340,10 +364,19 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                 goal = d.site_xpos[sid].copy()
             if sx or sy or dz:
                 goal = move(goal, sx, sy, dz, az, el, G_MAX * dt * (FINE if fine else 1))
-            if (snap or sx or sy or dz) and len(s["rays"]) == len(DIRS):    # the fence needs the whole cage
-                k = depth([r[-1] for r in s["rays"]], home, goal)
-                if stop and k > FENCE[1]:           # hard fence on the dot: it slides along the outer zone, never past it
-                    goal, k = home + (goal - home) * FENCE[1] / k, FENCE[1]
+            fresh = bool(job) and job.ready()
+            if fresh:                               # the live cage is in: lines from where the hand was when it was asked for
+                s["rays"], centre, job, cutat = [np.tile(t, (3, 1)) for t in job.get()], asked, None, None
+            if aid == "live":
+                if not job and np.linalg.norm(p - asked) > TOL and np.linalg.norm(p - target) < TOL:
+                    job, asked = livemap.ask(pl, d), p      # the hand has stopped somewhere new
+                s["hand"], s["text"] = (p, YELLOW if job else GREEN), "updating" if job else "current"
+            if snap or sx or sy or dz:
+                no = False
+            if (snap or sx or sy or dz or fresh) and len(s["rays"]) == len(DIRS):    # the fence needs the whole cage
+                k = depth([r[-1] for r in s["rays"]], centre, goal)
+                if stop and k > stop:               # hard fence on the dot: it slides along the outer zone, never past it
+                    goal, k = centre + (goal - centre) * stop / k, stop
                 kz = zone(k)
                 if stop:
                     buzz(float(np.clip((k - FENCE[0]) / (FENCE[1] - FENCE[0]), 0, 1)))   # the pad shakes harder toward the fence
@@ -351,9 +384,10 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                 s["ask"] = (goal.copy(), copy.copy(d))      # the copy is made here: the worker must not read live data
             if go and not was:
                 t = time.time()
-                if not aid:                         # the study sends every go: the runtime fence is its only gate
+                if gate:                            # the other study modes send every go: the runtime fence is their only gate
                     s["ans"] = check(m, d, sid, Rb0, goal, scheme, mode)
-                ok = bool(aid) or s["ans"][0]
+                ok = not gate or s["ans"][0]
+                no, lost = not ok, lost + (time.time() - t) * maps
                 if "t0" in s:
                     s["t0"] += time.time() - t      # do not fast-forward the viewer after the rehearsal
                 sends, refused = sends + 1, refused + (not ok)
@@ -363,7 +397,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                     print("going, base tilt " + tilt(s["rays"], home, goal) if ok else "out of reach", flush=True)
             was = go
             if aid:
-                s["rgba"] = WHITE if aid == "none" else (GREEN, YELLOW, RED)[kz]
+                s["rgba"] = (RED if no else WHITE) if aid in ("none", "gate") else (GREEN, YELLOW, RED)[kz]
             elif "ans" in s:
                 s["rgba"], s["far"] = ((YELLOW if kz else GREEN), None) if s["ans"][0] else (RED, s["ans"][1])   # yellow: reachable, but close to the edge
             if "cage" in s and goal is not cutat and len(s["rays"]) == len(DIRS):
@@ -374,7 +408,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
             if direct:
                 vel = x
             else:
-                if aid and np.linalg.norm(p - home) > TOL:      # every send starts from rest, as the map was probed (D36).
+                if rest and np.linalg.norm(p - home) > TOL:      # every send starts from rest, as the map was probed (D36).
                     tt = d.time                                 # ponytail: the jump home is free, a miss costs only its own travel
                     mujoco.mj_resetData(m, d)
                     d.qpos[7:] = Q_REST
@@ -385,7 +419,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
             target = p + vel * V_GO / KX_GO         # ctrl turns this into a hand speed of V_GO * stick
         q = p
         p, base = ctrl(m, d, sid, Rb0, target, scheme, mode)
-        if not direct and target is not start and (base > BASE_MAX or clear(m, d) < CLEAR or (d.time - tgo > (T_REST if aid else T_MOVE) and np.linalg.norm(p - target) > TOL)):
+        if not direct and target is not start and (base > BASE_MAX or clear(m, d) < CLEAR or (d.time - tgo > (T_REST if rest else T_MOVE) and np.linalg.norm(p - target) > TOL)):
             # fence: the rehearsal passed this move and the base still went over, or the hand is still short after T_MOVE
             # (the model was wrong). Back the way it came.
             print(f"base at {base:.2f} deg, arm {clear(m, d) * 100:.0f} cm from the bus after {d.time - tgo:.0f} s: going back", flush=True)
@@ -399,17 +433,24 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
         if todo:
             s["tgt"] = todo[0]
             dwell = dwell + dt if np.linalg.norm(p - todo[0]) < NEAR else 0.0
+            if maps and tg is None:                 # truth for this goal: can it be reached from where the arm is now
+                t = time.time()
+                tg = check(m, d, sid, Rb0, todo[0], scheme, mode)[0]
+                if "t0" in s:
+                    s["t0"] += time.time() - t
             pk = park()
             gone, wasp = bool(aid) and pk and not wasp, pk
             if dwell >= DWELL or gone or d.time - t0 > T_OUT:
-                rows.append({"goal": len(rows) + 1, "reached": dwell >= DWELL, "time_s": d.time - t0 + REPARK_S * gone,
+                rows.append({"goal": len(rows) + 1, "reached": dwell >= DWELL, "time_s": d.time - t0 + REPARK_S * gone + lost,
                              "sends": sends, "refused": refused, "path_m": path, "peak_base_deg": gpeak, "parked": gone,
-                             "trips": trips})
+                             "trips": trips} | ({"true_go": tg} if maps else {}))
                 todo.pop(0)
-                t0, sends, refused, path, gpeak, dwell, trips = d.time, 0, 0, 0.0, 0.0, 0.0, 0
+                t0, sends, refused, path, gpeak, dwell, trips, lost, tg = d.time, 0, 0, 0.0, 0.0, 0.0, 0, 0.0, None
                 if not todo:
                     break
-                if aid:                             # every study goal starts from rest, as the pool's truth was measured
+                if rest or maps and len(rows) % 2 == 0:     # from rest, as the pool's truth was measured (maps: every second goal)
+                    if aid == "live":               # ponytail: a probe still running is dropped but keeps the pool busy, so the next map is later
+                        s["rays"], centre, asked, job, cutat = rest0, home, home, None, None
                     mujoco.mj_resetData(m, d)
                     d.qpos[7:] = Q_REST
                     mujoco.mj_forward(m, d)
@@ -421,6 +462,8 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
         for _ in range(DECIM):
             mujoco.mj_step(m, d)
     s["v"].close()
+    if aid == "live":
+        pl.terminate()
     print(f"peak base drift {peak:.2f} deg")
     return rows
 
@@ -526,27 +569,29 @@ def decide(pid, size):
 
 
 CUES = ("none", "colour", "stop")       # feedback study: bare dot / envelope and zone colour on the dot / the same plus the hard stop (and rumble)
+MAPS = ("guaranteed", "live", "gate")   # maps study: small cage that never moved / cage probed from where the arm is, late / no cage, rehearsal says no
 REPARK_S = 30.0                         # s charged for giving a goal up. ponytail: a design choice, not a mission cost; a wrong go costs its real ~15-25 s
 
 
-def feedback(axes, pid, size):
+def feedback(axes, pid, size, cues=CUES, pre="feedback"):
     """Feedback study: put the hand on each pink ball, or give it up as out of reach (Right Ctrl). The score is time.
     Three blocks, one per cue; which goal set goes with which cue rotates with the participant id.
-    Nothing is rehearsed: a go that cannot work costs the time the fence takes to bring the arm back."""
+    Nothing is rehearsed: a go that cannot work costs the time the fence takes to bring the arm back.
+    cues=MAPS, pre="maps": the maps study, same blocks and goals, see free_drive."""
     _, goals, dep, _, truth = pool(size)
     m, d, sid, _ = setup(size)
-    home, order, rows = d.site_xpos[sid].copy(), list(range(len(CUES))), []
+    home, order, rows = d.site_xpos[sid].copy(), list(range(len(cues))), []
     random.Random(pid).shuffle(order)
     for b, c in enumerate(order, 1):
         k, j = (c + pid) % len(goals), random.Random(pid * 10 + c).sample(range(goals.shape[1]), goals.shape[1])
-        input(f"Block {b}/{len(CUES)}, cue: {CUES[c]}. Dot on the pink ball, Enter to send; Right Ctrl = out of reach "
+        input(f"Block {b}/{len(cues)}, cue: {cues[c]}. Dot on the pink ball, Enter to send; Right Ctrl = out of reach "
               f"(+{REPARK_S:g} s). Fastest total wins. Enter to start.")
-        r = free_drive(axes, size, 5, "3d", targets=goals[k, j] - home, aid=CUES[c])
-        rows += [x | {"pid": pid, "block": b, "cue": CUES[c], "set": k, "goal": i, "depth": dep[k, i], "true_go": bool(truth[k, i])}
+        r = free_drive(axes, size, 5, "3d", targets=goals[k, j] - home, aid=cues[c])
+        rows += [{"true_go": bool(truth[k, i])} | x | {"pid": pid, "block": b, "cue": cues[c], "set": k, "goal": i, "depth": dep[k, i]}
                  for x, i in zip(r, j)]
         print(f"block time {sum(x['time_s'] for x in r):.0f} s", flush=True)
         OUT.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame(rows).to_csv(OUT / f"feedback_{pid}.csv", index=False)   # saved after every block
+        pd.DataFrame(rows).to_csv(OUT / f"{pre}_{pid}.csv", index=False)   # saved after every block
     return rows
 
 
@@ -583,11 +628,14 @@ if __name__ == "__main__":
     ap.add_argument("--direct", action="store_true")      # rate control instead of set-and-go
     ap.add_argument("--pilot", type=int)                  # participant id: 4 blocks, direct/set-and-go x 0/2 s
     ap.add_argument("--feedback", type=int)               # participant id: reach the goals with no cue / colour / colour and hard stop
+    ap.add_argument("--maps", type=int)                   # participant id: guaranteed cage / live cage / no cage, rehearsal gate
     ap.add_argument("--decide", type=int)                 # participant id: go / re-park decisions, 3 kinds of help
     a = ap.parse_args()
     axes = gamepad() if a.pad else keyboard
     if a.feedback is not None:
         feedback(axes, a.feedback, a.size)
+    elif a.maps is not None:
+        feedback(axes, a.maps, a.size, MAPS, "maps")
     elif a.decide is not None:
         decide(a.decide, a.size)
     elif a.pilot is not None:

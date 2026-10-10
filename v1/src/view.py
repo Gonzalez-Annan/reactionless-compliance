@@ -74,7 +74,7 @@ def viewer_hook(show_ref=True):
                                     np.eye(3).flatten(), s["hand"][1])
                 n += 1
                 if hasattr(v, "set_texts"):
-                    v.set_texts((mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_TOPLEFT, "margin (1 = ready pose)", s["text"]))
+                    v.set_texts((mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_TOPLEFT, s.get("label", "margin (1 = ready pose)"), s["text"]))
             if "link" in s:                        # white = hand to goal (teleop)
                 g = v.user_scn.geoms[n]
                 mujoco.mjv_initGeom(g, mujoco.mjtGeom.mjGEOM_SPHERE, [0.001, 0, 0], s["link"][1], np.eye(3).flatten(), [1, 1, 1, 0.9])

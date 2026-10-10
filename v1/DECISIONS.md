@@ -325,3 +325,22 @@ All measured, 300 kg model unless said.
   the start) and with more tilt left (15% above 0.8 deg against 5% below 0.4), but neither predicts which.
 - So the trade for the study is real: guaranteed map = 44% of the reach and never wrong (as far as tested),
   rest map = all of it and wrong on about 1 pair in 14 near the edge, live map = right but seconds late.
+
+## D40 Three maps in the study mode (2026-10-10)
+- `python src/teleop.py --maps <pid>`: three blocks, one per map, same goal sets and block shuffle as the feedback
+  study. Saves `data/participants/maps_<pid>.csv`, read by `analysis/study/feedback.py --maps`.
+- guaranteed: the rest cage pulled in to the edge that held from all 40 one-leg starts. The dot stops at it.
+  That edge is measured on 20 directions, the cage has 98 lines, so each line takes the worst of its 3 nearest
+  measured directions. That costs reach: the drawn cage is 27% of the rest volume, not the 44% of D39
+  (median scale 0.55, smallest 0.35). Sweep the 98 lines themselves before the paper calls it guaranteed.
+- live: starts as the rest cage. Each time the hand stops somewhere new the 98 probes run from there on the pool
+  and the cage is swapped in when they finish. Ball on the hand is yellow while the map is old, green when current.
+  The dot stops at whichever cage is on screen. Only the 2 deg shell is drawn, the pool returns tips only.
+- gate: no cage. Every go is rehearsed from where the arm is and refused if it cannot work. The wall time of the
+  rehearsal (about 4 s on a far goal) is added to the goal time, otherwise the gate would look free.
+- Unlike the feedback study nothing is put back to rest between sends. Every second goal starts from rest, the
+  other starts where the one before left the arm. That is one leg, which is all the guaranteed set was tested on.
+- `true_go` is rehearsed when a goal appears, from the state the arm is in then, not taken from the rest pool.
+- Check: `tests/test_maps.py`, scripted operator, all three maps. 17 tests pass. No participant has run it.
+- Open: the first goal of a pair can be unreachable, then the second also starts from rest and tests nothing.
+  A dropped live probe keeps the pool busy, so the next map after a reset can be later than 13 s.
