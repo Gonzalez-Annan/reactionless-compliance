@@ -1,0 +1,79 @@
+"""Feedback study, the analysis. Written before any participant was run, so nothing here is tuned to the data.
+Run from the repo root: python analysis/study/feedback.py            real participants (pid 0 is the self-test, left out)
+                        python analysis/study/feedback.py --all      with pid 0
+                        python analysis/study/feedback.py --check    made-up rows, only to prove the script runs
+                        python analysis/study/feedback.py --maps     the second study (files maps_*.csv): which map the
+                                                                     operator sees. rest = drawn once from rest,
+                                                                     sometimes wrong; guaranteed = small, never
+                                                                     wrong; live = right but late; gate = no map,
+                                                                     rehearsal only. Same columns, same tests,
+                                                                     but only leg 2 goals are scored: leg 1 is
+                                                                     the easy goal that moves the arm off rest.
+Per participant and cue: seconds per goal (the score), wrong goes (fence trips), reachable goals given up,
+unreachable goals given up, worst base tilt. Then the mean over participants and a Friedman test across the
+conditions on seconds per goal, with Wilcoxon pairs (Holm corrected) if there are at least 6 participants.
+Maps study only: workload and trust per block, if the tool recorded them. Protocol: PROTOCOL_maps.md."""
+import sys
+from itertools import combinations
+from pathlib import Path
+import numpy as np, pandas as pd
+from scipy import stats
+
+MAPS = "--maps" in sys.argv
+CUES = ("rest", "guaranteed", "live", "gate") if MAPS else ("none", "colour", "stop")
+PRE = "maps_" if MAPS else "feedback_"
+DATA = Path(__file__).parent.parent.parent / "data" / "participants"
+
+
+def per_block(df):
+    g = df.groupby(["pid", "cue"])
+    return pd.DataFrame({"s_per_goal": g.time_s.mean(), "wrong_goes": g.trips.sum(),
+                         "gave_up_reachable": g.apply(lambda x: int((x.parked & x.true_go).sum()), include_groups=False),
+                         "gave_up_unreachable": g.apply(lambda x: int((x.parked & ~x.true_go).sum()), include_groups=False),
+                         "worst_tilt_deg": g.peak_base_deg.max()}).reset_index()
+
+
+def report(df):
+    if MAPS:
+        lead = df[df.leg == 1]
+        print("leg 1, not scored: %d of %d reached, %d wrong goes\n" % (lead.reached.sum(), len(lead), lead.trips.sum()))
+        df = df[df.leg == 2]
+    b = per_block(df)
+    if "tlx" in df:
+        b = b.merge(df.groupby(["pid", "cue"])[["tlx", "trust"]].first().reset_index())
+    n = b.pid.nunique()
+    print(b.round(2).to_string(index=False))
+    print("\nmean over %d participant(s):" % n)
+    print(b.drop(columns="pid").groupby("cue").mean().reindex(CUES).round(2).to_string())
+    w = b.pivot(index="pid", columns="cue", values="s_per_goal").reindex(columns=CUES).dropna()
+    if len(w) < 3:
+        print("\nno test: %d complete participant(s), a Friedman test needs 3" % len(w))
+        return b, None
+    chi, p = stats.friedmanchisquare(*[w[c] for c in CUES])
+    print("\nFriedman on s per goal, n = %d: chi2 = %.2f, p = %.3f" % (len(w), chi, p))
+    if len(w) >= 6:
+        pr = sorted((stats.wilcoxon(w[a], w[c]).pvalue, a, c) for a, c in combinations(CUES, 2))
+        h = 0.0
+        for i, (q, a, c) in enumerate(pr):          # Holm: the smallest p times the number of pairs, and so on down
+            h = max(h, min(1.0, q * (len(pr) - i)))
+            print("  Wilcoxon %s vs %s: p = %.3f, Holm %.3f" % (a, c, q, h))
+    return b, p
+
+
+if __name__ == "__main__":
+    if "--check" in sys.argv:           # made-up rows: the last condition is 2 s faster for everyone. Never written to disk.
+        rng = np.random.default_rng(0)
+        df = pd.DataFrame([dict(pid=q, cue=c, time_s=10 + q - 2 * (c == CUES[-1]) + rng.uniform(0, 0.1), trips=int(c == CUES[0]),
+                                parked=k == 0, true_go=k != 0 or c == CUES[0], peak_base_deg=1.0 + k / 10)
+                           for q in range(1, 7) for c in CUES for k in range(4)])
+        if MAPS:                        # leg 1 rows with an absurd time: they must not reach the score
+            df = pd.concat([df.assign(leg=2, reached=True), df.assign(leg=1, reached=True, time_s=999.0)])
+        b, p = report(df)
+        assert len(b) == 6 * len(CUES) and p < 0.05 and b.s_per_goal.max() < 100
+        assert b[b.cue == CUES[0]].gave_up_reachable.eq(1).all() and b[b.cue == CUES[-1]].gave_up_unreachable.eq(1).all()
+        print("ok (made-up rows, not data)")
+    else:
+        fs = [f for f in sorted(DATA.glob(PRE + "*.csv")) if "--all" in sys.argv or f.stem != PRE + "0"]
+        if not fs:
+            sys.exit("no participant files in %s" % DATA)
+        report(pd.concat(map(pd.read_csv, fs)))

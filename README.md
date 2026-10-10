@@ -206,3 +206,50 @@ pytest -v
 3. `pytest` -- includes the momentum-conservation gate. All downstream
    results are invalid until it passes on all three servicers.
 4. See DECISIONS.md for the history of design choices and why they were made.
+
+## Version 1 - P2 updates (10 Oct)
+
+All of our work so far is in [`v1/`](v1/). It has its own models, src, tests, analysis, paper draft and
+decision log, so nothing outside that folder was touched. It runs on the same setup as above, no extra installs.
+
+```bash
+source .venv/bin/activate
+cd v1
+pytest -q tests
+python src/teleop.py
+```
+
+Checked on a fresh clone with a clean `pip install -r requirements.txt` (Windows, Python 3.12, MuJoCo 3.15):
+15 tests pass in about a minute and the teleop window opens. The code also compiles on Python 3.11.
+
+- Run everything from inside `v1/`. The scripts look for `src/` and `models/` relative to where you are.
+- Windows: activate with `.venv\Scripts\activate` instead of the `source` line.
+- Linux: click the viewer window first, the keys are read from it. Arrows, PgUp/PgDn move the dot, Enter sends it.
+  This path has a test but nobody has driven it on Linux yet, tell me if a key does nothing.
+- macOS: MuJoCo needs `mjpython src/teleop.py` instead of `python`. Also not tried yet.
+- First start takes about a minute before the envelope shows up, it probes 98 directions.
+
+What's inside:
+
+- `src/dynamics.py`: generalized Jacobian, base reaction matrix, reaction null space, momentum check
+- `src/schemes.py`: the five schemes in 3-D and 6-D, with joint limit geofencing
+- `src/teleop.py`: keyboard teleop (set a goal, press enter, it goes), the work envelope, singularity margin on the hand, feedback study mode, maps study mode (`--maps <pid>`, D40)
+- `src/safety.py`, `src/task.py`, `src/view.py`: contact safety map, scripted trial, viewer
+- `analysis/`: sweeps, envelope and ready pose measurements, figures
+- `paper/`: IEEE draft
+- `DECISIONS.md`: D1 to D45, every decision with the number behind it
+- `analysis/study/PROTOCOL_maps.md`: the plan for the maps study (what the operator is shown when the reach moves with the start), written before anyone is run
+- `analysis/study/feedback.py --maps`: the analysis for it. `--maps --check` runs it on made-up rows so we know it works before there is data
+- `analysis/envelope/wide.py` and `widefig.py`: how far the 2 deg edge moves over 40 starts, and the figure
+- `paper/main.pdf`: the compiled draft, 4 pages so far. To rebuild: `tectonic main.tex` in `paper/` (or pdflatex, or Overleaf)
+- `P2_Explainer.docx` and `P2_Literature_Survey.xlsx` if you want the background
+
+Things that are not done yet, so nobody gets surprised:
+
+- All 15 tests pass. Plain RNS (scheme 4) ends the loop 0.07 deg off because one joint drifts onto its limit;
+  scheme 5 does not. See D32.
+- `data/sweep.csv`, the paper tables and figs 1, 2, 3, 5 are redone on the new ready pose and loop (D33).
+  Wrong-mass numbers, fig_band and fig6 are redone too (D34). On the new pose the full reach needs a much bigger bus: about 1700 kg at 0.5 deg, 950 kg at 2 deg.
+- The envelope holds when the hand starts away from rest, except right at the edge: 72 of 72 goals away from the edge got the same answer after a 0.15 m detour, but at 1.05 of the edge 18 of 80 changed (`analysis/envelope/start.py`, D34). With 0.3 m detours it gets worse: 5 of 100 change at 0.8 of the edge and 24 of 100 at the edge. So the cage is a guide and the rehearsal decides (D35).
+- The "base comes back with the hand" claim failed on the new pose (0.30 deg left after 0.3 m out and back). The paper says so now.
+- Everything here is scripted runs. No participant data yet.
