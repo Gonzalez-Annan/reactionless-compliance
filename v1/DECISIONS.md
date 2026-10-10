@@ -460,3 +460,19 @@ All measured, 300 kg model unless said.
   moves under 4 and 5 ended on nothing (ran out of time short of the goal), not counted as a cause.
 - Planar band checked against the masses: a + b - c = 0.41, a + b + c = 2.36 m, same as the grid. Assert in
   `planar.py`.
+
+## D48 Over a 12-move session only the impedance controller keeps its fixed map (2026-10-11)
+- `analysis/envelope/session.py`: 10 sessions of 12 moves per controller, goals inside its own 0.8 map
+  (0.2 to 0.8 along a random line), each move rehearsed and made only on a yes. After moves 6 and 12 a straight
+  move to every point of the 0.8 map.
+- Moves inside the map that the rehearsal refused: 5 Imp.+RNS 4 of 120, 4 RNS 8 of 120, 1 DLS 0, 3 Impedance 0.
+  All of them from move 6 on.
+- 0.8 map after move 12, pairs held and sessions where every tip held: Imp.+RNS 91%, 0 of 10. RNS 80%, 0 of 10.
+  DLS 93%, 4 of 10. Impedance 100%, 9 of 10.
+- So DLS loses its fixed map too once the session is long (it was 10 of 10 one move out, D47). Impedance keeps
+  it. The difference between those two is the pull back to the rest posture.
+- Tilt left after a move goes up with the move number under all four. Median after move 1 and move 12:
+  Imp.+RNS 0.10 and 0.51 deg, RNS 0.09 and 0.58, DLS 0.71 and 1.25, Impedance 0.62 and 1.05. 12 moves is as far
+  as this goes. Whether it levels off is not measured.
+- Limits: 10 sessions per controller. The hand never makes a refused move, so no recovery from over the budget.
+  Goals are mid-map, the edge was only tried at moves 6 and 12.
