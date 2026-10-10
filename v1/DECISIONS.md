@@ -476,3 +476,22 @@ All measured, 300 kg model unless said.
   as this goes. Whether it levels off is not measured.
 - Limits: 10 sessions per controller. The hand never makes a refused move, so no recovery from over the budget.
   Goals are mid-map, the edge was only tried at moves 6 and 12.
+
+## D49 Over 40 moves no controller keeps the fixed map at its edge, and two of them get stuck (2026-10-11)
+- `session.py 40`: the D48 test with 40 moves, 10 sessions per controller (`data/session40_medium.npz`).
+- 0.8 map after move 40, pairs held and sessions where every tip held: Imp.+RNS 88%, 1 of 10. RNS 83%, 1 of 10.
+  DLS 65%, 3 of 10. Impedance 85%, 4 of 10 (it was 99%, 8 of 10 at move 20).
+- Mid-map moves the rehearsal refused, of 400: Imp.+RNS 15, RNS 46, DLS 40, Impedance 3.
+- Stuck sessions (every one of the last 10 moves refused, tilt sitting at the budget): DLS 2 of 10, RNS 1 of 10,
+  Imp.+RNS 0, Impedance 0. The two that never get stuck are the two with the pull back to the rest posture.
+  Part of this is the test: a refused move is not made, so nothing brings the base back.
+- Tilt left after a move does not keep climbing. Median over the first 10 and the last 10 moves: Imp.+RNS 0.31
+  and 0.45 deg, RNS 0.33 and 0.58, DLS 0.95 and 1.22, Impedance 0.85 and 0.97.
+- So D47's "a plain controller with a 0.8 margin has a fixed map" holds for one move and not for a session.
+  Impedance is the closest to a fixed map and still loses the edge by move 40.
+- Read for the paper, from four searches, highlights only, papers not read through:
+  Papadopoulos, Teleoperation of Free-floating Space Manipulator Systems, SPIE 1992: a planning aid that checks
+  whether a target can be reached from the start and offers another path. That is the rehearsal in outline.
+  Cocuzza et al., Acta Astronautica 2010: reaction control with joint limits. Kinematic drift over repeated moves:
+  a 2002 classification paper and Repetitive Motion Planning of Free-Floating Space Manipulators, 2013.
+  No study with people that shows a reach map for a floating base turned up.

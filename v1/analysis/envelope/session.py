@@ -1,7 +1,7 @@
 """Does the fixed map last a whole session? Run from the repo root. Needs data/second_medium.npz (second.py).
 Per controller, 10 sessions of 12 moves. Each goal is a point inside that controller's rest map pulled in to 0.8
 (0.2 to 0.8 of the way along a random line). The move is rehearsed first: yes -> it is made, no -> the hand stays
-and the map was wrong for that move. After moves 6 and 12, a straight move to every point of the 0.8 map is tried.
+and the map was wrong for that move. Half way and at the end, a straight move to every point of the 0.8 map is tried.
 ponytail: the hand only makes moves that pass, so it never sits over the tilt budget. A session of failed moves
 and recoveries is not this test.
 -> data/session_medium.npz and a table. About 7 min per controller on 10 processes."""
@@ -12,7 +12,8 @@ import teleop as T
 from schemes import NAMES
 from second import go, count
 
-N, NS, AT = 12, 10, (6, 12)
+N = int(sys.argv[1]) if len(sys.argv) > 1 else 12            # session.py 40: 40 moves, -> session40_medium.npz
+NS, AT = 10, (N // 2, N)
 
 
 def run(a):
@@ -43,10 +44,11 @@ if __name__ == "__main__":
             ok, why, tilt, full = (np.array([r[i] for r in R]) for i in range(4))
             print("%d %s. moves the 0.8 map said yes to and the rehearsal no: %d of %d (ended by: %s). by move: %s" % (
                 sc, NAMES[sc], (~ok).sum(), ok.size, count(why[~ok]), " ".join("%d" % v for v in (~ok).sum(0))))
-            print("     tilt after a move: median %.2f, most %.2f deg. after move 1: %.2f, move 6: %.2f, move 12: %.2f (medians)" % (
-                np.median(tilt), tilt.max(), *np.median(tilt, 0)[[0, 5, 11]]))
+            Q = [0] + [N * q // 4 - 1 for q in (1, 2, 3, 4)]
+            print("     tilt after a move: median %.2f, most %.2f deg. medians after move %s: %s" % (
+                np.median(tilt), tilt.max(), ", ".join(str(q + 1) for q in Q), ", ".join("%.2f" % v for v in np.median(tilt, 0)[Q])))
             for i, k in enumerate(AT):
                 print("     after move %d: 0.8 map holds for %.0f%% of pairs, every tip from %d of %d sessions" % (
                     k, 100 * full[:, i].mean(), full[:, i].all(1).sum(), NS), flush=True)
             out.update({"ok%d" % sc: ok, "why%d" % sc: why, "tilt%d" % sc: tilt, "full%d" % sc: full})
-            np.savez(T.OUT.parent / "session_medium.npz", **out)
+            np.savez(T.OUT.parent / ("session_medium.npz" if N == 12 else "session%d_medium.npz" % N), **out)
