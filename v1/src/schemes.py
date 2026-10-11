@@ -1,14 +1,15 @@
-"""The five redundancy-resolution schemes, velocity level, 3-D and 6-D variants. [P3]
+"""The redundancy-resolution schemes, velocity level, 3-D and 6-D variants. [P3]
 
 1 DLS   2 gradient projection (manipulability)   3 null-space impedance
-4 RNS   5 impedance + RNS
+4 RNS   5 impedance + RNS   6 = 5 with joint limits inside the solve (D52, envelope tests only)
 """
 from types import SimpleNamespace
 import numpy as np
 
-NAMES = {1: "DLS", 2: "Grad. proj.", 3: "Impedance", 4: "RNS", 5: "Imp.+RNS"}
+NAMES = {1: "DLS", 2: "Grad. proj.", 3: "Impedance", 4: "RNS", 5: "Imp.+RNS", 6: "Imp.+RNS+limits"}
 LAM, KG, KP, GAMMA, KA = 0.02, 5.0, 1.0, 1e-2, 5.0   # tuning log: DECISIONS.md D5
 TW, MARGIN = 100.0, 0.05   # task-over-base weight once joints lock; rad kept clear of a joint limit (D13)
+BAND = 0.5   # rad short of the margin where scheme 6 starts to weigh a joint out. Not tuned, first value tried
 I7 = np.eye(7)
 
 
@@ -20,12 +21,20 @@ def qdot(scheme, k, xd, q, q_rest, mode="6d", beta=10.0, grad=None, att=np.zeros
     """Joint geofence around _solve: a joint at its limit and still pushing outward is locked and the
     rest re-solve. tw > 1: the hand task keeps priority, so what the locked joints can no longer cancel
     goes to the base. tw < 1: the base keeps priority and the hand falls behind instead (teleop). lim = (7, 2) array of [lo, hi], or None for no limits."""
-    free = np.ones(7, bool)
-    for _ in range(7):
-        kk = SimpleNamespace(Jstar=k.Jstar * free, W=k.W * free)
-        qd = _solve(scheme, kk, xd, q, q_rest, mode, beta, grad, att, tw) * free
+    free, c = np.ones(7, bool), np.ones(7)
+    for _ in range(8):
+        kk = SimpleNamespace(Jstar=k.Jstar * free * c, W=k.W * free * c)
+        qd = _solve(5 if scheme == 6 else scheme, kk, xd, q, q_rest, mode, beta, grad, att, tw) * free * c
         if lim is None:
             break
+        if scheme == 6 and (c == 1).all():
+            # weighted least norm (Chan and Dubey 1995): a joint heading for its limit costs more the closer it is, so
+            # the others take over before it gets there. Velocity level, in the spirit of Cocuzza 2011, not his solver.
+            # ponytail: weights from one unweighted pass, a joint that turns round after reweighting keeps its weight
+            room = np.where(qd > 0, lim[:, 1] - q, q - lim[:, 0]) - MARGIN
+            c = np.sqrt(np.clip(room / BAND, 0.05, 1))
+            if (c < 1).any():
+                continue
         # ponytail: hard lock at the margin, no smooth slow-down; add a velocity ramp if operators feel a jolt
         bad = free & (((q >= lim[:, 1] - MARGIN) & (qd > 0)) | ((q <= lim[:, 0] + MARGIN) & (qd < 0)))
         if not bad.any():

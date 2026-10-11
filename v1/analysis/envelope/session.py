@@ -12,7 +12,7 @@ import teleop as T
 from schemes import NAMES
 from second import go, count
 
-N = int(sys.argv[1]) if len(sys.argv) > 1 else 12            # session.py 40: 40 moves, -> session40_medium.npz
+N = int(sys.argv[1]) if len(sys.argv) > 1 else 12            # session.py 40: 40 moves, -> session40_medium.npz. session.py 40 6: only controller 6, added to it
 NS, AT = 10, (N // 2, N)
 
 
@@ -37,9 +37,11 @@ def run(a):
 
 
 if __name__ == "__main__":
-    z = np.load(T.OUT.parent / "second_medium.npz"); out = {}
+    z = np.load(T.OUT.parent / "second_medium.npz")
+    f = T.OUT.parent / ("session_medium.npz" if N == 12 else "session%d_medium.npz" % N)
+    out = dict(np.load(f)) if sys.argv[2:] and f.exists() else {}
     with Pool(10) as pl:
-        for sc in (5, 1, 4, 3):
+        for sc in [int(a) for a in sys.argv[2:]] or (5, 1, 4, 3):
             R = pl.map(run, [(sc, s, z["tips%d" % sc]) for s in range(NS)], chunksize=1)
             ok, why, tilt, full = (np.array([r[i] for r in R]) for i in range(4))
             print("%d %s. moves the 0.8 map said yes to and the rehearsal no: %d of %d (ended by: %s). by move: %s" % (
@@ -51,4 +53,4 @@ if __name__ == "__main__":
                 print("     after move %d: 0.8 map holds for %.0f%% of pairs, every tip from %d of %d sessions" % (
                     k, 100 * full[:, i].mean(), full[:, i].all(1).sum(), NS), flush=True)
             out.update({"ok%d" % sc: ok, "why%d" % sc: why, "tilt%d" % sc: tilt, "full%d" % sc: full})
-            np.savez(T.OUT.parent / ("session_medium.npz" if N == 12 else "session%d_medium.npz" % N), **out)
+            np.savez(f, **out)

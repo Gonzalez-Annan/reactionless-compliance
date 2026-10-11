@@ -528,3 +528,20 @@ The "2002 drift classification" paper did not turn up again, dropped from the dr
 What is left as ours after all of this: the tilt-bounded reach of a free-floating arm as a thing to draw, the
 measured trust in maps of it (4 controllers, 1 to 40 moves), and the study with people. No single idea in it is
 new. The measurement and the study are.
+
+## D52 Joint limits inside the reactionless controller: no change (2026-10-11)
+Question left by D51: our reactionless controllers lose the map with joints on their limits. Would handling the
+limits inside the solve keep the edge still?
+Scheme 6 = scheme 5 + weighted least norm (Chan and Dubey 1995): a joint heading for its limit costs more the
+closer it is (BAND 0.5 rad, first value tried). Velocity level. In the spirit of Cocuzza 2011, not his solver.
+Same tests as D47 and D49, same seeds, 10 starts and 10 sessions (`second.py 6`, `session.py 40 6`).
+- Rest map: reach 0.24 to 0.75 m, median 0.46 (scheme 5: 0.45). Ended by tilt 65, stall 24, bus 9.
+- One move out: 0.95 map 84%, 0.8 map 91%, 0.5 map 97% of pairs. Every tip from 0, 0, 4 of 10 starts.
+  Scheme 5 at 0.8: 90%, 0 of 10. Failed moves still have a median of 2 joints at a limit.
+- 40 moves: 23 of 400 refused (scheme 5: 15). After move 20: 93%, 1 of 10. After move 40: 90%, 0 of 10
+  (scheme 5: 88%, 1 of 10).
+So no. Why: hand 3 + level base 3 = 6 of 7 joints, one left to spare the others with. In the unit check a joint
+0.1 rad from its limit slowed by 3%.
+What this does not rule out: a tuned weight, the acceleration-level solver, or a controller that gives up some
+tilt to save a joint (that spends the budget the map is about, so it is a different trade, not tried).
+For the paper: the answer to "what to show" does not change. One more controller, same result.

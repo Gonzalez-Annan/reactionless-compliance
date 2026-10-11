@@ -184,6 +184,16 @@ counts, we have not shown the mechanism. Between 11 and 26 of the 98 lines stop 
 joint at a limit, under all four controllers. Those belong to the arm, and we have not yet worked out which
 singularity it is.
 
+\textbf{Joint limits inside the controller.} The reactionless controllers lose the map with joints sitting on
+their limits, so we tried one that looks at the limits while it solves, after Cocuzza et al.~\cite{cocuzza2011}:
+our controller with a weighted least-norm solve, where a joint heading for its limit costs more the closer it gets.
+It changed nothing. Rest reach 0.24 to 0.75~m, median 0.46. One move out, the 0.8 map holds for 91\% of pairs and
+from 0 of 10 starts, against 90\% and 0 of 10 without it. Over 40 moves it ends at 90\% of pairs and 0 of 10
+sessions, with 23 of 400 moves refused. The reason is a count of joints. The hand takes three, a level base takes
+three, and the arm has seven, so one is left to spare the others with. In our check a joint 0.1~rad from its limit
+slowed by 3\%. This is one velocity-level version with one untuned weight, not their acceleration-level solver,
+and not a controller that gives up some base tilt to save a joint. \todo{try the version that trades tilt for joint room}
+
 \subsection{Long sessions}
 An operator does not make one move. We ran sessions of 40 moves, 10 per controller. Each goal is 0.2 to 0.8 of the
 way to the rest edge along a random direction, rehearsed, and made only if the rehearsal says yes.

@@ -61,7 +61,7 @@ def main():
         v = med[med["mode"] == mode].sort_values("scheme").q_return_rad
         a.bar(np.arange(5) + (j - .5) * .38, v, .38, label=mode.upper() + " task", color=["#999", "#444"][j])
     a.set(yscale="log", xticks=range(5), ylabel=r"joint return error $\|q_f-q_0\|$ (rad)")
-    a.set_xticklabels(NAMES.values(), fontsize=6)
+    a.set_xticklabels([NAMES[s] for s in range(1, 6)], fontsize=6)
     a.legend(fontsize=6)
     save(fig, "fig3_jointdrift")
 

@@ -3,7 +3,8 @@ Per controller: the map from rest (98 lines), 10 starts one move out (0.3 to 0.8
 then from each start a straight move to every point of the rest map pulled in to 0.95, 0.8 and 0.5.
 Also what ended each line: the tilt budget, the bus, or a stall, and how many joints sat at a limit then.
   5 Imp.+RNS (ours) and 4 RNS hold the base level while they can. 1 DLS and 3 Impedance do not look at the base at all.
--> data/second_medium.npz and a table. About 6 min per controller on 10 processes."""
+-> data/second_medium.npz and a table. About 6 min per controller on 10 processes.
+second.py 6: only that controller, added to the file (6 = 5 with joint limits inside the solve, D52)."""
 import sys; sys.path.insert(0, "src")
 import numpy as np, mujoco
 from multiprocessing import Pool
@@ -41,9 +42,9 @@ def count(r):
 
 
 if __name__ == "__main__":
-    out = {}
+    f = T.OUT.parent / "second_medium.npz"; out = dict(np.load(f)) if sys.argv[1:] and f.exists() else {}
     with Pool(10) as pl:
-        for sc in (5, 4, 1, 3):
+        for sc in [int(a) for a in sys.argv[1:]] or (5, 4, 1, 3):
             R = pl.map(rest, [(sc, u) for u in T.DIRS], chunksize=1)
             tips = np.array([r[:3] for r in R], float); n = np.linalg.norm(tips, axis=1)
             why, lock = np.array([r[3] for r in R]), np.array([r[4] for r in R])
@@ -66,4 +67,4 @@ if __name__ == "__main__":
                                                        np.median(lk[:, i][bad]) if bad.any() else 0), flush=True)
             out.update({"tips%d" % sc: tips, "why%d" % sc: why, "lock%d" % sc: lock, "base%d" % sc: base, "ok%d" % sc: ok,
                         "okwhy%d" % sc: wy, "oklock%d" % sc: lk, "S%d" % sc: np.array(S)})
-            np.savez(T.OUT.parent / "second_medium.npz", **out)
+            np.savez(f, **out)
