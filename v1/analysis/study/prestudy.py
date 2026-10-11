@@ -1,8 +1,9 @@
 """Scripted pre-study for the maps study. NOT participant data: a fixed rule plays the operator, so this only says
-whether the four maps can differ at all on these goals before people are used. Run from the repo root:
-python analysis/study/prestudy.py            ids 1 2 3 4, one per block order
+whether the maps can differ at all on these goals before people are used. Run from the repo root:
+python analysis/study/prestudy.py            ids 1 2 3 4: every map on every goal set once
 python analysis/study/prestudy.py 1          one id
 -> data/scripted/maps_<id>.csv (never data/participants) and a table per map on the scored goals (leg 2).
+Files written before the lookup map have four blocks. They still read: that map then has fewer goals in the table, or none.
 
 The rule: steer the dot to the ball. Go once when the dot is on it (live map: only when the map is current).
 Give the goal up when the dot has been stuck short of the ball for 2 s (the cage holds it), when the go was

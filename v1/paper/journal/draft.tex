@@ -336,24 +336,286 @@ rehearsal and gives the operator nothing to plan with: we expect them to find th
 
 \section{Study}
 \subsection{Design}
-Within subject, four conditions \todo{decide whether the looked-up map is a fifth}: the rest map (the control), the map that held, the map from the current state,
-and no map. 20 participants, balanced Latin square over four orders, five per order.
-Goals come in pairs. The first is easy and moves the arm off rest, and is not scored. The second is the test and
-starts from where the first left the arm. Whether a goal can be reached is rehearsed from the arm's real state
-when it appears. A participant either puts the hand on the goal or gives it up as out of reach, at a cost of 30 s.
+% Written before any participant and revised after a methods review (D61). The changes against the protocol
+% are logged in analysis/study/PROTOCOL_maps.md, 2026-10-12.
+% Every number below is from simulation or from the scripted operator of D43. None is from a person.
+\textbf{Question.} The rest map promises reach that is gone once the arm has moved. Does that cost an operator
+commands that fail, and does a map drawn from where the arm is remove them when it arrives 12 to 13 s late?
 
-Measures, on the second goal of each pair: seconds per goal with the penalty and the rehearsal time in it
-(primary), commands the fence had to bring back, reachable goals given up, unreachable goals given up, worst
-tilt, and after each block raw NASA-TLX~\cite{hart1988} and one trust rating from 1 to 7.
+\textbf{Hypotheses,} written before data, each with the direction the simulation gives.
+H1, the main one: more test goals have a command the fence had to bring back with the rest map than with the map
+from the current state. In simulation the rest map allows a goal the arm cannot reach on 8\% of pairs with the
+goal at 0.5 to 1.0 of its edge and on 13\% at 0.8 to 1.0, and the current-state map is right once it is
+current. % wide98_medium.npz, D39, D42
+H2: seconds per test goal are lower with no map than with the rest map. A scripted operator took 22.1 s against
+32.6 s on the goals as the tool draws them. % D43
+Its times by class, put together for the goals of this design, give about 19 s against 27 s. That gap is the two
+traps, which took the rule 44 s each because it gives up only 40 s after a command. Had it given up when the
+fence had brought the arm back, about 15 s, the gap would be about 3 s. % data/scripted, D28: arithmetic, not a run
+H3: on test goals that are reached, seconds are higher with the current-state map than with the rest map, by
+about the age of the map. The scripted operator took 20.4 s against 4.5 s (medians). % data/scripted
+The scripted operator is a rule, not a person. It sends once when the dot is on the goal and always waits for a
+map to be current, so its numbers say what the task can show and not what people do. H1 and H2 need people to
+send on a goal the rest map allows. H1 and H3 need them to wait for the current-state map. So these are not three
+separate pieces of evidence: if people do not wait, H1 and H3 fail together. We predict no direction for workload
+or trust: the rule has neither.
 
-Hypotheses, written before data: the rest map has the most commands brought back (H1); the map that held has
-none and the most reachable goals given up (H2); the current-state map is the fastest per goal (H3); no map has
-no commands brought back but is slower and rated as more work (H4). Friedman test over conditions on the
-primary measure, Wilcoxon pairs with Holm correction.
+\textbf{Conditions.} Within subject, four conditions, one block each: the rest map (the control), the map that
+held, the map from the current state, and no map. In the three map conditions the dot cannot be put outside the
+map on screen. With the current-state map the rest map stays on screen and the hand marker is yellow until the
+new map is in. With no map every command is rehearsed first, about 4 s for a far goal, and refused if it would
+fail. % D40
+Before a block the participant is told what the display is, in the same words for everyone. Rest map: it was
+drawn with the arm at rest and can be wrong once the arm has moved. Map that held: it held from every start we
+tried one move from rest and is smaller than what the arm can reach. Current-state map: it is drawn from where
+the arm is now and takes about 12 s, and until the marker turns green the screen still shows the rest map. No
+map: every command is checked before it runs and refused if it would fail. Every session runs on the same PC
+with 10 processes for the current-state map, because its delay depends on the machine.
+
+Two results are fixed by the tool and are not hypotheses. No map cannot give a command the fence brings back,
+because the rehearsal refuses it, and the map that held should not, because every pair in the pool is checked
+against it. A reachable goal outside the map that held has to be given up, because the dot cannot go there. We
+report both as checks that the tool did what it should. The block with the map that held therefore carries no
+hypothesis. It is there for the ratings and as a level to read the others against.
+
+\textbf{Task and trial.} Put the hand on the goal, or give it up as out of reach. One trial is one pair of goals.
+The lead goal lies well inside every map, moves the arm off rest and is not scored. The test goal is the scored
+one and starts from where the lead goal left the arm. After it the arm goes back to rest. A goal is reached when
+the hand has stayed within 2 cm of it for 0.5 s. Whether a test goal can be reached is rehearsed from the arm's
+real state when it appears, and the participant does not see the answer.
+
+A \emph{wrong go} is a sent command that the fence brings back: the base passes 2 deg, the arm comes within 2 cm
+of the bus, or the hand is still short after 30 s. The arm returns to where the command started and the
+participant may try again or give up. A command refused under no map is not a wrong go and is counted on its own.
+A \emph{give-up} is the participant pressing the give-up key. It ends the goal and adds 30 s to its time. A test
+goal still open after 90 s ends, counts as given up and takes the 30 s as well. A \emph{missed go} is a test goal
+that the rehearsal says can be reached and that ends given up. Giving up a goal that cannot be reached is the
+right answer.
+
+\textbf{What the participant is told to do.} One aim: the lowest total time over the block. They are told what
+things cost. A give-up adds 30 s. A command the fence brings back adds nothing but the time it took, and the arm
+is back where it was. % D28
+An earlier draft told two aims in order, no command brought back and then speed. We dropped that for three
+reasons. An order with no price leaves each participant to set the price, and one who takes it at its word never
+sends near the edge of the rest map: that scores well on wrong goes without doing the task. With the fence a
+wrong go costs time and no attitude, so the order says something our own simulation does not support. % D28
+And it was chosen because a rule that is only fast gains nothing by waiting, which is what H1 is there to find
+out. With time as the only aim a give-up has a price, never sending is slow, and whether a late map is worth the
+wait is left to the participant. On the scripted times by class, sending on every goal the rest map allows costs
+about 27 s per test goal, or about 22 s for a rule that gives up as soon as the fence has brought the arm back.
+Never sending outside the map that held costs about 35 s, waiting for the current-state map on every goal about
+33 s, and waiting only outside the map that held about 29 s. % data/scripted, D28, arithmetic
+So for the rule holding back loses, and waiting loses 2 to 7 s a test goal. A person can steer while the map is
+drawn and the rule cannot, so this is not a forecast. But by our own arithmetic H1 may well fail under this
+score, and a result for H1 holds for this score.
+
+\textbf{Goal sets.} As the tool stands, the 15 goals of a block are spread from 0.5 to 1.4 of the rest edge and 7
+are scored. In the scripted run 47 of 112 scored goals lay beyond 1.05 of the rest edge, where every map says no,
+and only 3 were goals that the rest map allows and the arm cannot reach. We call such a pair a trap. As built, a
+block holds a trap about one time in five, and the conditions can hardly differ. % data/scripted
+So the sets are drawn again before the first participant. We draw pairs with a fixed seed, rehearse each from
+the state its lead goal leaves, and sort them into four classes. Traps: the test goal is inside the rest map,
+outside the map that held, and cannot be reached. Edge goals: inside the rest map, outside the map that held,
+reachable. Inner goals: inside the map that held, reachable. Outer goals: at 1.2 to 1.4 of the rest edge, not
+reachable. A person's lead move does not end where the rehearsal's did, so a pair is kept only if its class stays
+the same when the lead move ends 2 cm off the lead goal in each of six directions. A block has 10 pairs: 2 traps,
+4 edge, 2 inner, 2 outer. There are as many sets as conditions. Every set has the same number of pairs in each
+class and the same spread of depth within a class, and no pair is in two sets. Within a set the edge goals are
+drawn at the depths of the traps, one within 0.03 of each trap. In the map data traps lie further out than
+reachable goals of the same shell (28\% of pairs are traps at 0.95 to 1.0 of the rest edge, 7 to 9\% below 0.8),
+and the dot's colour shows depth. Without the match a participant could sort traps from edge goals by colour
+under any map. % wide98_medium.npz
+A participant meets each set once and so sees no pair twice. Which set goes with which condition moves on by one
+with each participant and by one more after every four. As the tool does it now, two sets always come first or
+last in a session and two always in the middle. With the extra step each set comes at each place 4 to 6 times in
+20 sessions and each condition meets each set 4 to 6 times. This is how the map and not the goal differs between
+conditions: the sets are matched class by class, and what is left of a set is spread over the conditions and the
+places. Pairs come in a new random order for each participant and block.
+
+Four things about these sets are choices. Two traps among the eight test goals inside the rest map is about
+three times what the maps give (6 to 8\% of such pairs), so the study measures what a trap costs and not how
+often one comes, and the rest map looks worse here than it is. % wide98_medium.npz, data/scripted
+No test goal lies just outside the rest map, so the study does not measure what the rest map loses by showing too
+little. Depth tells a participant nothing about a trap here, and in the maps it tells a little. And the 2 cm
+check does not cover a lead move that took another path, so a planted trap may still not be one for a person:
+scoring uses the rehearsal from their own state, we report how many traps each participant met in each block,
+and the sample size below does not count on all of them.
+
+\textbf{Outcomes,} on test goals only. Primary: the number of test goals in a block with at least one wrong go.
+The participant's aim is time and ours is a count. That is on purpose: the count is what the map on screen leads
+to, and time is what the participant weighs it against. Secondary: missed goes on edge goals; seconds per test
+goal with the 30 s per give-up and the rehearsal time in it, and again without the 30 s, which is our choice and
+not a cost of the mission; % D25, D27
+raw NASA-TLX~\cite{hart1988}, the mean of six scales from 0 to 100, after each block; and one trust rating after
+each block, ``How much did you trust what the screen showed'', from 1 (not at all) to 7 (fully). We also report,
+with no test: of the traps a participant met, the share they sent on with the rest map and the share they sent
+on before the current-state map was in; how long they waited for that map; missed goes by class; refused
+commands; commands per goal; and worst tilt. Seconds per goal was the primary measure in the protocol. We moved
+it because in the scripted run it follows the number of goals a display makes the operator give up, at 30 s
+each, more than it follows the map.
+
+\textbf{Order.} A Williams square: four orders, five participants each, every condition once in every place and
+once after every other. % teleop.py feedback
+This balances what one block leaves in the next only if that is the same whatever comes next. It may not be: a
+participant who has met the current-state map may send less with the rest map afterwards. We cannot remove
+that. We show it: the H1 difference for the 10 who had the rest map before the current-state map next to the 10
+who had it after, with no test.
+
+\textbf{Training,} about 10 min. The experimenter reads a fixed sheet and shows the controls. The sheet says what
+the fence does and what a command brought back and a give-up cost. All participants use the keyboard. Then four
+practice pairs under the display of the participant's own first block: two inner, one edge and one outer. An
+earlier draft gave these four with the rest map to everyone, with a trap among them. That gave the control more
+practice than any other display and showed it failing before the first block. Practice under the first display
+is spread over the conditions by the orders. A participant goes on when they have reached an inner test goal and
+given up the outer one. The four pairs may be repeated once. Each block then starts with two practice pairs under
+its own condition, one edge and one trap in random order, which are not scored. So every display has been met on
+the two kinds of goal where the displays differ before it is scored, and under the two displays that allow a
+wrong go the participant has had the chance to see one. Practice pairs are in no set. During a block the
+experimenter says nothing.
+
+A session is then 12 practice pairs and 40 scored pairs. The hour is spent like this: 5 min for consent and the
+sheet, 8 min for the controls and the four practice pairs, four blocks of 1 min of fixed words, 12 pairs and
+2 min of ratings, and 3 min to close. That is 60 min if a pair takes 40 s on the clock, which is our guess. The
+scripted rule needs 9 to 23 simulated seconds a pair and does not hesitate. % data/scripted
+On top come the stop at every goal while the tool rehearses the truth, which no time column holds, and the time
+people take to think. Two pilot sessions check the clock and are not data. If either runs over 65 min, every
+block is cut to 8 scored pairs, 2 traps, 3 edge, 1 inner and 2 outer, before the first participant. Traps and
+edge goals are the last to be cut.
+
+\textbf{Exclusions,} fixed now. A participant is left out and replaced in the same order if they do not pass the
+practice after the repeat, if they do not finish all blocks, if fewer than 8 pairs of any block can be scored, or
+if the tool or the PC fails during a block, which includes a current-state map that takes more than 20 s. A pair
+is not scored if its lead goal was not reached, because the test goal then starts somewhere else. Nobody and no
+pair is left out for being slow, for wrong goes or for giving up. A participant who gives up goals that every
+display allows stays in, and we report inner goals given up per condition so that it shows. We report how many
+were left out and why.
+
+\textbf{Analysis.} The unit is the participant. Pairs are nested in participants and are not independent: what a
+trap did to a person changes what they do on the next. So no test counts pairs. Every outcome is one number per
+participant and condition: a count for wrong goes and for missed goes, the mean for seconds per test goal, the
+median for seconds on reached test goals, the mean of the six scales, the rating. Two conditions are compared
+within participant by the exact Wilcoxon signed-rank test, with zero differences dropped and tied ones sharing a
+rank. We fit no logistic model to the wrong goes: two conditions have none by construction and a third may have
+none, and such a model does not settle on empty cells. The primary outcome is coarse. With two traps a block it
+is 0, 1 or 2 for most participants and many differences will be zero. The test and the simulation below both
+have that in them.
+
+There is one confirmatory test, H1, two-sided at 0.05. Five secondary tests share 0.05 by Holm's method: H2, H3,
+missed goes on edge goals with the rest map against the current-state map, a Friedman test over the conditions
+for workload, and one for trust. The missed goes have no predicted direction: the rule misses no edge goal under
+either map. An earlier draft left the Friedman tests outside the correction and had one on all missed goes. The
+goal set decides that one, since the map that held forces four a block, so it is gone. Nothing else is tested.
+With each test we give the mean difference within participant, a 95\% interval from 10000 resamples of
+participants, and how many participants went each way. H3 is over reached goals only, and which goals are
+reached is partly the participant's choice, so the number reached goes next to it.
+
+Under the rest map and under no map nothing on screen stops a reachable test goal, so a missed go there is the
+participant's and not the display's. We split those into goals given up with no command sent and goals given up
+after one, and report them apart from the ones the map that held forces. One reading is fixed now. No difference
+in wrong goes together with more missed edge goals under the rest map is reach lost to the rest map. It is not
+support for H1 and it is not a sign that the rest map is safe. We also report every outcome by place in the
+session and by goal set, to see what order and set have left. We do not look at the data before all participants
+are in.
+
+\textbf{What would count against us.} If the rest map has no more wrong goes than the current-state map, H1
+fails, and the data say which half failed. Few traps sent on with the rest map: people held back from its edge,
+and the missed edge goals show what that cost. Many sent on before the current-state map was in: people did not
+wait, and a map that is 12 s late is then not used as a map. With 20 participants a failed H1 is weak evidence
+that the maps do not differ unless one of these two is plain in the data (Table~\ref{tab:power}). If no map is
+not faster than the rest map, H2 fails. If no map is the fastest, has no wrong goes and is rated no more work,
+which the scripted run predicts for the time, then for one goal at a time a map is not worth showing and the
+paper has to say so. The task hands over one goal at a time, so it can show what a map costs and cannot show
+what a map is for, which is planning.
+
+\textbf{Sample size.} Human rates are unknown, so we can only say what the design can see under assumptions we
+state. A wrong go needs a trap, and on a trap a participant either sends or does not. Let $a$ be the chance that
+they send with the rest map, and $b$ the chance that they send before the current-state map is in. The scripted
+rule has $a=1$ and $b=0$. We simulated the study with participants who differ by a standard deviation of 1 on the
+logit scale and applied the test above (Table~\ref{tab:power}). The upper rows are the kind case: every planted
+trap is a trap for the participant, a person leans the same way under both maps, and no other goal gives a wrong
+go. Then 20 participants find H1 in 93\% of simulated studies if $a=0.9$ and half do not wait, and in 72\% if
+$a=0.7$ and $b=0.35$. Each of the three flatters us. One at a time on that last case: a planted trap that is one
+for the person four times in five gives 50\%, leans that are not linked 61\%, a wrong go on one other goal in
+twenty 52\%. Two more things we cannot rule out cost as much: no second trap sent on after a wrong go in the same
+block gives 42\%, and half the participants sending at 0.4 with the rest map because they met the current-state
+map first gives 26\%. The lower rows take the first three together. Then 20 participants find H1 in 93\% if
+$a=0.9$ and $b=0.2$, in 47\% if half do not wait, and in 32\% if $a=0.7$ and $b=0.35$, and 30 participants give
+99\%, 68\% and 48\%. A third trap a block would lift the 32\% to 50\%, at four times the rate the maps give, and
+we keep two. So 20 is enough only if most people send with the rest map and most wait for the current one. With
+time as the only aim we do not know that they will wait, and for the rule waiting does not pay. We plan for 20,
+which fills the orders evenly, and we print this table next to the result. One trap a block, nearer what the
+maps give, finds $a=0.7$ and $b=0.35$ in 38\% in the kind case. With the goals as the tool draws them now and
+participants who do exactly as the rule, 20 find H1 in 11\%. % analysis/study/power.py, seed 0, each cell within about 0.02
+
+\begin{table}[t]
+\caption{Share of 4000 simulated studies in which the rest map has more wrong goes than the current-state map at
+$p<0.05$. $a$, $b$: chance that a participant sends on a trap with the rest map, and before the current-state
+map is in. Rest, live: the wrong goes a block that the row then gives under the two maps. All of these are
+assumptions, not data.}\label{tab:power}
+\centering
+\begin{tabular}{lllrrrrr}
+\toprule
+goals & $a$ & $b$ & rest & live & $n=12$ & $n=20$ & $n=30$ \\
+\midrule
+\multicolumn{8}{l}{Every planted trap met, leans linked, no other wrong go} \\
+this design & 1.0 & 0.0 & 2.00 & 0.00 & 1.00 & 1.00 & 1.00 \\
+this design & 0.9 & 0.2 & 1.73 & 0.48 & 0.99 & 1.00 & 1.00 \\
+this design & 0.9 & 0.5 & 1.73 & 1.00 & 0.64 & 0.93 & 0.99 \\
+this design & 0.7 & 0.35 & 1.34 & 0.75 & 0.40 & 0.72 & 0.93 \\
+one trap a block & 0.7 & 0.35 & 0.67 & 0.37 & 0.15 & 0.38 & 0.60 \\
+as the tool draws them now & 1.0 & 0.0 & 0.19 & 0.00 & 0.01 & 0.11 & 0.42 \\
+\midrule
+\multicolumn{8}{l}{A planted trap met 4 times in 5, leans not linked, a wrong go on 1 other goal in 20} \\
+this design & 1.0 & 0.0 & 1.92 & 0.32 & 0.99 & 1.00 & 1.00 \\
+this design & 0.9 & 0.2 & 1.70 & 0.70 & 0.69 & 0.93 & 0.99 \\
+this design & 0.9 & 0.5 & 1.70 & 1.12 & 0.25 & 0.47 & 0.68 \\
+this design & 0.9 & 0.7 & 1.70 & 1.39 & 0.09 & 0.17 & 0.24 \\
+this design & 0.7 & 0.35 & 1.39 & 0.92 & 0.17 & 0.32 & 0.48 \\
+three traps planted & 0.7 & 0.35 & 1.88 & 1.18 & 0.28 & 0.50 & 0.71 \\
+this design & 0.5 & 0.2 & 1.12 & 0.70 & 0.13 & 0.27 & 0.43 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{With the looked-up map as a fifth condition.} A block has 8 pairs, 2 traps, 3 edge, 1 inner and 2 outer,
+in five sets, so a session keeps 40 scored pairs and adds two practice pairs and one round of fixed words and
+ratings. That does not fit the hour: the same budget gives 64 min, or 61 min with 7 pairs a block and one outer
+goal. A Williams design for five conditions has ten orders, two participants each, and each condition meets each
+set 4 times. A participant is left out if fewer than 6 pairs of a block can be scored. H1, its two blocks and
+its traps stay as they are, so the table does not change but for a little less noise in its lower rows, where
+6 and not 8 test goals lie inside the rest map. Two secondary contrasts join: fewer wrong goes with the
+looked-up map than with the rest map, and fewer seconds on reached test goals than with the current-state map,
+because it answers at once. Holm's method then covers seven tests and not five. What we give up is one edge and
+one inner pair per block, which makes missed goes and seconds coarser in every condition, and the traps are then
+2 of the 6 test goals inside the rest map. Against the full simulation the looked-up map keeps 0.67 of the reach
+and promises 0.05 m too much on 1.4\% of pairs, in 43 of 199 states, and only near its stored states. So which
+traps it lets through has to be counted by rehearsal when the pool is drawn. % D55
+\todo{The tool runs the looked-up map as a fifth block now, in ten orders, but with four goal sets, so the rest
+map and the looked-up map share one (D60). Four or five conditions: for the team to decide once the pilot has
+timed a pair.}
+
+\todo{Tool and script, before the first participant: (1) a script that draws and sorts the pairs, with the 2 cm
+check and the depth match, and teleop.py taking that list where it now takes data/decide4\_medium.npz and scores
+a random 7 of 15 goals; (2) the block prompt says ``Fastest total wins'': add what a give-up and a command
+brought back cost; (3) log for every command whether the current-state map was in, and how long each map took;
+(4) a time-out is logged as not given up and without the 30 s; (5) the gamepad buttons are untested, which is
+why the keyboard; (6) feedback.py tests seconds per goal first and all pairs, by another form of the signed-rank
+test, and sums wrong goes: make it H1 first, the planned tests only, the exact test of power.py, and test
+goals with at least one wrong go; (7) the set index in teleop.py gets one more step after every four
+participants; (8) practice pairs under the first block's display, and one edge and one trap before each block;
+(9) run the scripted operator through the new sets and report it as scripted.
+Also find out why the scripted operator gave up all 4 reachable goals just outside the rest map under the
+current-state map without sending.}
+
+\todo{For the team: time as the only aim follows D28. If a command brought back should cost more than its time,
+give it a price in seconds and put it in the prompt. Not an order of aims with no price.}
+
+\todo{Ethics approval, consent form and recruitment of the 20 students: for the team to settle before the
+first participant.}
 
 \subsection{Results}
 \todo{No participant has been run. Ethics approval and consent to settle first.} A scripted operator has been run
-through all four blocks, 28 scored goals per display. It is a rule and not a person, and nothing here is participant
+through the four blocks of the first design, 28 scored goals per display, on the goals as the tool draws them now. It is a rule and not a person, and nothing here is participant
 data. It took 32.6 s per goal with the rest map, 34.7 with the map that held, 34.9 with the map from the current
 state and 22.1 with no map, and 15 of its sends were refused. % D43
 

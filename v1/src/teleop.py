@@ -327,6 +327,8 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
     "guaranteed": the small cage that held from every tested start, dot stopped at it. "live": the cage probed again
     from where the hand stopped, 7 to 13 s late (hand ball yellow while it is old), dot stopped at it. "gate": no cage,
     every go is rehearsed and refused if it cannot work; the rehearsal's wall time is charged to the goal.
+    "lookup": as "live", but the cage is looked up from stored states (livemap.lookup), so it is there the moment the
+    hand stops; smaller than the probed one, and an estimate. Dot stopped at it.
     ponytail: with a delay the rehearsal is of the state at the key press, not at arrival of the command."""
     m, d, sid, Rb0 = setup(size)
     s, hook = viewer_hook()
@@ -339,7 +341,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
     start, tgo, kz, buzz = home, 0.0, 0, getattr(axes, "buzz", lambda x: None)
     view, park, wasv, wasp, trips, cutat = getattr(axes, "view", bool), getattr(axes, "park", bool), False, False, 0, None
     maps, gate = aid in MAPS, aid in (None, "gate")
-    stop = FENCE[1] if aid in (None, "stop") else float(aid in MAPS[:3])    # depth the dot is held at, 0 = not held
+    stop = FENCE[1] if aid in (None, "stop") else float(maps and not gate)  # depth the dot is held at, 0 = not held
     rest, centre, asked, job, lost, no, tg = bool(aid) and not maps, home, home, None, 0.0, False, None
     if direct:
         s["rgba"] = [0, 0, 0, 0]
@@ -355,8 +357,9 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
         rest0 = s["rays"]
         if aid == "guaranteed":
             s["rays"] = guaranteed(rest0, home, size)
-        if aid == "live":
+        if aid in ("live", "lookup"):
             import livemap
+        if aid == "live":
             pl, s["label"] = multiprocessing.Pool(PROCS, livemap.init), "map"
         if not aid:
             threading.Thread(target=preview, args=(m, sid, Rb0, scheme, mode, s), daemon=True).start()
@@ -385,6 +388,8 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                 if not job and np.linalg.norm(p - asked) > TOL and np.linalg.norm(p - target) < TOL:
                     job, asked = livemap.ask(pl, d), p      # the hand has stopped somewhere new
                 s["hand"], s["text"] = (p, YELLOW if job else GREEN), "updating" if job else "current"
+            if aid == "lookup" and np.linalg.norm(p - asked) > TOL and np.linalg.norm(p - target) < TOL:    # the same, looked up: no wait
+                s["rays"], centre, asked, cutat, fresh = [np.tile(t, (3, 1)) for t in livemap.lookup(m, d, sid, Rb0)], p, p, None, True
             if snap or sx or sy or dz:
                 no = False
             if (snap or sx or sy or dz or fresh) and len(s["rays"]) == len(DIRS):    # the fence needs the whole cage
@@ -463,7 +468,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                 if not todo:
                     break
                 if rest or maps and len(rows) % 2 == 0:     # from rest, as the pool's truth was measured (maps: every second goal)
-                    if aid == "live":               # ponytail: a probe still running is dropped but keeps the pool busy, so the next map is later
+                    if aid in ("live", "lookup"):   # ponytail: a probe still running is dropped but keeps the pool busy, so the next map is later
                         s["rays"], centre, asked, job, cutat = rest0, home, home, None, None
                     mujoco.mj_resetData(m, d)
                     d.qpos[7:] = Q_REST
@@ -583,7 +588,7 @@ def decide(pid, size):
 
 
 CUES = ("none", "colour", "stop")       # feedback study: bare dot / envelope and zone colour on the dot / the same plus the hard stop (and rumble)
-MAPS = ("rest", "guaranteed", "live", "gate")   # maps study: cage from rest / small cage that never moved / cage probed from where the arm is, late / no cage, rehearsal says no
+MAPS = ("rest", "guaranteed", "live", "gate", "lookup")    # maps study: cage from rest / small cage that never moved / cage probed from where the arm is, late / no cage, rehearsal says no / cage looked up for where the arm is, at once
 PROCS = max(1, min(10, (os.cpu_count() or 4) - 2))     # processes probing the live cage: 10 gave 7 to 13 s, 12 was no faster (D39)
 TLX = ("mental", "physical", "hurry", "how well it went (0 = perfect)", "effort", "frustration")
 
@@ -608,16 +613,18 @@ def feedback(axes, pid, size, cues=CUES, pre="feedback"):
     Nothing is rehearsed: a go that cannot work costs the time the fence takes to bring the arm back.
     cues=MAPS, pre="maps": the maps study, same blocks, see free_drive. Goals come in pairs (leg 1, leg 2): leg 1
     is an easy one that moves the arm off rest, leg 2 is the pool goal that tests the map. The feedback study has
-    the leg column too, it means nothing there. Block order is a balanced Latin square over the participant id,
-    and after each block the participant rates workload (raw NASA-TLX) and trust in what was shown."""
+    the leg column too, it means nothing there. Block order is a Williams design over the participant id (10 orders
+    for the 5 maps), and after each block the participant rates workload (raw NASA-TLX) and trust in what was shown."""
     rays, goals, dep, _, truth = pool(size)
     m, d, sid, _ = setup(size)
     home, order, rows = d.site_xpos[sid].copy(), list(range(len(cues))), []
     small = [r[-1] for r in guaranteed(rays, home, size)] if cues is MAPS else None
     random.Random(pid).shuffle(order)
-    if small:
-        order = [(pid + x) % 4 for x in (0, 1, 3, 2)]   # 4 orders, every map once in every place and once after every other
+    if small:           # 10 orders (pid mod 10): 5 shifts of a row and their mirrors, every map twice in every place and twice right after every other
+        order = [(pid + x) % 5 for x in (0, 1, 4, 2, 3)[::-1 if pid // 5 % 2 else 1]]
     for b, c in enumerate(order, 1):
+        # ponytail: the pool has 4 goal sets for 5 maps, so "rest" and "lookup" get the same set (shuffled again) in every
+        # participant. A fifth set means pool() making 5 and the cache redone: to be decided before a participant is run
         k, j = (c + pid) % len(goals), random.Random(pid * 10 + c).sample(range(goals.shape[1]), goals.shape[1])
         tg, dp = goals[k, j] - home, dep[k, j]
         if small:       # the first goal of each pair is pulled in to LEAD of the small cage. Every map lets the arm go
@@ -673,7 +680,7 @@ if __name__ == "__main__":
     ap.add_argument("--direct", action="store_true")      # rate control instead of set-and-go
     ap.add_argument("--pilot", type=int)                  # participant id: 4 blocks, direct/set-and-go x 0/2 s
     ap.add_argument("--feedback", type=int)               # participant id: reach the goals with no cue / colour / colour and hard stop
-    ap.add_argument("--maps", type=int)                   # participant id: guaranteed cage / live cage / no cage, rehearsal gate
+    ap.add_argument("--maps", type=int)                   # participant id: guaranteed cage / live cage / no cage, rehearsal gate / looked-up cage
     ap.add_argument("--decide", type=int)                 # participant id: go / re-park decisions, 3 kinds of help
     a = ap.parse_args()
     axes = gamepad() if a.pad else keyboard

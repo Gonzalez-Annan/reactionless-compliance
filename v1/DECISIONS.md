@@ -770,3 +770,78 @@ Thin: four starts, and start 3 carries 6 of the +9. The measuring scripts are no
 `session.py 40 7` would be the full run. Not done.
 
 For the paper: a short paragraph after the joint-limit one. Not a column in any table.
+
+## D60 The looked-up map is in the tool as a fifth condition (2026-10-12)
+
+`--maps` now runs five blocks: rest, held, current state, no map, looked up. `livemap.lookup()` takes the 10
+nearest stored states, pulls the reach in to 0.9 and gives the cage the moment the hand stops. No pool, no wait,
+no yellow marker. Reach is zero on every line once the tilt is at the budget.
+
+Block order is a Williams design for five: 10 orders on the participant id, every map 4 times in every place and
+4 times right after every other in 20 sessions. `tests/test_order.py` checks that from the tool itself.
+`tests/test_maps.py::test_lookup` checks the cage against `learn.safe` on the same state, the zero at the budget
+and one headless drive.
+
+What this does not settle:
+
+- 4 goal sets for 5 conditions. Rest and looked up get the same 15 goals in every participant, shuffled again.
+  A fifth set means drawing the pool again, which changes the sets the scripted logs ran on.
+- No hypothesis is written for the looked-up map.
+- Block orders per id changed, so the scripted logs of D43 ran in the old orders. They have four blocks and
+  still read. No scripted run has a looked-up block.
+- D55 stands: the looked-up map keeps 0.67 of the reach against 0.29, and is over by 5 cm in 43 of 199 states
+  against 9. It is only that good one or two moves from rest.
+- Nobody has looked at it on a screen. How the smaller cage reads next to the dot, and whether the jump from the
+  rest cage is confusing, is not known.
+- Five blocks do not fit the hour (D61). Four or five is for the team to decide after the pilot.
+
+## D61 The study design after a methods review, and what 20 participants can show (2026-10-12)
+
+The design in D41 had holes. A referee pass found them and the Design section of `paper/journal/draft.tex` is
+rewritten. `analysis/study/PROTOCOL_maps.md` logs the changes with today's date. No participant has been run.
+
+What changed:
+
+- Primary measure: test goals with a command the fence had to bring back, not seconds per goal. In the scripted
+  run seconds follow the 30 s give-ups more than the map.
+- One aim for the participant: lowest total time, with the costs told. "No wrong go first, then speed" had no
+  price, so a participant could score well by never sending near the edge.
+- A give-up costs 30 s. Missed edge goals are a planned contrast, so holding back shows.
+- Goal sets drawn again: 10 pairs a block, 2 traps, 4 edge, 2 inner, 2 outer, edge goals at the depth of the
+  traps. As the tool draws goals now a block holds a trap about one time in five and the maps can hardly differ.
+- Set index gets one more step every four participants. Before, a set came at a given place 10 or 0 times in 20
+  sessions. Now 4 to 6.
+- Practice under the participant's own first display, not under the rest map for everyone.
+- One confirmatory test (H1), five secondary tests under Holm. The unit is the participant.
+
+Sample size, from `analysis/study/power.py` (4000 simulated studies a cell, seed 0). a is the chance a person
+sends on a trap under the rest map, b the chance they send before the current-state map is in. Both are guesses.
+
+| case | a | b | n = 12 | n = 20 | n = 30 |
+|---|---|---|---|---|---|
+| kind | 0.9 | 0.2 | 0.99 | 1.00 | 1.00 |
+| kind | 0.9 | 0.5 | 0.64 | 0.93 | 0.99 |
+| kind | 0.7 | 0.35 | 0.40 | 0.72 | 0.93 |
+| less kind | 0.9 | 0.2 | 0.69 | 0.93 | 0.99 |
+| less kind | 0.9 | 0.5 | 0.25 | 0.47 | 0.68 |
+| less kind | 0.7 | 0.35 | 0.17 | 0.32 | 0.48 |
+| goals as the tool draws them now | 1.0 | 0.0 | 0.01 | 0.11 | 0.42 |
+
+So 20 is enough only if most people send on a trap under the rest map and most wait for the current-state map.
+If half do not wait it is a coin flip. And by the scripted times waiting loses 2 to 7 s a test goal under a
+time-only score, so H1 may well fail. The draft says so.
+
+Not done, and needed before the first participant: the script that draws and sorts the new sets (whether the pool
+can supply them is untested), the prompt text with the costs, the log columns for map age, `feedback.py` on the
+new primary measure with the exact test, practice pairs per block, the scripted operator on the new sets. The
+list is a todo in the draft. The hour: 60 min at 40 s a pair, which is a guess. Five conditions come to 64 min.
+
+## D62 reproduce.py (2026-10-12)
+
+`python reproduce.py` from `v1/` re-scores the stored data and checks what the scripts print against the numbers
+in this file: 9 commands, one process each, 39 checks, about 2 min on a free machine, PASS or FAIL per line. It
+writes nothing into the repo. Last run: 39 PASS, 0 FAIL, 90 s.
+`--full` lists the commands that rebuild the data with their runtimes, `--full --run` runs them.
+
+It does not cover anything that needs the 10-process pool, the sweep table, the scripted pre-study counts or
+part B of `planar.py`. One line is known to differ from its D-number (D16 rest pose, old text) and says so.

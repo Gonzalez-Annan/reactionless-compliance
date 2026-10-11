@@ -3,6 +3,7 @@ the second from where the first left the arm.
 gate: a near goal is sent and reached, a far one is refused by the rehearsal and never moves the arm.
 guaranteed: the dot cannot leave the small cage, so a goal outside it is given up without a send.
 live: after the first move the cage is probed again from where the hand stopped and swapped in.
+lookup: the same swap with the cage looked up from the stored states, and the lookup itself against learn.py safe.
 Run from the repo root."""
 import sys; sys.path.insert(0, "src")
 import types, numpy as np, teleop as T
@@ -85,3 +86,33 @@ def test_live_line_starts_at_the_hand():
         mujoco.mj_step(m, d)
     livemap.init(); u = T.DIRS[0]
     assert np.allclose(livemap.probe((d.qpos.copy(), d.qvel.copy(), u)), T.ray(m, d, sid, Rb0, u, 5, "3d"), atol=1e-6)
+
+
+def test_lookup(monkeypatch):
+    """The looked-up cage at rest and one move out: 98 tips, the ones learn.py safe gives, none past the stored reach.
+    No reach with the base over budget. In the tool it is swapped in when the hand stops, with no pool."""
+    global home
+    import livemap
+    sys.path.insert(0, "analysis/envelope"); import learn
+    a, b = (np.load(T.OUT.parent / f"learn{n}_medium.npz") for n in ("", 2))
+    X, Y = np.r_[a["X"], b["X"]], np.r_[a["Y"], b["Y"]]
+    g = learn.safe(X, Y, 10, 0.9)
+    for legs in ((), ([0.15, 0.1, 0.1],)):
+        m, d, sid, Rb0 = learn.state(legs); p, x = d.site_xpos[sid].copy(), learn.feat(d, Rb0)
+        tips = np.array(livemap.lookup(m, d, sid, Rb0)); r = np.linalg.norm(tips - p, axis=1)
+        assert tips.shape == (98, 3) and np.allclose(tips, p + g(x)[:, None] * np.array(T.DIRS), atol=1e-12)
+        near = Y[np.argmin(np.linalg.norm((X - x) / X.std(0), axis=1))]     # the reaches stored for the nearest state
+        assert r.min() > 0 and (r <= 0.9 * near + 1e-5).all(), "no tip further than 0.9 of what the nearest stored state reached"
+        print("lookup", len(legs), "move(s): reach %.2f to %.2f m, mean %.2f" % (r.min(), r.max(), r.mean()))
+    for dv in (-0.01, 0.01):
+        d.qpos[3:7] = (Rb0 * T.Rot.from_rotvec([np.radians(T.BASE_MAX + dv), 0, 0])).as_quat()[[3, 0, 1, 2]]
+        assert (livemap.lookup(m, d, sid, Rb0) == d.site_xpos[sid]).all() == (dv > 0), "base over budget: no reach at all, under it: some"
+
+    _, goals, dep, _, truth = T.pool("medium")
+    G, D, TR = goals.reshape(-1, 3), dep.ravel(), truth.ravel()
+    m, d, sid, _ = T.setup("medium"); home = d.site_xpos[sid].copy()
+    monkeypatch.setattr(T.multiprocessing, "Pool", None)            # a pool started for this map would fail here
+    (a, b), s, swapped = drive("lookup", G[[np.flatnonzero((D < 0.6) & TR)[0], np.flatnonzero(D > 1.3)[0]]])
+    assert a["reached"] and swapped, "the cage is looked up once the hand has stopped away from rest"
+    assert b["parked"] and b["sends"] == 0, "the dot stops at the looked-up cage, so nothing is sent"
+    assert "hand" not in s, "nothing to wait for: no hand ball"

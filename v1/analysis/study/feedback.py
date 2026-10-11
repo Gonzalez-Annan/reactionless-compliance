@@ -6,9 +6,13 @@ Run from the repo root: python analysis/study/feedback.py            real partic
                                                                      operator sees. rest = drawn once from rest,
                                                                      sometimes wrong; guaranteed = small, never
                                                                      wrong; live = right but late; gate = no map,
-                                                                     rehearsal only. Same columns, same tests,
+                                                                     rehearsal only; lookup = looked up, at once,
+                                                                     an estimate. Same columns, same tests,
                                                                      but only leg 2 goals are scored: leg 1 is
                                                                      the easy goal that moves the arm off rest.
+                                                                     Logs from before lookup (four maps) still
+                                                                     read: the table and the tests take the
+                                                                     conditions that are in the files.
 Per participant and cue: seconds per goal (the score), wrong goes (fence trips), reachable goals given up,
 unreachable goals given up, worst base tilt. Then the mean over participants and a Friedman test across the
 conditions on seconds per goal, with Wilcoxon pairs (Holm corrected) if there are at least 6 participants.
@@ -20,7 +24,7 @@ import numpy as np, pandas as pd
 from scipy import stats
 
 MAPS = "--maps" in sys.argv
-CUES = ("rest", "guaranteed", "live", "gate") if MAPS else ("none", "colour", "stop")
+CUES = ("rest", "guaranteed", "live", "gate", "lookup") if MAPS else ("none", "colour", "stop")
 PRE = "maps_" if MAPS else "feedback_"
 DATA = Path(__file__).parent.parent.parent / "data" / "participants"
 
@@ -41,18 +45,18 @@ def report(df):
     b = per_block(df)
     if "tlx" in df:
         b = b.merge(df.groupby(["pid", "cue"])[["tlx", "trust"]].first().reset_index())
-    n = b.pid.nunique()
+    n, cues = b.pid.nunique(), [c for c in CUES if c in set(b.cue)]     # the conditions that were run: old logs have no lookup
     print(b.round(2).to_string(index=False))
     print("\nmean over %d participant(s):" % n)
-    print(b.drop(columns="pid").groupby("cue").mean().reindex(CUES).round(2).to_string())
-    w = b.pivot(index="pid", columns="cue", values="s_per_goal").reindex(columns=CUES).dropna()
+    print(b.drop(columns="pid").groupby("cue").mean().reindex(cues).round(2).to_string())
+    w = b.pivot(index="pid", columns="cue", values="s_per_goal").reindex(columns=cues).dropna()
     if len(w) < 3:
         print("\nno test: %d complete participant(s), a Friedman test needs 3" % len(w))
         return b, None
-    chi, p = stats.friedmanchisquare(*[w[c] for c in CUES])
+    chi, p = stats.friedmanchisquare(*[w[c] for c in cues])
     print("\nFriedman on s per goal, n = %d: chi2 = %.2f, p = %.3f" % (len(w), chi, p))
     if len(w) >= 6:
-        pr = sorted((stats.wilcoxon(w[a], w[c]).pvalue, a, c) for a, c in combinations(CUES, 2))
+        pr = sorted((stats.wilcoxon(w[a], w[c]).pvalue, a, c) for a, c in combinations(cues, 2))
         h = 0.0
         for i, (q, a, c) in enumerate(pr):          # Holm: the smallest p times the number of pairs, and so on down
             h = max(h, min(1.0, q * (len(pr) - i)))

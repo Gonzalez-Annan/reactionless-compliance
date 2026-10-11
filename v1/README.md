@@ -39,3 +39,18 @@ python analysis/sizing.py            # ~5 min, fig6: reach and wheel momentum ag
 - Checking the ISO/TS 15066 chest values in `safety.py` against the standard.
 - Checking every reference in the paper against `P2_Literature_Survey.xlsx`.
 - Demo video, slides, defence.
+
+## Checking the numbers
+
+`python reproduce.py` from this folder re-scores the data stored in `data/` and checks what the scripts print against
+the numbers in DECISIONS.md. Nine commands, one process each, about 2 minutes, PASS or FAIL per line, exit code 1 if
+anything fails. It writes nothing into the repo. It is simulation only: no participant has been run.
+
+`python reproduce.py --full` lists the commands that rebuild the data, in order, with runtimes. Most use 10 processes.
+The longest are `wide.py --98` (77 min) and `learn.py gen more` (about 2.7 h). `--full --run` runs them and deletes the
+old files first, so only use it if you mean it.
+
+Not covered: anything that needs the 10-process pool (D38 to D44, D47 to D49, D52), the sweep table, part B of
+`planar.py` and the scripted pre-study counts. The end of the output lists each one with the reason.
+
+`python analysis/study/power.py` prints the sample size table of the study design (D61), about two minutes.

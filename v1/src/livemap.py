@@ -3,7 +3,8 @@
     job = livemap.ask(pl, d)             returns at once
     job.ready(), np.array(job.get())     98 tips, same order as teleop.DIRS, lines start at the hand as it was at ask()
 About 13 s from rest and 12 s from a detour on 10 processes (analysis/envelope/live.py). Tilt is counted from rest.
-The map is as old as the wait: it is for a hand that has settled, not one that is moving."""
+The map is as old as the wait: it is for a hand that has settled, not one that is moving.
+    tips = livemap.lookup(m, d, sid, Rb0)   the same 98 tips at once, looked up from stored states: no pool, no wait"""
 import copy, numpy as np, mujoco
 import teleop as T
 from dynamics import kin
@@ -50,3 +51,22 @@ def fast(m, d, sid, Rb0, u, dt=0.02):
         mujoco.mj_integratePos(m, d2.qpos, d2.qvel, dt)
         d2.qpos[7:] = np.clip(d2.qpos[7:], T.Q_LIM[:, 0], T.Q_LIM[:, 1])
     return best
+
+
+def lookup(m, d, sid, Rb0, k=10, pull=0.9):
+    """The cage looked up instead of probed: per line the shortest reach among the k stored states nearest to this one
+    (7 joint angles + base tilt as a rotation vector, z-scored with the stored set's own mean and std), times pull.
+    No reach at all with the base at or over the tilt budget. -> 98 tips from the hand, as ask(...).get(), at once.
+    Stored: 1000 states one or two moves from rest (analysis/envelope/learn.py gen). This is learn.py safe: with 600
+    of them stored, on 200 it never saw it was 0.05 m too far on 1.5% of the lines and kept 0.69 of the reach (D54).
+    ponytail: the stored reaches are fast() estimates and a hand more than two moves out has no near neighbour, so
+    T.check stays the authority. Medium servicer only, as init()."""
+    global S
+    if "S" not in globals():                             # the stored states, loaded once
+        a, b = (np.load(T.OUT.parent / f"learn{n}_medium.npz") for n in ("", 2))
+        X, Y = np.r_[a["X"], b["X"]], np.r_[a["Y"], b["Y"]]
+        S = X.mean(0), X.std(0) + 1e-9, X, Y
+    mu, sd, X, Y = S
+    x = np.r_[d.qpos[7:], (Rb0.inv() * T.Rot.from_quat(d.qpos[[4, 5, 6, 3]])).as_rotvec()]
+    r = pull * Y[np.argsort(np.linalg.norm((X - mu) / sd - (x - mu) / sd, axis=1))[:k]].min(0)
+    return d.site_xpos[sid] + (np.linalg.norm(x[7:]) < np.radians(T.BASE_MAX)) * r[:, None] * np.array(T.DIRS)

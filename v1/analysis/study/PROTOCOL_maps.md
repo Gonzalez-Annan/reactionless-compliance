@@ -16,6 +16,7 @@ A map drawn once from rest is wrong on roughly 1 goal in 14 near the edge. What 
 | guaranteed | the small cage that held from every tested start. Dot stops at it. | reachable goals outside it have to be given up |
 | live | the cage probed again from wherever the hand stopped. Dot stops at it. | 12 to 13 s old after every move |
 | gate | no cage. Every go is rehearsed and refused if it cannot work. | the rehearsal time on every go, and no picture to plan with |
+| lookup | the cage looked up from stored states for wherever the hand stopped, there at once. Dot stops at it. | an estimate, pulled in to 0.9: smaller than the probed cage, and it can still be wrong |
 
 `rest` is the control. It is what the CA3 tool already does.
 
@@ -27,8 +28,11 @@ starts from where leg 1 left the arm. 15 goals a block, so 7 scored goals per co
 
 ## Counterbalancing
 
-4 conditions, balanced Latin square, 4 orders. 20 participants = 5 per order.
+5 conditions, Williams design, 10 orders (the tool takes the order from the participant id). 20 participants = 2 per
+order: every map 4 times in every place and 4 times right after every other.
 The goal set that goes with a condition rotates with the participant id, so no map always gets the same goals.
+There are 4 goal sets for 5 conditions: `rest` and `lookup` get the same 15 goals in every participant, in a
+different order. Open, see below.
 
 ## Measures
 
@@ -47,8 +51,8 @@ Scored on leg 2 goals only.
 - H3: `live` is the fastest per goal, if waiting for the map costs less than the wrong goes it saves.
 - H4: `gate` has no wrong goes but is slower than `live` and rated as more work.
 
-Any of these can fail and we report it as it comes out. If the four conditions do not differ on the primary
-measure, that is the result.
+Any of these can fail and we report it as it comes out. If the conditions do not differ on the primary
+measure, that is the result. H1 to H4 were written for the first four. `lookup` has no hypothesis yet: open, below.
 
 ## Analysis
 
@@ -63,13 +67,42 @@ Holm corrected. Written and checked on made-up rows before data (`--maps --check
   least one cage tip the rehearsal refused (4.3% of pairs, D43). The study keeps to one move (leg 2 is one move
   from rest), and the name is the label of the condition, not a claim. Do not add a third leg without redoing it.
 - The live map's delay depends on the laptop. Record the machine and the number of processes per session.
+- The looked-up cage against 199 fully simulated states (D55): 0.05 m too far on 1.4% of lines, in 43 of the 199
+  states, worst 0.44 m, 0.67 of the reach kept. One fixed cage: 0.7%, 9 states, worst 0.16 m, 0.29 kept. It is only
+  this good near the stored states, one or two moves from rest.
 
 ## Open, needs a decision from us
 
 - Ethics. A class demo is one thing, a journal paper with participants needs consent forms and most likely
   approval from the university. Ask before the first participant, not after.
 - Who the 20 are (classmates is fine, but say so in the paper) and whether they get a practice block.
+- A fifth goal set, so `rest` and `lookup` do not share one. It means drawing the pool again (`teleop.pool`), which
+  changes the sets the scripted logs were run on. Or accept the shared set and say so in the paper.
+- What we expect of `lookup`, written down before the first participant.
 
 ## Not participant data
 
 Everything in the repo so far is scripted runs. `maps_0.csv` is the self-test id and is left out of the analysis.
+
+## Changes
+
+- 2026-10-11, before any participant: `lookup` added as a fifth condition (D54, D55: a looked-up cage keeps 2.3
+  times the reach of a fixed one and is wrong in more states, 43 of 199 against 9). The block orders went from 4 to 10 with it, so an id no longer
+  gets the order it had in the scripted logs of before this date. Those logs have four blocks and still read.
+- 2026-10-12, before any participant: the design was reviewed and changed (D61). From this date the Design section
+  of `paper/journal/draft.tex` is the protocol, and the sections above are kept as they were written. What changed:
+  1. Primary measure: test goals with a command the fence had to bring back. Seconds per goal is secondary.
+  2. The participant gets one aim, lowest total time, and is told the costs (a give-up adds 30 s, a command brought
+     back costs only its time). The order "no wrong go first, then speed" is gone.
+  3. Goal sets are drawn again: 10 pairs a block (2 traps, 4 edge, 2 inner, 2 outer), edge goals at the depth of
+     the traps, a pair kept only if its class holds with the lead move 2 cm off. The set index gets one more step
+     every four participants.
+  4. Hypotheses: H1 more test goals with a command brought back under the rest map than under the current-state
+     map (the one confirmatory test). H2 no map is faster per test goal than the rest map. H3 reached goals take
+     longer with the current-state map than with the rest map. The held map carries no hypothesis. Old H1 to H4 above
+     are replaced.
+  5. Practice runs under the participant's own first display, and each block starts with one edge and one trap
+     practice pair.
+  6. Tests: exact Wilcoxon signed-rank per participant, H1 alone at 0.05, five secondary tests under Holm. No
+     Friedman test on the primary measure.
+  The tool does not do 3, 5 and 6 yet. The list is in the draft.
