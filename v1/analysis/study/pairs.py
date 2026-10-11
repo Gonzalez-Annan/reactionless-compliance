@@ -13,7 +13,9 @@ A pair is kept only if it is in the same class when the lead move ends 2 cm off 
 "Cannot be reached" means the hand ends GAP or more short: the tool counts a goal as reached within 2 cm, so a goal
 missed by a centimetre would be no trap. "Outside the map that held" means GAP or more outside it, for the same reason.
 A set has NEED scored pairs and 2 more that start its block and are not scored (1 edge, 1 trap). 4 pairs are for
-training. Every trap of a set has an edge goal within 0.03 of its depth, and the other edge goals are the next nearest.
+training. The traps come from three bands of depth, SETS traps next to each other in each, so every set gets traps of
+nearly the same depth: the low and the high band are scored, the middle one starts the blocks.
+Every trap of a set has an edge goal within 0.03 of its depth, and the other edge goals are the next nearest.
 The map from the current state is not used to sort. For the traps and edge goals that were picked it is probed and
 printed: between its 98 lines it is a straight join, so it can allow a trap or stop short of an edge goal."""
 import sys; sys.path.insert(0, "src")
@@ -120,7 +122,12 @@ if __name__ == "__main__":
         k = classes(c)
         print(N, "candidates. In a class with the lead move ending on the lead goal:", {x: int(v[:, 0].sum()) for x, v in k.items()}, flush=True)
         sim(pl, c, [(i, j) for i in np.flatnonzero(k["trap"][:, 0]) for j in range(1, len(OFF))])
-        traps = spread(np.flatnonzero(classes(c)["trap"].all(1)), kr, SETS * (NEED["trap"] + 1), "trap")
+        tr, nb = np.flatnonzero(classes(c)["trap"].all(1)), NEED["trap"] + 1
+        if len(tr) < 2 * nb * SETS:
+            raise SystemExit(f"only {len(tr)} trap pairs hold in all 7 rehearsals: more candidates (N_IN)")
+        tr = tr[np.argsort(kr[tr], kind="stable")]      # bands of depth around 1/6, 3/6, 5/6 of the traps, SETS next to each other in each
+        band = [tr[a:a + SETS] for a in np.round((2 * np.arange(nb) + 1) / (2 * nb) * len(tr) - SETS / 2).astype(int)]
+        traps = np.concatenate(band[:nb // 2] + band[nb // 2 + 1:] + [band[nb // 2]])      # the middle band last: it starts the blocks
         e0 = np.flatnonzero(k["edge"][:, 0])
         want = [e0[np.argsort(abs(kr[e0] - kr[t]), kind="stable")[:12]] for t in traps]     # the edge goals nearest in depth to a trap
         want += [np.flatnonzero(k[x][:, 0])[:5 * (SETS * NEED[x] + TRAIN[x])] for x in ("inner", "outer")]
@@ -128,8 +135,8 @@ if __name__ == "__main__":
         k = classes(c)
         print("of those, in the same class in all 7:", {x: int(v.all(1).sum()) for x, v in k.items()}, "(edge, inner, outer: only as many as needed were tried)", flush=True)
 
-        for j, t in enumerate(traps):       # by depth: low, middle, high to every set. The middle one starts the block
-            take(t, snake(j), "block" if j // SETS == (NEED["trap"] + 1) // 2 else "scored", "trap")
+        for j, t in enumerate(traps):       # one of every band to every set, the scored bands dealt against each other
+            take(t, snake(j), "block" if j // SETS == NEED["trap"] else "scored", "trap")
         eg = np.flatnonzero(k["edge"].all(1))
 
         def edge(t, s, use):
@@ -145,7 +152,7 @@ if __name__ == "__main__":
                 gaps += [edge(mine[s][n % len(mine[s])], s, "scored")][:n < len(mine[s])]
         for r in [r for r in rows if r["use"] == "block"]:
             edge(r["cand"], r["set"], "block")
-        edge(traps[len(traps) // 2], -1, "train")
+        edge(traps[-1], -1, "train")
         for cls, key in (("inner", c["ks"]), ("outer", kr)):
             ix = spread(np.flatnonzero(k[cls].all(1)), key, SETS * NEED[cls] + TRAIN[cls], cls)
             mid, j = range((len(ix) - TRAIN[cls]) // 2, (len(ix) + TRAIN[cls]) // 2), 0
@@ -177,6 +184,7 @@ if __name__ == "__main__":
     df["k"] = np.where(df.cls == "inner", df.depth_held, df.depth)
     print(df.groupby(["set", "use", "cls"]).k.apply(lambda x: " ".join(f"{v:.2f}" for v in x)).unstack().fillna("").to_string())
     print(f"each scored trap has an edge goal within {max(gaps):.3f} of its depth (0.03 allowed)")
+    print("scored traps, mean depth by set:", " ".join(f"{v:.3f}" for v in sc[sc.cls == "trap"].groupby("set").depth.mean()))
     tr, ed = df[df.cls == "trap"], df[df.cls == "edge"]
     print("what ends the move on a trap:", tr.why.value_counts().to_dict(), " hand ends %.2f to %.2f m short" % (tr.short_m.min(), tr.short_m.max()))
     print(f"map from the current state, probed after the lead move: it allows {(tr.depth_live < 1).sum()} of the {len(tr)} traps "

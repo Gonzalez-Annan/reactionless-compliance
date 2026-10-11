@@ -83,7 +83,7 @@ if __name__ == "__main__":
                         "missed": n(lambda x: x.parked & x.true_go), "refused": g.refused.sum(), "gave_up": g.parked.sum(),
                         "timeouts": g.timeout.sum(), "early_sends": g.early.sum(), "map_s_max": g.map_s.max().round(1),
                         "worst_tilt_deg": g.peak_base_deg.max().round(2)}).reindex(T.MAPS)
-    print("SCRIPTED OPERATOR, not participants. Scored test goals, ids", sorted(df.pid.unique()))
+    print("SCRIPTED OPERATOR, not participants. Scored test goals, ids", *sorted(df.pid.unique()))
     print(out.to_string())
     t = df.groupby("cls").true_go.agg(["size", "sum"])      # the classes were sorted by rehearsal: did they hold where the rule's lead moves ended
     print("could be reached when it opened, by class (of goals):", {k: f"{int(v['sum'])} of {int(v['size'])}" for k, v in t.iterrows()})
