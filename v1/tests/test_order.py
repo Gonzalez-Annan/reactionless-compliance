@@ -1,30 +1,43 @@
-"""Goal order of the maps study, without the viewer: free_drive is swapped for a stub that records the targets.
-The first goal of every pair must sit at LEAD inside the small cage, the second must be an untouched pool goal.
-Block order over 20 participant ids must be a Williams design run twice.
-Run from the repo root."""
+"""Maps study: what a participant gets (blocks, practice, training) and how displays and goal sets go round over 20 ids.
+free_drive is stubbed, nothing is simulated."""
 import sys; sys.path.insert(0, "src")
-import builtins, numpy as np, teleop as T
+import builtins, collections, numpy as np, teleop as T
 
 
-def test_order(monkeypatch):
+def run(monkeypatch, pid, ok=True):
+    """-> the rows of one participant and the targets of each free_drive call. ok: the stub reaches and gives up everything."""
     got = []
-    monkeypatch.setattr(T, "free_drive", lambda axes, size, sc, mode, targets, aid: got.append(targets) or [{"time_s": 0.0} for _ in targets])
+    monkeypatch.setattr(T, "free_drive", lambda axes, size, sc, mode, targets, aid: got.append(targets) or
+                        [{"time_s": 1.0, "reached": ok, "parked": ok} for _ in targets])
     monkeypatch.setattr(builtins, "input", lambda q="": "50 40 30 20 10 0" if "six" in q else "5" if "trust" in q else "")
     monkeypatch.setattr(T.pd.DataFrame, "to_csv", lambda *a, **k: None)
-    rays, goals, *_ = T.pool("medium")
-    m, d, sid, _ = T.setup("medium"); home = d.site_xpos[sid].copy()
-    small = [r[-1] for r in T.guaranteed(rays, home, "medium")]
-    rows = T.feedback(None, 1, "medium", T.MAPS, "maps")
-    assert len(got) == 5 and [r["leg"] for r in rows[:4]] == [1, 2, 1, 2]
-    assert rows[0]["tlx"] == 25 and rows[0]["trust"] == 5 and rows[0]["cue"] == T.MAPS[1]
-    for t in got:
-        k = np.array([T.depth(small, home, home + x) for x in t])
-        assert len(t) == 15 and k[::2].max() <= T.LEAD + 1e-9
-        assert all(np.abs(goals.reshape(-1, 3) - home - x).max(1).min() < 1e-12 for x in t[1::2])
-    r1 = [r["depth"] for r in rows if r["leg"] == 1]
-    assert max(r1) < T.FENCE[0], "a leg 1 goal is well inside the rest cage too"
-    orders = [[r["cue"] for r in T.feedback(None, p, "medium", T.MAPS, "maps")[::15]] for p in range(1, 21)]   # as the tool runs them
-    assert all(sorted(c) == sorted(T.MAPS * 4) for c in zip(*orders)), "20 participants: every map 4 times in every place"
-    after = [(o[i], o[i + 1]) for o in orders for i in range(4)]
-    assert len(set(after)) == 20 and all(after.count(x) == 4 for x in set(after)), "and 4 times right after every other"
-    assert len({tuple(o) for o in orders[:10]}) == 10 and orders[:10] == orders[10:], "10 orders, each twice"
+    return T.pd.DataFrame(T.maps_study(None, pid, "medium")), got
+
+
+def test_blocks(monkeypatch):
+    df, got = run(monkeypatch, 1, ok=False)
+    assert [len(t) for t in got] == [8, 8, 24, 24, 24, 24]      # training twice (this stub never passes it), then 4 blocks of 12 pairs
+    assert len(run(monkeypatch, 1)[1]) == 5                     # training once when it is passed
+    pr = T.pd.read_csv("data/pairs_medium.csv").set_index("cand")
+    assert pr.index.is_unique                                   # no pair in two sets
+    for b in (1, 2, 3, 4):
+        q = df[(df.block == b) & (df.leg == 2)]
+        assert list(q.use) == ["block"] * 2 + ["scored"] * 10 and sorted(q.cls[:2]) == ["edge", "trap"]
+        assert q[q.use == "scored"].cls.value_counts().to_dict() == dict(edge=4, trap=2, inner=2, outer=2)
+        assert q.set.nunique() == 1 and (q.tlx == 25).all() and (q.trust == 5).all()
+    assert (df[df.block == 0].use == "train").all() and df[df.leg == 1].depth.isna().all() and df[df.leg == 2].depth.notna().all()
+    b1 = df[df.block == 1]                                      # the targets are the pairs of the file, lead goal first
+    assert np.allclose(got[2], np.where((b1.leg == 1).to_numpy()[:, None], pr.loc[b1.pair, ["lx", "ly", "lz"]], pr.loc[b1.pair, ["tx", "ty", "tz"]]))
+
+
+def test_balance(monkeypatch):
+    place, after, at, meet = (collections.Counter() for _ in range(4))
+    for pid in range(1, 21):
+        b = run(monkeypatch, pid)[0].query("block > 0").drop_duplicates("block")
+        cues, sets = list(b.cue), list(b.set)
+        assert sorted(cues) == sorted(T.MAPS) and sorted(sets) == [0, 1, 2, 3]      # every display and every set once
+        place.update(enumerate(cues)); after.update(zip(cues, cues[1:])); at.update(enumerate(sets)); meet.update(zip(cues, sets))
+    assert len(place) == 16 and set(place.values()) == {5}      # every display 5 times in every place
+    assert len(after) == 12 and set(after.values()) == {5}      # and 5 times right after every other
+    for x in (at, meet):                                        # a set in a place, a display on a set: 4 to 6 times each
+        assert len(x) == 16 and 4 <= min(x.values()) and max(x.values()) <= 6

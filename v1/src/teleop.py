@@ -6,6 +6,7 @@
     python src/teleop.py --delay 2 [--direct]      # 2 s command delay; --direct = hold the keys to drive the hand
     python src/teleop.py --pilot 1                 # delay pilot, participant 1: 4 blocks, five pink goals each
     python src/teleop.py --feedback 1              # feedback study, participant 1: 3 blocks (no cue / colour / hard stop), scored in seconds
+    python src/teleop.py --maps 1                  # maps study, participant 1: 4 blocks (cage from rest / cage that held / cage from where the arm is / no cage)
     python src/teleop.py --pad ...                 # same, with a gamepad (needs: uv pip install pygame)
 
 Set-and-go (default): move the dot anywhere in 3-D, press Enter (pad: Cross). If the hand can get there with
@@ -340,9 +341,10 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
     t0, sends, refused, path, gpeak, dwell = 0.0, 0, 0, 0.0, 0.0, 0.0
     start, tgo, kz, buzz = home, 0.0, 0, getattr(axes, "buzz", lambda x: None)
     view, park, wasv, wasp, trips, cutat = getattr(axes, "view", bool), getattr(axes, "park", bool), False, False, 0, None
-    maps, gate = aid in MAPS, aid in (None, "gate")
+    maps, gate = aid in MAPS + ("lookup",), aid in (None, "gate")
     stop = FENCE[1] if aid in (None, "stop") else float(maps and not gate)  # depth the dot is held at, 0 = not held
     rest, centre, asked, job, lost, no, tg = bool(aid) and not maps, home, home, None, 0.0, False, None
+    early, tj, mt = 0, 0.0, 0.0     # live cage: sends while the cage on screen was not from where the hand is / wall time it was asked for / longest wait in this goal
     if direct:
         s["rgba"] = [0, 0, 0, 0]
     else:
@@ -383,10 +385,10 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                 goal = move(goal, sx, sy, dz, az, el, G_MAX * dt * (FINE if fine else 1))
             fresh = bool(job) and job.ready()
             if fresh:                               # the live cage is in: lines from where the hand was when it was asked for
-                s["rays"], centre, job, cutat = [np.tile(t, (3, 1)) for t in job.get()], asked, None, None
+                s["rays"], centre, job, cutat, mt = [np.tile(t, (3, 1)) for t in job.get()], asked, None, None, max(mt, time.time() - tj)
             if aid == "live":
-                if not job and np.linalg.norm(p - asked) > TOL and np.linalg.norm(p - target) < TOL:
-                    job, asked = livemap.ask(pl, d), p      # the hand has stopped somewhere new
+                if not job and np.linalg.norm(p - asked) > TOL and np.linalg.norm(p - target) < TOL and not (todo and np.linalg.norm(p - todo[0]) < NEAR):
+                    job, asked, tj = livemap.ask(pl, d), p, time.time()      # the hand has stopped somewhere new
                 s["hand"], s["text"] = (p, YELLOW if job else GREEN), "updating" if job else "current"
             if aid == "lookup" and np.linalg.norm(p - asked) > TOL and np.linalg.norm(p - target) < TOL:    # the same, looked up: no wait
                 s["rays"], centre, asked, cutat, fresh = [np.tile(t, (3, 1)) for t in livemap.lookup(m, d, sid, Rb0)], p, p, None, True
@@ -410,6 +412,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                 if "t0" in s:
                     s["t0"] += time.time() - t      # do not fast-forward the viewer after the rehearsal
                 sends, refused = sends + 1, refused + (not ok)
+                early += int(aid == "live" and (bool(job) or np.linalg.norm(p - asked) > TOL))
                 if ok:
                     pend.append((d.time + delay, goal.copy()))
                 if not aid:
@@ -460,15 +463,20 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
             pk = park()
             gone, wasp = bool(aid) and pk and not wasp, pk
             if dwell >= DWELL or gone or d.time - t0 > T_OUT:
-                rows.append({"goal": len(rows) + 1, "reached": dwell >= DWELL, "time_s": d.time - t0 + REPARK_S * gone + lost,
-                             "sends": sends, "refused": refused, "path_m": path, "peak_base_deg": gpeak, "parked": gone,
-                             "trips": trips} | ({"true_go": tg} if maps else {}))
+                out = maps and dwell < DWELL and not gone       # maps study: out of time counts as given up and costs the same
+                rows.append({"goal": len(rows) + 1, "reached": dwell >= DWELL, "time_s": d.time - t0 + REPARK_S * (gone or out) + lost,
+                             "sends": sends, "refused": refused, "path_m": path, "peak_base_deg": gpeak, "parked": gone or out,
+                             "trips": trips} | ({"true_go": tg, "timeout": out, "early": early, "map_s": mt or np.nan} if maps else {}))
                 todo.pop(0)
                 t0, sends, refused, path, gpeak, dwell, trips, lost, tg = d.time, 0, 0, 0.0, 0.0, 0.0, 0, 0.0, None
+                early, mt = 0, 0.0
                 if not todo:
                     break
                 if rest or maps and len(rows) % 2 == 0:     # from rest, as the pool's truth was measured (maps: every second goal)
-                    if aid in ("live", "lookup"):   # ponytail: a probe still running is dropped but keeps the pool busy, so the next map is later
+                    if aid == "live" and job:       # a probe still running would hold the pool: the next cage would be late and its logged time wrong
+                        pl.terminate()
+                        pl = multiprocessing.Pool(PROCS, livemap.init)
+                    if aid in ("live", "lookup"):
                         s["rays"], centre, asked, job, cutat = rest0, home, home, None, None
                     mujoco.mj_resetData(m, d)
                     d.qpos[7:] = Q_REST
@@ -588,7 +596,7 @@ def decide(pid, size):
 
 
 CUES = ("none", "colour", "stop")       # feedback study: bare dot / envelope and zone colour on the dot / the same plus the hard stop (and rumble)
-MAPS = ("rest", "guaranteed", "live", "gate", "lookup")    # maps study: cage from rest / small cage that never moved / cage probed from where the arm is, late / no cage, rehearsal says no / cage looked up for where the arm is, at once
+MAPS = ("rest", "guaranteed", "live", "gate")    # maps study (D63): cage from rest / small cage that never moved / cage probed from where the arm is, late / no cage, rehearsal says no. free_drive also shows "lookup" (cage looked up for where the arm is, at once): not in the study
 PROCS = max(1, min(10, (os.cpu_count() or 4) - 2))     # processes probing the live cage: 10 gave 7 to 13 s, 12 was no faster (D39)
 TLX = ("mental", "physical", "hurry", "how well it went (0 = perfect)", "effort", "frustration")
 
@@ -607,43 +615,74 @@ LEAD = 0.6                              # maps study: depth in the small cage of
 REPARK_S = 30.0                         # s charged for giving a goal up. ponytail: a design choice, not a mission cost; a wrong go costs its real ~15-25 s
 
 
-def feedback(axes, pid, size, cues=CUES, pre="feedback"):
+def feedback(axes, pid, size):
     """Feedback study: put the hand on each pink ball, or give it up as out of reach (Right Ctrl). The score is time.
     Three blocks, one per cue; which goal set goes with which cue rotates with the participant id.
     Nothing is rehearsed: a go that cannot work costs the time the fence takes to bring the arm back.
-    cues=MAPS, pre="maps": the maps study, same blocks, see free_drive. Goals come in pairs (leg 1, leg 2): leg 1
-    is an easy one that moves the arm off rest, leg 2 is the pool goal that tests the map. The feedback study has
-    the leg column too, it means nothing there. Block order is a Williams design over the participant id (10 orders
-    for the 5 maps), and after each block the participant rates workload (raw NASA-TLX) and trust in what was shown."""
-    rays, goals, dep, _, truth = pool(size)
+    The leg column means nothing here, old files have it."""
+    _, goals, dep, _, truth = pool(size)
     m, d, sid, _ = setup(size)
-    home, order, rows = d.site_xpos[sid].copy(), list(range(len(cues))), []
-    small = [r[-1] for r in guaranteed(rays, home, size)] if cues is MAPS else None
+    home, order, rows = d.site_xpos[sid].copy(), list(range(len(CUES))), []
     random.Random(pid).shuffle(order)
-    if small:           # 10 orders (pid mod 10): 5 shifts of a row and their mirrors, every map twice in every place and twice right after every other
-        order = [(pid + x) % 5 for x in (0, 1, 4, 2, 3)[::-1 if pid // 5 % 2 else 1]]
     for b, c in enumerate(order, 1):
-        # ponytail: the pool has 4 goal sets for 5 maps, so "rest" and "lookup" get the same set (shuffled again) in every
-        # participant. A fifth set means pool() making 5 and the cache redone: to be decided before a participant is run
         k, j = (c + pid) % len(goals), random.Random(pid * 10 + c).sample(range(goals.shape[1]), goals.shape[1])
-        tg, dp = goals[k, j] - home, dep[k, j]
-        if small:       # the first goal of each pair is pulled in to LEAD of the small cage. Every map lets the arm go
-            # there, so the second goal, the one that counts, starts away from rest
-            tg[::2] = [t * min(1, LEAD / depth(small, home, home + t)) for t in tg[::2]]
-            dp = [depth([r[-1] for r in rays], home, home + t) for t in tg]
-        input(f"Block {b}/{len(cues)}, cue: {cues[c]}. Dot on the pink ball, Enter to send; Right Ctrl = out of reach "
+        input(f"Block {b}/{len(CUES)}, cue: {CUES[c]}. Dot on the pink ball, Enter to send; Right Ctrl = out of reach "
               f"(+{REPARK_S:g} s). Fastest total wins. Enter to start.")
-        r = free_drive(axes, size, 5, "3d", targets=tg, aid=cues[c])
-        ex = {}
-        if small:
-            w = ask("Workload, 0 (low) to 100 (high), six numbers: " + ", ".join(TLX) + ": ", 6, 0, 100)
-            ex = {"tlx": sum(w) / 6, "tlx6": " ".join(f"{x:g}" for x in w), "procs": PROCS,
-                  "trust": ask("How much did you trust what the screen showed, 1 (not at all) to 7 (fully): ", 1, 1, 7)[0]}
-        rows += [{"true_go": bool(truth[k, i])} | x | {"pid": pid, "block": b, "cue": cues[c], "set": k, "goal": i, "depth": dp[n], "leg": n % 2 + 1} | ex
+        r = free_drive(axes, size, 5, "3d", targets=goals[k, j] - home, aid=CUES[c])
+        rows += [{"true_go": bool(truth[k, i])} | x | {"pid": pid, "block": b, "cue": CUES[c], "set": k, "goal": i, "depth": dep[k, j][n], "leg": n % 2 + 1}
                  for n, (x, i) in enumerate(zip(r, j))]
         print(f"block time {sum(x['time_s'] for x in r):.0f} s", flush=True)
         OUT.mkdir(parents=True, exist_ok=True)
-        pd.DataFrame(rows).to_csv(OUT / f"{pre}_{pid}.csv", index=False)   # saved after every block
+        pd.DataFrame(rows).to_csv(OUT / f"feedback_{pid}.csv", index=False)   # saved after every block
+    return rows
+
+
+WORDS = {   # maps study: what the participant is told about each display, the same words for everyone
+    "rest": "The cage was drawn with the arm at rest. Once the arm has moved it can be wrong.",
+    "guaranteed": "The cage held from every start one move away from rest. It is smaller than what the arm can reach.",
+    "live": "The cage is drawn from where the arm is now. That takes about 12 s. Until the marker on the hand turns green "
+            "you are still looking at the cage from rest.",
+    "gate": "There is no cage. Every command is checked before it runs and refused if it would fail.",
+}
+
+
+def maps_study(axes, pid, size):
+    """Maps study (D63): four blocks, one per display in MAPS (see free_drive), in a Williams order over the participant id.
+    Goals come in pairs from data/pairs_<size>.csv (analysis/study/pairs.py). The first goal of a pair (leg 1) moves
+    the arm off rest and every display lets it go there. The second (leg 2) is the one that tests the display.
+    A block is 2 practice pairs (use "block", not scored) and then the 10 pairs of one goal set (use "scored"), each
+    lot in a new order per participant. Before the first block: 4 training pairs under that block's display (use
+    "train", block 0), once more if an inner goal was not reached or the outer one not given up.
+    Giving a goal up adds REPARK_S, and so does running out of time on it. After each block the participant rates
+    workload (raw NASA-TLX) and trust in what was shown. Keyboard only: the gamepad path has never been run."""
+    pr, rows = pd.read_csv(OUT.parent / f"pairs_{size}.csv"), []
+    cost = (f"Right Ctrl gives a goal up as out of reach. That adds {REPARK_S:g} s, and so does a goal still open after {T_OUT:g} s. "
+            "A command that is brought back adds nothing but the time it took. Fastest total wins.")
+
+    def run(b, c, q):   # one free_drive call over the pairs in q, two rows a pair
+        r = free_drive(axes, size, 5, "3d", targets=q[["lx", "ly", "lz", "tx", "ty", "tz"]].to_numpy().reshape(-1, 3), aid=MAPS[c])
+        return [x | {"pid": pid, "block": b, "cue": MAPS[c], "set": p.set, "pair": p.cand, "cls": p.cls, "use": p.use,
+                     "leg": n % 2 + 1, "depth": p.depth if n % 2 else np.nan}
+                for n, (x, p) in enumerate(zip(r, [p for p in q.itertuples() for _ in range(2)]))]
+
+    for b, c in enumerate([(pid + x) % 4 for x in (0, 1, 3, 2)], 1):    # 4 orders: every display once in every place and once right after every other
+        for go in range(2 * (b == 1)):
+            input(f"Training, {WORDS[MAPS[c]]}\nPut the dot on the pink ball and press Enter to send. {cost} Enter to start.")
+            t = run(0, c, pr[pr.use == "train"].sample(frac=1, random_state=pid + go))
+            rows += t
+            if any(x["reached"] for x in t if x["leg"] == 2 and x["cls"] == "inner") and all(x["parked"] for x in t if x["leg"] == 2 and x["cls"] == "outer"):
+                break
+        k = (c + pid + pid // 4) % 4    # the set of this display: one on with every participant and one more every four
+        q = pd.concat([pr[(pr.set == k) & (pr.use == u)].sample(frac=1, random_state=pid * 10 + c) for u in ("block", "scored")])
+        input(f"Block {b}/4. {WORDS[MAPS[c]]}\n{cost} The first two pairs are practice. Enter to start.")
+        r = run(b, c, q)
+        w = ask("Workload, 0 (low) to 100 (high), six numbers: " + ", ".join(TLX) + ": ", 6, 0, 100)
+        ex = {"tlx": sum(w) / 6, "tlx6": " ".join(f"{x:g}" for x in w), "procs": PROCS,
+              "trust": ask("How much did you trust what the screen showed, 1 (not at all) to 7 (fully): ", 1, 1, 7)[0]}
+        rows += [x | ex for x in r]
+        print(f"block time {sum(x['time_s'] for x in r if x['use'] == 'scored'):.0f} s", flush=True)
+        OUT.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(rows).to_csv(OUT / f"maps_{pid}.csv", index=False)     # saved after every block
     return rows
 
 
@@ -680,14 +719,14 @@ if __name__ == "__main__":
     ap.add_argument("--direct", action="store_true")      # rate control instead of set-and-go
     ap.add_argument("--pilot", type=int)                  # participant id: 4 blocks, direct/set-and-go x 0/2 s
     ap.add_argument("--feedback", type=int)               # participant id: reach the goals with no cue / colour / colour and hard stop
-    ap.add_argument("--maps", type=int)                   # participant id: guaranteed cage / live cage / no cage, rehearsal gate / looked-up cage
+    ap.add_argument("--maps", type=int)                   # participant id: maps study, 4 blocks (cage from rest / cage that held / cage from where the arm is / no cage)
     ap.add_argument("--decide", type=int)                 # participant id: go / re-park decisions, 3 kinds of help
     a = ap.parse_args()
     axes = gamepad() if a.pad else keyboard
     if a.feedback is not None:
         feedback(axes, a.feedback, a.size)
     elif a.maps is not None:
-        feedback(axes, a.maps, a.size, MAPS, "maps")
+        maps_study(axes, a.maps, a.size)
     elif a.decide is not None:
         decide(a.decide, a.size)
     elif a.pilot is not None:

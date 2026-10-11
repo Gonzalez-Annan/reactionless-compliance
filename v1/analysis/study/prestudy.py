@@ -1,9 +1,10 @@
 """Scripted pre-study for the maps study. NOT participant data: a fixed rule plays the operator, so this only says
 whether the maps can differ at all on these goals before people are used. Run from the repo root:
-python analysis/study/prestudy.py            ids 1 2 3 4: every map on every goal set once
+python analysis/study/prestudy.py            ids 1 2 3 16: the four orders, and every display on every goal set once
 python analysis/study/prestudy.py 1          one id
--> data/scripted/maps_<id>.csv (never data/participants) and a table per map on the scored goals (leg 2).
-Files written before the lookup map have four blocks. They still read: that map then has fewer goals in the table, or none.
+-> data/scripted/maps_<id>.csv (never data/participants) and a table per display on the scored test goals.
+It runs teleop.maps_study as a participant would get it: training, then four blocks on the sets of data/pairs_medium.csv.
+The runs of the first design (15 goals a block, 7 scored, D43) are in data/scripted/first_design and are not read here.
 
 The rule: steer the dot to the ball. Go once when the dot is on it (live map: only when the map is current).
 Give the goal up when the dot has been stuck short of the ball for 2 s (the cage holds it), when the go was
@@ -25,6 +26,7 @@ def operator():
         n[0] += 1
         if s.get("text") == "updating":      # the live map costs wall time, so the simulation waits for the clock here
             sync[0] = sync[0] or (time.time(), d.time)
+            last[1] = n[0]                   # stuck is counted from when the cage is in: the dot may be free to move in the new one
             time.sleep(max(0, (d.time - sync[0][1]) - (time.time() - sync[0][0])))
         else:
             sync[0] = None
@@ -69,16 +71,19 @@ if __name__ == "__main__":
     T.OUT = pathlib.Path("data/scripted")
     builtins.input = lambda q="": ""
     T.ask = lambda q, n, lo, hi: [float("nan")] * n      # a rule has no workload and no trust
-    for pid in [int(a) for a in sys.argv[1:]] or [1, 2, 3, 4]:
+    for pid in [int(a) for a in sys.argv[1:]] or [1, 2, 3, 16]:
         axes, T.viewer_hook = operator()
-        T.feedback(axes, pid, "medium", T.MAPS, "maps")
+        T.maps_study(axes, pid, "medium")
     df = pd.concat(pd.read_csv(f) for f in sorted(T.OUT.glob("maps_*.csv")))
-    df = df[df.leg == 2]
+    df = df[(df.leg == 2) & (df.use == "scored")]
     g = df.groupby("cue")
+    n = lambda f: g.apply(lambda x: int(f(x).sum()))
     out = pd.DataFrame({"goals": g.size(), "s_per_goal": g.time_s.mean().round(1), "reached": g.reached.sum(),
-                        "wrong_goes": g.trips.sum(), "refused": g.refused.sum(),
-                        "gave_up_reachable": g.apply(lambda x: (x.parked & x.true_go).sum()),
-                        "gave_up_unreachable": g.apply(lambda x: (x.parked & ~x.true_go).sum()),
+                        "wrong_go_goals": n(lambda x: x.trips > 0), "on_traps": n(lambda x: (x.trips > 0) & (x.cls == "trap")),
+                        "missed": n(lambda x: x.parked & x.true_go), "refused": g.refused.sum(), "gave_up": g.parked.sum(),
+                        "timeouts": g.timeout.sum(), "early_sends": g.early.sum(), "map_s_max": g.map_s.max().round(1),
                         "worst_tilt_deg": g.peak_base_deg.max().round(2)}).reindex(T.MAPS)
-    print("SCRIPTED OPERATOR, not participants. Scored goals (leg 2), ids", sorted(df.pid.unique()))
+    print("SCRIPTED OPERATOR, not participants. Scored test goals, ids", sorted(df.pid.unique()))
     print(out.to_string())
+    t = df.groupby("cls").true_go.agg(["size", "sum"])      # the classes were sorted by rehearsal: did they hold where the rule's lead moves ended
+    print("could be reached when it opened, by class (of goals):", {k: f"{int(v['sum'])} of {int(v['size'])}" for k, v in t.iterrows()})
