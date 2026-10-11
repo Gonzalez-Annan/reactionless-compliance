@@ -220,7 +220,7 @@ python src/teleop.py
 ```
 
 Checked on a fresh clone with a clean `pip install -r requirements.txt` (Windows, Python 3.12, MuJoCo 3.15):
-15 tests pass in about a minute and the teleop window opens. The code also compiles on Python 3.11.
+The tests pass in a few minutes and the teleop window opens. The code also compiles on Python 3.11.
 
 - Run everything from inside `v1/`. The scripts look for `src/` and `models/` relative to where you are.
 - Windows: activate with `.venv\Scripts\activate` instead of the `source` line.
@@ -237,7 +237,7 @@ What's inside:
 - `src/safety.py`, `src/task.py`, `src/view.py`: contact safety map, scripted trial, viewer
 - `analysis/`: sweeps, envelope and ready pose measurements, figures
 - `paper/`: IEEE draft
-- `DECISIONS.md`: D1 to D54, every decision with the number behind it
+- `DECISIONS.md`: D1 to D59, every decision with the number behind it
 - `analysis/study/PROTOCOL_maps.md`: the plan for the maps study (what the operator is shown when the reach moves with the start), written before anyone is run
 - `analysis/study/feedback.py --maps`: the analysis for it. `--maps --check` runs it on made-up rows so we know it works before there is data
 - `analysis/envelope/wide.py` and `widefig.py`: how far the 2 deg edge moves over 40 starts, and the figure
@@ -246,7 +246,7 @@ What's inside:
 
 Things that are not done yet, so nobody gets surprised:
 
-- All 15 tests pass. Plain RNS (scheme 4) ends the loop 0.07 deg off because one joint drifts onto its limit;
+- All tests pass. Plain RNS (scheme 4) ends the loop 0.07 deg off because one joint drifts onto its limit;
   scheme 5 does not. See D32.
 - `data/sweep.csv`, the paper tables and figs 1, 2, 3, 5 are redone on the new ready pose and loop (D33).
   Wrong-mass numbers, fig_band and fig6 are redone too (D34). On the new pose the full reach needs a much bigger bus: about 1700 kg at 0.5 deg, 950 kg at 2 deg.

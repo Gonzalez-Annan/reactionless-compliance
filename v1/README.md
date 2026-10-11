@@ -9,7 +9,7 @@ Needs Python 3.12 with `mujoco numpy scipy pandas matplotlib pytest`.
 
 ```
 python models/make_models.py     # writes the three servicer models
-python -m pytest tests -q        # 14 gates: momentum, J*, DOF count, 3-D reactionless, joint limits
+python -m pytest tests -q        # the gates: momentum, J*, DOF count, 3-D reactionless, joint limits
 python analysis/sweep.py         # ~10 min, writes data/sweep.csv
 python analysis/figures.py       # writes paper/figs/fig{1,2,3,5}_*.pdf
 python analysis/singularity_map.py   # ~1 min, prints the level-base mobility of 6000 poses (D16)

@@ -376,7 +376,7 @@ All measured, 300 kg model unless said.
 - Fix: one `mj_forward` in `livemap.probe`. Checked on 4 states from that block: the 3 lines nearest the goal are
   the same from a worker and in process to the mm (0.31 to 0.86 m, not 0.05), and the goals sit at 0.95 to 1.05
   of the live cage against 0.92 to 1.06 of the rest cage. New test `test_live_line_starts_at_the_hand`.
-- The 7 s after a detour in D40 was the broken map being quick. Timed again: 13.0 s from rest, 12.2 s after a
+- The 7 s after a detour in D39 was the broken map being quick. Timed again: 13.0 s from rest, 12.2 s after a
   detour, 10 processes. So "right but 12 to 13 s old". Protocol and draft changed.
 - `prestudy.py` had its own bug: the "updating" flag from the live block carried into the next block and the rule
   never sent or parked there (rest and gate blocks of id 1, all 90 s timeouts). State is now cleared per block.
@@ -578,3 +578,195 @@ Clean score (600 stored, settings picked on 200 for under 1%, scored on 200 neve
 So: the lookup shows more than twice the reach of a fixed map at about the same risk. Neither held the 1% it
 was picked for on new states. Both numbers stand on livemap.fast labels, only 5 states have a simulated map.
 Next: simulate about 30 states in full and score against those. Then it can go into the study as a condition.
+
+## D55 The lookup against the full simulation, and what the audit of D53 and D54 found (2026-10-12)
+
+D54 asked for about 30 fully simulated states before the lookup goes near a participant. Did all 200 scoring
+states (`learn.py sim`, stored in `data/learnsim_medium.npz`), and had D53 and D54 audited by one agent and
+checked by a second. `learn.py safe` prints the scores below.
+
+Two states are out. Rows 470 and 976 start with the arm inside the 2 cm clearance around the bus (-0.088 m and
+-0.008 m): `state()` drives there with no clearance check and the tool would refuse that move. Row 470 alone
+carried 90 of the fixed map's 248 over-promised pairs. 199 scoring states left.
+
+- Fast labels against the simulation, 199 states: error median 0.009 m, 95% within 0.056, worst 0.544. Over by
+  0.05 on 1.2% of lines, short by 0.05 on 5.9%.
+- Lookup (10 nearest, pulled in to 0.9) against the simulation: over at all 3.0%, over by 0.05 on 1.4% of pairs
+  (95% over states 0.8 to 2.1), in 43 of 199 states, worst 0.44 m, reach kept 0.67.
+- One fixed map (2nd percentile): over at all 1.7%, over by 0.05 on 0.7% (0.1 to 1.3), in 9 of 199 states, worst
+  0.16 m, kept 0.29.
+- Fixed map shrunk by the tilt already spent (5th percentile, 0.9). New, and the fair baseline, because the
+  lookup's neighbours carry the tilt for free: over at all 2.2%, over by 0.05 on 0.6% (0.3 to 0.9), in 25 of 199
+  states, worst 0.22 m, kept 0.39.
+
+So the lookup keeps 2.3 times the reach of the fixed map and 1.7 times that of the fair one. D54's "at about the
+same risk" does not hold: the lookup is wrong in 43 states against 9 and 25, and its worst miss is 0.44 m against
+0.16 and 0.22.
+
+What else the audit found, all confirmed by the second agent. These are on the fast labels, not the simulation:
+- "Neither kept the 1%" was one split's luck. Over 100 random 600/200/200 splits the lookup averages 0.85% and is
+  above 1% in about 30, the fixed map 0.75% and above 1% in 26 to 30. Seed 0 sits near the 93rd and 85th
+  percentile.
+- The lookup holds only for states drawn like the stored ones. By quarter of distance to the nearest stored
+  state, lookup against fixed, % over by 0.05: 0.10 / 0.00, 0.16 / 0.04, 0.78 / 0.10, 5.04 / 4.92. Stored one-move
+  and scored two-move: 3.36% against 2.82%. 20 hold-outs by region: lookup median 6.33% (worst 16.49%), fixed
+  1.62% (worst 7.91%), lookup worse in 19 of 20.
+- Tried: beyond 1.0 sd from the nearest stored state take the smaller of lookup and fixed. 0.86% and 0.64 kept,
+  region hold-outs median 2.80%. Halves it, does not close it.
+- A lookup on joints alone, without the tilt: 1.51% and 0.685. The tilt features are what keep it under.
+- D46's "0.05 m too much on 4.9% of lines" came from 5 simulated states. On 101 to 125 states it is 14.0 to
+  15.8%, short by 0.05 on about 20%, median error 0.033 to 0.035 m. One line in seven, not one in twenty.
+- D54's "a fixed map that holds from every stored state has no reach left, because some states are already at the
+  budget" is half the reason. The zeros come from row 669 (over 2 deg) and row 976 (in the bus). Without the
+  all-zero rows the per-line minimum keeps 0.089 and is over on 0.14%.
+- "200 stored states instead of 1000" was instead of 600. Kept reach by stored states: 50 0.35, 100 0.46, 200
+  0.56, 300 0.65, 400 0.67, 600 0.69.
+- Per state the lookup shows a median 0.70 of the true reach, the fixed map 0.29. Lines shown at 0.8 or more of
+  the true reach without over-promising: 20.2% against 3.3%. Lines shown at under half: 12.3% against 84.0%.
+- `max()` on an empty grid crashed when no setting passed. Fixed.
+
+Not redone: the 5-fold tables of D53 still include rows 470 and 976.
+
+For the paper: "Made careful" rewritten with these numbers and the scope limit. The lookup is good near its stored
+states and no better than a fixed map away from them. That goes in the protocol too if it becomes a condition.
+
+## D56 The short lines are the arm at full stretch (2026-10-12)
+
+D47 left 11 to 26 lines per controller that stop short "with no joint at a limit" and called it a singularity we
+had not worked out. One agent worked out the mechanism, a second tried to break it.
+
+Held:
+- All 26 stall lines of scheme 5 end with the hand 0.962 to 0.970 m from the shoulder. Full stretch is 0.970 m.
+  Elbow and wrist within 12 deg of straight, base at 0.24 to 1.98 deg.
+- Bus x10, x1000, 3000 kg: still stalls at 0.970 m. Hand site moved out 0.10 m: stalls at 1.063 to 1.070 m. A
+  start 0.21 m further in gives 0.40 to 0.41 m on lines 43, 45, 58, was 0.24 to 0.25 m. Schemes 1, 3, 4, 6 end at
+  the same distance.
+- So it is the reach limit of the arm, not a dynamic singularity of the free base. Rest is close to full stretch
+  in those directions.
+
+Did not hold:
+- "No setting moves it" is false. With the joint rate cap at 8 or 20 rad/s lines stall with the elbow bent 9 to
+  32 deg, 0.5 to 5 cm short. On the 30 kg bus 4 of 6 lines stall 1.3 to 7.6 cm short.
+- The hand is under half speed from 0.83 to 0.97 m (median 0.915): the scheme 5 stack asks 5 to 15 rad/s there
+  and the 2 rad/s cap scales it down. The last 2 to 14 cm is a crawl the controller makes. `dpinv` eps 1e-4
+  removes the crawl and changes the map.
+- "No joint at a limit" is a median. 10 of the 26 rest stall lines have joint 5 on its limit (13 of 26 under
+  scheme 4, none under schemes 1, 3, 6). From two other states 30 of 34 stalls were full stretch and 4 were
+  joint-limit stalls.
+- 7 lines that reached full stretch are labelled "tilt".
+- Stall-line reach is 0.24 to about 0.53 m, median 0.29. Not "0.24 to 0.30".
+
+Next: label a stall with hand-to-shoulder at 0.96 m or more as a reach limit and a joint-limit stall as its own
+kind. Not done, `T.ray` still says "stall" for both.
+For the paper: the "which singularity" sentence is replaced.
+
+## D57 Scheme 6: the result stands, the reason in D52 was wrong (2026-10-12)
+
+D52 said the weighted solve changes nothing because hand 3 + base 3 leaves one joint of seven to spare the others
+with, and that a joint 0.1 rad from its limit slowed by 3%. Audited, then checked by a second agent. All five
+findings confirmed.
+
+- The spare direction is the tool roll. At rest the null vector of `[2J; W]` is 99.98% joint 7. It moves neither
+  hand nor base and cannot unload joints 1 to 6. Stopping the joint nearest its limit through it needs a median
+  3412 rad/s over the 98 directions (least 56) against a cap of 2. Along moves the median is 1032 to 2164 rad/s
+  and 525 of 535 states are over the cap.
+- The 3% was one entry of a random matrix. The unit test used a random J and W: joint 2 of seed 0 slows 3.22%,
+  the other joints of the same matrix 0.02 to 59.75%, seeds 1 to 3 give 0.0003 to 69.9%. It also ran with `tw` at
+  100 where teleop uses 2, and would pass at any slow-down above zero.
+- On the real arm at rest the slow-down per joint is [24.27, 0.18, 49.12, 0.16, 36.87, 1.81, 80.0]% with the
+  shipped damping and [0.012, 0, 0.036, 0, 0.02, 0, 79.997]% with the damping off. So what the weights do to
+  joints 1 to 6 comes through directions the damped inverse has already dropped.
+- `dpinv` eps = 1e-6 sets rest reach and end reasons, and the paper did not say so. Scheme 5 at 1e-8: line 28
+  0.736 tilt to 0.399 stall, line 56 0.696 tilt to 0.343 stall, line 70 0.590 bus to 0.320 stall. End reason
+  changed on 5 of 8 lines. Not monotone: lines 55 and 56 lose about half at 1e-4 too.
+- The null result is tied to that eps. At 1e-8 line 28 is 0.399 m under scheme 5 and 0.732 m under scheme 6, line
+  56 0.343 against 0.701. At 1e-6 they agree to 1 mm. Belief, not measured: the weights shrink columns and the
+  damping bites sooner.
+- "It changed nothing" is "it changed two lines of 98": line 71 0.364 to 0.458 m, line 27 0.380 to 0.455 m.
+  Median difference 0.4 mm. Lines ending with 0..4 joints at a limit: scheme 5 [42, 41, 7, 6, 2], scheme 6 [53,
+  31, 6, 6, 2].
+- Scheme 6 is refused more: 23 against 15 of 400, worse in 3 sessions, better in none, same goals.
+- "Untuned" was the wrong caveat. Strong weights, a limit push and a soft stop move rest lines by millimetres (15
+  mm at most) and fix 0 of 22 failing tips. What was never tried was giving up tilt, and on paper there is room:
+  joint 4 moved 0.5 rad costs 0.09 deg. So D52's "So no" reads "not while the base is held level". D59 tries it.
+
+Changed: `tests/test_scheme6.py` is rebuilt on the model at rest. The comment in `schemes.py` says what the spare
+DOF is.
+For the paper: the paragraph is rewritten, eps is stated in System and in Limits.
+
+## D58 The draft audited claim by claim, and a second literature pass (2026-10-12)
+
+One agent listed every claim in `paper/journal/draft.tex` against the records and the data, a second tried to
+refute the list: 18 of 21 confirmed, 2 refuted, 1 unclear. Fixed in the draft:
+
+- "The rehearsal is always right / never wrong / right every time" is gone. D28 had it wrong on 1 of 45, D33 on 2
+  of 46, and in the stored sessions 4 of 826 accepted moves ended over 2.00 deg (1 of 354 RNS and 2 of 360 DLS in
+  `session40_medium.npz`, 1 of 112 in `session_medium.npz`, worst 2.013). It is the reference by construction.
+- "1 to 4 of 10 sessions" is 0 to 4 (scheme 6 has 0).
+- Live map timing is D42's 13.0 s and 12.2 s, not D39's. "12 processes are no faster" dropped, no record has it.
+- "The budget is not what runs out. The arm's posture is." was not supported. Stuck sessions sit at a median 2.01
+  deg and all 30 refusals are for tilt. Now stated as what we saw, mechanism open.
+- 12-move sessions were named and never reported. D48's numbers are in.
+- "Pre-registered" is "a protocol written before any data". Sentences about what an operator can tell are marked
+  as predictions.
+- The scripted pre-study (D43) had run and the draft said it would. Reported as scripted.
+- "air-bearing", "acceleration-level" and the line on predictive displays had no source here. Removed.
+- Stated now: bus 300 kg (1 m cube), arm 12.5 kg in seven links, 0.97 m at full stretch, 2 rad/s cap, eps 1e-6,
+  and that the planar check uses made-up masses (200 kg base, 10 kg and 1 m links).
+- Logged here because no record had them: start tilt medians 0.40 deg (reactionless) and 1.07 deg (plain), 0.399
+  and 1.0726 in `second_medium.npz`.
+- Searches were about 20 plus 58, not "a dozen". Papadopoulos 1992 was read to section 5, not its example.
+- D42 said "D40" where it meant D39. Fixed there.
+- D16's rest-pose score (0.037 / 0.043 / 0.048) is the old pose. The current pose scores 0.078 / 0.077 / 0.077
+  and `singularity_map.py` still prints the label "score 0.043". Not fixed.
+
+Literature, space robotics, about 58 queries, two checkers, abstracts and landing pages only:
+- No direct hit on any of the four claims. The idea under claim 1 is not new.
+- Nearest: Jia, Yuan, Chen, IEEE Access 7, 2019: reachable sets for a free-floating arm, one of them under a limit
+  on base attitude deflection, 3 DOF, no display, no decay. Umetani and Yoshida, Trans. SICE E-1, 2001: five
+  workspaces, one attitude-constrained, one guaranteed. Cocuzza's zero reaction workspace (IAC 2010, 2013): ours
+  reads as that with the zero relaxed to a budget.
+- So claim 1 is worded as: drawn for the operator, 7 joints with limits, compared over controllers and a session.
+- Stored maps queried online exist for fixed bases (Porges 2015, Cannizzaro 2022). Singularity maps for space
+  robots: Calzolari, Lampariello, Giordano, RSS 2020.
+- Pietras et al., IAC 2010: support for a ground operator against breaking attitude limits, on a simulator meant
+  for operator tests. The abstract reports none. Until someone reads it, "no study with people" is "we found
+  none".
+- Human factors: 25 references checked, none a threat. ReachVox (Hauck et al., ISMAR 2025) is the nearest design:
+  20 people, reachability drawn, fixed base.
+- Bibliography: volume, pages and DOI filled in for 15 entries. Chan and Dubey 1995 added from memory, marked.
+- Not checked: D22 gives sice.jp/e-trans/papers/E1-16.pdf to Nenchev and Yoshida. One checker says that URL is
+  the Umetani and Yoshida workspace paper.
+- Weak: Japanese and Chinese work, 1990s proceedings, no forward citations. Full texts unread: Jia 2019, Pietras
+  2010, Cocuzza 2010 and 2013, Sato 1993, Nenchev and Yoshida 1999.
+
+Next: get those six papers. Jia 2019 decides how claims 1 and 3 can be worded.
+
+## D59 Scheme 7: base tilt traded for joint room. A different trade, not a better one (2026-10-12)
+
+D57 left one thing untried: let the base go a little to keep joints off their limits. Built as scheme 7 by one
+agent, reviewed by a second. `soft()` in `schemes.py`, `tests/test_scheme7.py`.
+
+The law, 3-D only: hand rows as scheme 5. Joints weighed by room as scheme 6, but only by the share of tilt
+budget left. The three base rows are a cost and not a constraint while a joint is short of room, hard again when
+there is room everywhere or the budget is spent, and hard whenever the plan held for 1/KA s would pass the
+budget. `TILT` = 1.5 deg and `SOFT` = 1e-3 are first values, not tuned. Three earlier forms were tried on rest
+lines 0, 33, 66 before this one.
+
+- From rest, 98 lines, scheme 5 against 7: reach median 0.449 against 0.442 m, mean 0.474 against 0.456. Ended on
+  tilt / bus / stall 63 / 9 / 26 against 65 / 8 / 25. Lines ending with no joint at a limit 42 against 61.
+- Per line, 7 minus 5: further by over 5 mm on 18 lines (median gain 9 mm), shorter on 22, same on 58. Shorter by
+  10 to 41 cm on 9 lines (35, 48, 52, 55, 56, 59, 67, 68, 72).
+- One move out, 4 starts, 98 goals each at 0.8 of scheme 5's map: scheme 5 reaches 373 of 392, scheme 7 372.
+- That is two effects that cancel. On the 89 other lines 7 reaches 349 of 356 and 5 reaches 340 (+9). On the 9
+  lines where its rest reach fell it reaches 23 of 36 against 33 (-10).
+- Each on its own 0.8 map: 373 and 384. The shorter map is not why: scheme 5 on scheme 7's map still gets 373.
+- The price: smaller rest map, more tilt at the same distance out on 48 of 98 lines and less on none, pull back
+  toward level cut in 57% of ticks past 1.5 deg.
+- The reviewer's checks: schemes 1 to 6 give the same bits in 187,200 calls, old code against new. No soft plan
+  passes the budget in 32,679 ticks. Hand error is smaller under 7 than under 5.
+
+Thin: four starts, and start 3 carries 6 of the +9. The measuring scripts are not in the repo. `second.py 7` then
+`session.py 40 7` would be the full run. Not done.
+
+For the paper: a short paragraph after the joint-limit one. Not a column in any table.

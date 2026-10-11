@@ -13,17 +13,21 @@
 \abstract{
 An arm on a free-floating spacecraft turns the spacecraft when it moves. If the base must stay within a tilt
 budget, here 2 degrees, only part of the arm's reach can be used, and an operator needs to know which part.
-That the reach of such an arm depends on the path is known since the early 1990s, and a planning aid that previews
-a move and checks it before it is executed was proposed in 1992. What has not been measured is how far a map drawn
-for the operator can be trusted under an attitude budget, and nobody has tested people with one. We measure it in
-simulation for a 7 joint arm under five controllers. One move away from rest, a map pulled in to 0.8 of its length
-holds from all of 10 starts under the two controllers that ignore the base, and from none of 10 under the three
-reactionless ones, which reach further (median 0.45 m against 0.37 to 0.39 m). Over sessions of 40 moves no
-controller keeps it: the whole map still holds in 1 to 4 of 10 sessions, and three sessions end stuck, all under
-controllers with no pull back to a rest posture. A map recomputed from the current state is right and 12 to 13 s
-late. A map looked up from 200 stored states is instant and promises 0.05 m too much on 5\% of lines. Only the
-rehearsal of the command itself was right every time. We describe a tool that runs the four displays and a
-within-subject study protocol that compares them. \todo{study results: no participant has been run}}
+That the reach of such an arm depends on the path is known since the early 1990s, and a planning aid that previews a
+move and checks it before it is executed was proposed in 1992. Reachable sets under a limit on base attitude have
+been built for a 3 joint arm. What we did not find measured is how far a map drawn for the operator can be trusted
+under an attitude budget, and we found no study with people. We measure it in simulation for a 7 joint arm under
+five controllers. One move away from rest, a map pulled in to 0.8 of its length holds from all of 10 starts under
+the two controllers that ignore the base, and from none of 10 under the three reactionless ones, which reach further
+(median 0.45 to 0.46 m against 0.37 to 0.39 m). Over sessions of 40 moves no controller keeps it: the whole map
+still holds in 0 to 4 of 10 sessions, and three sessions end stuck, all under controllers with no pull back to a
+rest posture. A map recomputed from the current state is right and 12 to 13 s late. A cautious map looked up from
+600 stored states needs no simulation and keeps 0.67 of the reach, against 0.29 for one fixed map made as cautious,
+but it still promises 0.05 m too much on 1.4\% of lines, in 43 of 199 test states. The rehearsal of the command
+itself is the reference for all of this, and in two fenced runs it disagreed with what the arm then did on 1 of 45
+and 2 of 46 goals. We describe a tool that runs four displays (the rest map, the map that held, the map from the
+current state, no map) and a within-subject study protocol that compares them. \todo{study results: no participant
+has been run}}
 
 \keywords{free-floating manipulator, teleoperation, workspace, base attitude, operator feedback}
 
@@ -44,7 +48,7 @@ We do not claim that this region moves. That follows from path dependence and is
 claim the idea of checking a move before making it: Papadopoulos~\cite{papadopoulos1992} proposed a planner that
 previews the motion and asks the operator to approve it. What is missing is the size of the problem and what to do
 about it for the person at the controls. How wrong is a drawn map, under which controller, after how many moves,
-and is a map worth showing at all next to a check that is always right? Our contributions:
+and is a map worth showing at all next to a check of the command itself? Our contributions:
 \begin{enumerate}
 \item The reach of a free-floating arm under a budget on base tilt, with joint limits and collision with the bus
 in it, measured for a 7 joint arm under five controllers. A tilt limit during teleoperation is not new:
@@ -54,9 +58,10 @@ nothing holding the base, the limit turns into an edge of the reach, and that ed
 the current state, a map looked up from stored states, and the rehearsal alone. One move from rest and over
 sessions of 12 and 40 moves.
 \item A finding we did not expect: the map fails first under the controllers built to keep the base still. They
-reach further, park joints on their limits, and move the edge. Plain controllers reach less and keep a pulled-in
+reach further, and their failed moves end with joints on their limits, which we counted and did not explain.
+Plain controllers reach less and keep a pulled-in
 map for one move, then lose it over a session.
-\item A teleoperation tool and a pre-registered study design that compare the displays with people.
+\item A teleoperation tool and a study protocol, written before any data, that compare the displays with people.
 \todo{and the result}
 \end{enumerate}
 
@@ -66,10 +71,17 @@ and already separate a workspace reachable along a straight path from a given po
 Papadopoulos and Dubowsky~\cite{papadopoulos1993} show that singularities depend on the mass distribution and on
 the path taken, and define a path-dependent workspace and a path-independent one inside it, where any path works.
 Vafa and Dubowsky~\cite{vafa1990} give the virtual manipulator. In all of these the workspace is bounded by
-singularity or by link lengths. The base is free to turn. None is bounded by a budget on base attitude, and none
-has joint limits in it. For a planar two-link arm we checked our own code against this theory: the band of radii
-where dynamic singularities exist comes out at 0.41 to 2.36 m on a grid and at the same two numbers from the
-masses alone (Section~\ref{sec:planar}).
+singularity or by link lengths, and the base is free to turn. Three lines of work do limit the base. Umetani and
+Yoshida~\cite{umetani2001} define five workspaces for a space arm, one with the attitude constrained and one
+guaranteed. Jia et al.~\cite{jia2019} build reachable sets for a 3 joint arm, among them one that respects a limit
+on how far the base attitude may deflect. Cocuzza et al.~\cite{cocuzza2010} define the zero reaction workspace,
+where the arm moves with no reaction on the base at all, and later work takes it to arms with many
+joints~\cite{cocuzza2013}. Ours can be read as that workspace with the zero relaxed to a budget. What we add is not
+the set. It is what happens to the set when it is drawn for an operator: on a 7 joint arm with joint limits, under
+five controllers, over a session. We know these three lines from abstracts and summaries only. \todo{read Jia 2019,
+Umetani and Yoshida 2001 and the zero reaction workspace papers in full} For a planar two-link arm we checked our
+own code against this theory: the band of radii where dynamic singularities exist comes out at 0.41 to 2.36 m on a
+grid and at the same two numbers from the masses alone (Section~\ref{sec:planar}).
 
 \textbf{A planner for the operator.} The closest work to ours is Papadopoulos~\cite{papadopoulos1992}. The
 operator names a target and a path. The planner checks whether the path passes through or near a dynamic
@@ -79,12 +91,15 @@ base on purpose. Our rehearsal is this check with a different test in it. The di
 planner tests for singularity, ours for a tilt budget, joint limits and contact with the bus (collision is named
 there and left out). It turns the base to get somewhere, we are not allowed to. The example is a planar arm with
 two joints, so there is no redundancy and no reactionless control. It draws no map, so it does not ask whether a
-map could replace the check. No operator was tested. We do not propose alternative paths, which that paper does.
+map could replace the check. No operator was tested. We do not propose alternative paths, which that paper does. We read it except for its example section.
 
 \textbf{Keeping the base still.} Torres and Dubowsky~\cite{torres1992} map which joint motions disturb the base
 least. Reaction null-space control~\cite{nenchev1999} and its flight test on ETS-VII~\cite{yoshida2001} remove the
 disturbance where redundancy allows. Cocuzza et al.~\cite{cocuzza2011} minimise the reaction torque by least
-squares with joint limits inside the solution, tested on an air-bearing arm. These are controllers. They do not
+squares with joint limits inside the solution. Nenchev and Yoshida~\cite{nenchev1999gnc} compare the pseudoinverse
+of the generalized Jacobian with a null-space controller that keeps the base still, on a 7 joint arm under
+velocity teleoperation, and find the pseudoinverse the more reliable (from the abstract). These are
+controllers. They do not
 tell an operator where the controller will stop working.
 
 \textbf{A tilt limit while teleoperating.} Sato et al.~\cite{sato1993} is the nearest work on the budget itself.
@@ -101,35 +116,46 @@ and on a free base the attitude does not come back either. Chen et al.~\cite{che
 free-floating arm so that hand, joints and base attitude all reset at the end of a task, and review the earlier
 work on repeatability of redundant arms. That work removes the drift by planning. We measure what the drift does
 to a displayed map over a session when the operator picks the goals and nobody plans against it. Our finding
-that sessions without a pull to rest posture get stuck is this known drift, seen from the operator's seat.
+that sessions without a pull to rest posture get stuck may be this known drift seen from the operator's seat.
+We have not shown that it is.
 
 \textbf{Showing limits to operators.} Virtual fixtures~\cite{rosenberg1993,abbott2007} put limits in front of
 users, and have user studies, but the limits are fixed in space. Coelho et al.~\cite{coelho2020} give the operator
 of an aerial manipulator a haptic wall at the limits of the null-space motion of the base. That wall moves with
-the state, the base is actuated, and the test is a numerical simulation with no users. Predictive displays show
-where a delayed robot will be, not where it may go.
+the state, the base is actuated, and the test is a numerical simulation with no users. Hauck et al.~\cite{hauck2025}
+draw the reachable space for people planning robot motions in virtual reality and test it with 20 of them, for an
+arm on a fixed base. Nearest to us, Pietras et al.~\cite{pietras2010} describe ways to support a ground operator
+against breaking limits on base attitude, such as antenna pointing, on a real-time simulator meant for tests with an
+operator in the loop. We have the abstract only, and it reports no test with people. \todo{get the Pietras paper: if
+it tested operators, the last claim of the gap changes}
 
 \textbf{The gap.} Path dependence is known, a check before execution is known, a tilt limit in teleoperation is
-known, and joint drift is known. We found no work that turns the tilt limit into a reach for a base that nothing
-holds, none that measures how far a map of that reach can be trusted across controllers and over a session, and
-none that tests people with one. This is what a dozen searches turned up, with one paper read in full and the
-rest from abstracts and excerpts, not a proof that nobody did it. \todo{one systematic search before submission}
+known, joint drift is known, and reachable sets under a limit on base attitude exist for a 3 joint
+arm~\cite{jia2019}. We found no work that draws such a set for the operator of a base that nothing holds and
+measures how far it can be trusted across controllers and over a session, and we found no study with people. This is
+what about 80 searches turned up, with one paper read almost in full and the rest from abstracts and excerpts, not a
+proof that nobody did it. Japanese and Chinese work and the conference papers of the 1990s are thinly covered.
+\todo{one systematic search before submission, with forward citations}
 
 \section{System}
 A free-floating bus carries a 7 joint arm in MuJoCo~\cite{todorov2012}. Nothing holds the bus: no thrusters, no
 reaction wheels. The hand is driven by resolved-rate control on the generalized Jacobian, and the spare joint is
 used to cancel base reaction where it can. Base tilt is counted from the attitude at the rest pose, and the
-budget is 2 degrees. \todo{masses, link lengths, gains: table from the CA3 paper}
+budget is 2 degrees. The bus is a 1 m cube of 300 kg. The arm weighs 12.5 kg in seven links and measures 0.97 m from
+shoulder to hand at full stretch. Joint rates are capped at 2 rad/s. The stacked hand and base rows are inverted
+with a damping of $10^{-6}$, which was never tuned and decides where some lines end (see the paragraph on joint
+limits inside the controller). \todo{link lengths and gains: table from the CA3 paper}
 
 The reach is probed along 98 directions from the rest position of the hand. Along each one the hand is driven
-out until the tilt reaches the budget, a joint limit stops it, or the arm would hit the bus. The 98 end points
+out until the tilt reaches the budget, the arm would hit the bus, or the hand stalls. The 98 end points
 form the map the operator sees, which we call the rest map. Distance along a direction is given as a fraction of
 the rest map, so 1 is its edge.
 
 A command is checked by rehearsal: the move is simulated from the state the arm is really in, and refused if it
 ends outside the budget. This is the check of the 1992 planner~\cite{papadopoulos1992} with the budget, the joint limits and the bus as
-the test. It is the only test in this paper that is always right, and it takes about
-4 s for a far goal. % D40
+the test. Every result in this paper is scored against it, so here it is right by construction. Against what the arm
+then did it was off on 1 of 45 and 2 of 46 goals in two fenced runs, and in the stored sessions 4 of 826 accepted
+moves ended over the budget, by 0.013 degrees at most. It takes about 4 s for a far goal. % D28, D33, D40
 
 \section{The edge moves}
 \subsection{Measurement}
@@ -143,8 +169,8 @@ directions have at least one. They are more common on moves across the start dir
 4\% along it) and when the start left more tilt behind (15\% above 0.8 degrees against 5\% below 0.4), but
 neither tells you which pair will fail.
 
-So a map drawn from rest is wrong for about one command in fourteen near its edge, and the operator cannot tell
-which one.
+So for random goals near its edge a map drawn from rest is wrong about one time in fourteen, and neither depth
+nor tilt left says which one.
 
 \begin{figure}[t]\centering
 \includegraphics[width=0.9\linewidth]{../figs/fig_wide.pdf}
@@ -177,46 +203,73 @@ The two reactionless controllers reach 0.24 to 0.75 m from rest, median 0.45. Th
 10 starts. The map of a reactionless one holds for 90\% of start and direction pairs and for every direction from
 none of the 10 starts. At 0.95 the plain maps hold for 86 to 89\% of pairs, so their edge moves too, by less.
 
-A reactionless controller arrives with less tilt spent (median 0.40 degrees against 1.07) and with joints on
-their limits: its failed moves end with a median of 2 joints at a limit, those of the plain controllers with none.
-So the far reach is bought with joint range, and what is left of the range depends on the start. This is read off
-counts, we have not shown the mechanism. Between 11 and 26 of the 98 lines stop short, at 0.24 to 0.30 m, with no
-joint at a limit, under all five controllers. Those belong to the arm, and we have not yet worked out which
-singularity it is.
+A reactionless controller arrives with less tilt spent (median 0.40 degrees against 1.07) and with joints on their
+limits: its failed moves end with a median of 2 joints at a limit, those of the plain controllers with none. So the
+far reach is bought with joint range, and what is left of the range depends on the start. This is read off counts,
+we have not shown the mechanism.
 
-\textbf{Joint limits inside the controller.} The reactionless controllers lose the map with joints sitting on
-their limits, so we tried one that looks at the limits while it solves, after Cocuzza et al.~\cite{cocuzza2011}:
-our controller with a weighted least-norm solve, where a joint heading for its limit costs more the closer it gets.
-It changed nothing. Rest reach 0.24 to 0.75~m, median 0.46. One move out, the 0.8 map holds for 91\% of pairs and
-from 0 of 10 starts, against 90\% and 0 of 10 without it. Over 40 moves it ends at 90\% of pairs and 0 of 10
-sessions, with 23 of 400 moves refused. The reason is a count of joints. The hand takes three, a level base takes
-three, and the arm has seven, so one is left to spare the others with. In our check a joint 0.1~rad from its limit
-slowed by 3\%. This is one velocity-level version with one untuned weight, not their acceleration-level solver,
-and not a controller that gives up some base tilt to save a joint. \todo{try the version that trades tilt for joint room}
+Between 11 and 26 of the 98 lines end in a stall, under every controller. These are not a singularity of the free
+base. The arm has run out of length. Under our controller all 26 end with the hand 0.96 to 0.97 m from the shoulder,
+where full stretch is 0.97 m, and with elbow and wrist within 12 degrees of straight. A bus ten or a thousand times
+heavier leaves the stall where it is, a hand point 0.10 m further out moves it by 0.10 m, and the other controllers
+stop at the same distance. The reach on these lines is 0.24 to 0.53 m, median 0.29: in those directions the rest
+pose is close to full stretch. Two things blur this. The last 2 to 14 cm are a crawl the controller makes, because
+near full stretch it asks for 5 to 15 rad/s and is scaled down to the 2 rad/s cap. And not every stall is this one:
+on 10 of the 26 lines one joint also sits on its limit, and from two other states 4 of 34 stalls were joint-limit
+stalls with the arm bent. The map should tell the two apart and does not yet. % D56
+
+\textbf{Joint limits inside the controller.} The reactionless controllers lose the map with joints sitting on their
+limits, so we tried one that looks at the limits while it solves, after Cocuzza et al.~\cite{cocuzza2011}: our
+controller with a weighted least-norm solve~\cite{chan1995}, where a joint heading for its limit costs more the
+closer it gets. It changed almost nothing. Rest reach 0.24 to 0.75~m, median 0.46, and two of the 98 lines move, by
+0.08 and 0.09~m. One move out, the 0.8 map holds for 91\% of pairs and from 0 of 10 starts, against 90\% and 0 of 10
+without it. Over 40 moves it ends at 90\% of pairs and 0 of 10 sessions, with 23 of 400 moves refused against 15
+without it. Our first reason for this was wrong. We wrote that the hand takes three joints, a level base three, and
+one of seven is left to spare the others with. The count is right and the conclusion is not. At rest the one free
+direction is the roll of the tool, which moves neither the hand nor the base and can take no load off another joint.
+To stop the joint nearest its limit through that direction would need a median of 3400~rad/s against a cap of 2.
+With the damping in the solve switched off, the weights slow joints 1 to 6 by under 0.1\%. What they change at our
+damping comes through directions the damped inverse has already given up. So the result belongs to that damping: at
+$10^{-8}$ the plain controller stalls at 0.40~m on a line where the weighted one reaches 0.73~m, and at our
+$10^{-6}$ the two agree to 1~mm. This is one velocity-level version, not their solver, and while the base is held
+level it has nothing to work with.
+
+We then let the base go a little: the same weights, with the three base rows a cost and not a constraint, and up to
+1.5 degrees of the budget to spend on joint room. It is a different trade, not a better one. On the same 392 goals
+one move out, from 4 starts, it reached 372 and our controller 373. On 89 of the lines it gained 9 goals. On the
+other 9 its own reach from rest is 10 to 41~cm shorter and it lost 10. Its rest map is smaller, mean reach 0.456
+against 0.474~m. Four starts and first values, nothing tuned, and one start carries 6 of the 9. % D57, D59
 
 \subsection{Long sessions}
 An operator does not make one move. We ran sessions of 40 moves, 10 per controller. Each goal is 0.2 to 0.8 of the
 way to the rest edge along a random direction, rehearsed, and made only if the rehearsal says yes.
 % D48, D49, data/session_medium.npz, data/session40_medium.npz
 
+In a first run of 12 moves, 10 sessions per controller, the map pulled in to 0.8 holds after move 12 for 91\% of
+directions under our controller, 80\% under reaction null space, 93\% under damped least squares and, rounded, 100\%
+under null-space impedance. Every direction holds in 0, 0, 4 and 9 of the 10 sessions.
+
 After move 40 the map pulled in to 0.8 holds for 88\% of directions under our controller, 83\% under reaction null
 space, 65\% under damped least squares and 85\% under null-space impedance. Every direction holds in 1, 1, 3 and 4
 of the 10 sessions. Null-space impedance held everything in 8 of 10 at move 20, so the loss comes late. Of the 400
 goals, all well inside the map, the rehearsal refused 15, 46, 40 and 3. Two sessions under damped least squares
-and one under reaction null space ended with the last 10 goals all refused. Neither has a pull back to a rest
-posture. The two that have one did not get stuck. Tilt left behind rises over the first moves and levels off
-(median over the first 10 moves against the last 10: 0.31 and 0.45 degrees for ours, 0.95 and 1.22 for damped
-least squares), so the budget is not what runs out. The arm's posture is.
+and one under reaction null space ended with the last 10 goals all refused. Neither has a pull back to a rest posture. The controllers that have one did not get stuck. Tilt left behind rises
+over the first moves and levels off (median over the first 10 moves against the last 10: 0.31 and 0.45 degrees for
+ours, 0.95 and 1.22 for damped least squares). The stuck sessions do not fit that. They sit at a median of 2.01
+degrees, on the budget, and all 30 of their refusals are for tilt. A refused move is not made, so nothing brings the
+base back and the next goal is refused too. Whether drift in posture is what took them there we have not shown.
 
 That a redundant arm drifts in posture over repeated moves is known~\cite{chen2013}. What is new here is what
 it costs the map.
 
-So no controller here keeps a fixed map over a session, at 0.8 of its length or less. The rehearsal stays right,
-and that is the thing an operator can trust.
+So no controller here keeps a fixed map over a session at 0.8 of its length. The rehearsal is what all of this is
+scored against, and we expect it to be the thing an operator can lean on. That is a prediction. No operator was
+tested.
 
 \subsection{A planar check}\label{sec:planar}
 To tie the code to the known theory we built the textbook system separately: a planar arm with two links on a
-free base, exact momentum, no physics engine. With no tilt limit, the radii at which a dynamic singularity exists
+free base, exact momentum, no physics engine, on made-up numbers (base 200 kg, two links of 10 kg and 1 m).
+With no tilt limit, the radii at which a dynamic singularity exists
 run from 0.41 to 2.36 m on a grid of joint angles. The same band from the masses and lengths alone, as the sum
 and difference of the three barycentric lengths, is 0.41 to 2.36 m. % analysis/envelope/planar.py
 
@@ -236,35 +289,50 @@ less than half and 5 keep everything. % D41, data/wide98_medium.npz
 
 \subsection{A map from where the arm is}
 Run the 98 probes again from the current state. On one thread this takes 85 s. Shared over 10 processes it takes
-12.6 s from rest and 7.4 s after a 0.3 m move, and 12 processes are no faster. % D39
+13.0 s from rest and 12.2 s after a detour, on one laptop. % D42
 So this map is right, for a hand that has stopped, and 12 to 13 s old. The tool shows a yellow marker on the hand
 while the map is old and a green one when it is current.
 
 \subsection{A map looked up}
 The map from the current state can be stored instead of computed. We took 200 states, one and two moves from rest,
-and for each the 98 reaches from a fast model without physics that is 8 mm off the simulation on the median.
+and for each the 98 reaches from a fast model without physics. Against the simulation on 199 states that model
+is 9 mm off on the median, within 0.056 m on 95\% of lines and 0.54 m off at worst.
 A new state is given the weighted average of its 5 nearest stored states. On states left out, the median error is
-0.034 m, against 0.120 m for the average of all maps, which is what a fixed map amounts to. Against the simulated
-map on 5 states the median error is 0.026 m. It promises 0.05 m too much on 4.9\% of lines and 0.05 m too little
-on 19\%. It answers at once. It is not wired into the tool: one line in twenty too far is the same failure as the
-fixed map, less often. % D46, data/learn_medium.npz
+0.034 m, against 0.120 m for the average of all maps (an average, not the rest map the tool draws). Against the
+simulated map our first figure came from 5 states: 0.05 m too much on 4.9\% of lines. On 101 to 125 simulated states
+it is 14 to 16\% of lines too far by 0.05 m and about 20\% too short, median error 0.033 to 0.035 m. So the plain
+average is too far on about one line in seven, the same failure as the fixed map. It needs no simulation when it
+answers. We have not timed it. % D46, D55, data/learn_medium.npz
 
-\textbf{Made careful.} A map that promises too much is the costly kind of wrong, so we made the lookup cautious:
-per direction the shortest reach among the $k$ nearest stored states, pulled in by a factor, and no reach at all
-when the base is already over the budget. We scored it against one fixed map given the same allowance: per
-direction a low percentile of the stored reaches. 1000 states, one or two moves from rest, 600 stored, 200 to pick
-the settings on (the furthest-reaching setting that promises 0.05~m too much on under 1\% of state and direction
-pairs), 200 to score. On the 200 it never saw, the lookup (10 nearest, pulled in to 0.9) keeps 0.69 of the total
-reach and over-promises on 1.5\% of pairs. The fixed map (2nd percentile) keeps 0.29 and over-promises on 1.3\%.
-So the lookup shows more than twice the reach at about the same risk, and neither kept the 1\% it was picked
-for. A fixed map that holds from every stored state has no reach left, because some states are already at the
-budget. With 200 stored states instead of 1000 the lookup kept 0.55. The reaches are the fast estimate, not
-the full simulation, which we have for five states only. % D53, D54, learn.py safe
-\todo{simulate 30 states in full and score against those}
+\textbf{Made careful.} A map that promises too much is the costly kind of wrong, so we made the lookup cautious: per
+direction the shortest reach among the $k$ nearest stored states, pulled in by a factor, and no reach at all when
+the base is already over the budget. We scored it against two fixed maps given the same allowance: per direction a
+low percentile of the stored reaches, and the same shrunk by the share of the tilt budget already spent. The second
+is the fair one, because the lookup's neighbours carry the tilt for free. 1000 states, one or two moves from rest,
+600 stored, 200 to pick the settings on (the furthest-reaching setting that promises 0.05~m too much on under 1\% of
+state and direction pairs), 200 to score, and the scoring states simulated in full. Two of them start with the arm
+inside the clearance around the bus, where the tool would refuse the move, and are left out.
+
+Against the simulation on 199 states the lookup (10 nearest, pulled in to 0.9) keeps 0.67 of the total reach and
+promises 0.05~m too much on 1.4\% of pairs (0.8 to 2.1 over states). The fixed map (2nd percentile) keeps 0.29 and
+is over on 0.7\% (0.1 to 1.3). The fixed map shrunk with tilt keeps 0.39 and is over on 0.6\% (0.3 to 0.9). So the
+lookup shows 2.3 times the reach of a fixed map and 1.7 times that of the fair one. It does not do so at the same
+risk. Its misses are spread over 43 of the 199 states, against 9 and 25, and its worst miss is 0.44~m against 0.16
+and 0.22~m.
+
+The lookup is only as good as its nearest stored state. The figures in this paragraph are on the fast estimate, not
+the simulation. Split by distance to the nearest stored state, the furthest quarter of the scoring states is over on
+5.0\% of pairs, about the same as the fixed map (4.9\%), and the nearest quarter on 0.1\%. Held out by region, 20
+times, the lookup is over on a median of 6.3\% against 1.6\% for the fixed map, and worse in 19 of the 20. Falling
+back to the fixed map beyond a set distance halves that and does not close it. So it holds for states drawn like the
+stored ones and not outside them. Whether a setting keeps the 1\% it was picked for is the luck of the split: over
+100 random splits the lookup averaged 0.85\% and the fixed map 0.75\%, each above 1\% in about three of ten. With
+200 stored states in place of 600 the lookup kept 0.56. A fixed map that holds from every stored state keeps 0.09 of
+the reach, once the states with no reach at all are set aside. % D53, D54, D55, learn.py safe
 
 \subsection{No map}
-Draw nothing. Rehearse every command and refuse the ones that would break the budget. This is never wrong and
-gives the operator nothing to plan with: they find the edge by being refused.
+Draw nothing. Rehearse every command and refuse the ones that would break the budget. This is as right as the
+rehearsal and gives the operator nothing to plan with: we expect them to find the edge by being refused.
 
 \section{Study}
 \subsection{Design}
@@ -284,33 +352,44 @@ no commands brought back but is slower and rated as more work (H4). Friedman tes
 primary measure, Wilcoxon pairs with Holm correction.
 
 \subsection{Results}
-\todo{No participant has been run. Ethics approval and consent to settle first. A scripted operator will be run
-through all blocks before people are, to see whether seven scored goals per block can separate the conditions
-at all; that run will be reported as scripted, not as data.}
+\todo{No participant has been run. Ethics approval and consent to settle first.} A scripted operator has been run
+through all four blocks, 28 scored goals per display. It is a rule and not a person, and nothing here is participant
+data. It took 32.6 s per goal with the rest map, 34.7 with the map that held, 34.9 with the map from the current
+state and 22.1 with no map, and 15 of its sends were refused. % D43
 
 \section{Limits}
 Simulation only. One arm, one bus mass, one budget. The controller comparison and the sessions are 10 starts
 or 10 sessions per controller. No recovery move was tried on a stuck session. The map that held is tested on one-move starts. The delay of
 the current-state map is the delay on one laptop. The reach is probed on 98 lines from one point, so the map is a
-set of lines and not a volume with a proof behind it. No contact, no flexible parts, no sensor noise.
+set of lines and not a volume with a proof behind it. The damping in the controller's solve was never tuned and
+moves where some lines end. The looked-up map holds near its stored states and not outside them. No contact, no
+flexible parts, no sensor noise.
 
 \begin{thebibliography}{99}
-\bibitem{umetani1989} Y. Umetani and K. Yoshida, ``Resolved motion rate control of space manipulators with generalized Jacobian matrix,'' \emph{IEEE Trans. Robot. Autom.}, vol. 5, no. 3, 1989.
-\bibitem{dubowsky1993} S. Dubowsky and E. Papadopoulos, ``The kinematics, dynamics, and control of free-flying and free-floating space robotic systems,'' \emph{IEEE Trans. Robot. Autom.}, vol. 9, no. 5, 1993.
-\bibitem{papadopoulos1993} E. Papadopoulos and S. Dubowsky, ``Dynamic singularities in free-floating space manipulators,'' \emph{ASME J. Dyn. Syst. Meas. Control}, vol. 115, 1993.
-\bibitem{vafa1990} Z. Vafa and S. Dubowsky, ``The kinematics and dynamics of space manipulators: the virtual manipulator approach,'' \emph{Int. J. Robot. Res.}, vol. 9, no. 4, 1990.
-\bibitem{torres1992} M. A. Torres and S. Dubowsky, ``Minimizing spacecraft attitude disturbances in space manipulator systems,'' \emph{J. Guid. Control Dyn.}, vol. 15, no. 4, 1992.
-\bibitem{nenchev1999} D. N. Nenchev, K. Yoshida, P. Vichitkulsawat, and M. Uchiyama, ``Reaction null-space control of flexible structure mounted manipulator systems,'' \emph{IEEE Trans. Robot. Autom.}, vol. 15, no. 6, 1999.
-\bibitem{yoshida2001} K. Yoshida, K. Hashizume, and S. Abiko, ``Zero reaction maneuver: flight validation with ETS-VII space robot and extension to kinematically redundant arm,'' in \emph{Proc. IEEE ICRA}, 2001.
-\bibitem{rosenberg1993} L. B. Rosenberg, ``Virtual fixtures: perceptual tools for telerobotic manipulation,'' in \emph{Proc. IEEE Virtual Reality Annu. Int. Symp.}, 1993.
-\bibitem{abbott2007} J. J. Abbott, P. Marayong, and A. M. Okamura, ``Haptic virtual fixtures for robot-assisted manipulation,'' in \emph{Robotics Research}, Springer, 2007.
-\bibitem{todorov2012} E. Todorov, T. Erez, and Y. Tassa, ``MuJoCo: a physics engine for model-based control,'' in \emph{Proc. IEEE/RSJ IROS}, 2012.
-\bibitem{hart1988} S. G. Hart and L. E. Staveland, ``Development of NASA-TLX: results of empirical and theoretical research,'' in \emph{Human Mental Workload}, 1988.
+\bibitem{umetani1989} Y. Umetani and K. Yoshida, ``Resolved motion rate control of space manipulators with generalized Jacobian matrix,'' \emph{IEEE Trans. Robot. Autom.}, vol. 5, no. 3, pp. 303--314, Jun. 1989, doi:10.1109/70.34766.
+\bibitem{dubowsky1993} S. Dubowsky and E. Papadopoulos, ``The kinematics, dynamics, and control of free-flying and free-floating space robotic systems,'' \emph{IEEE Trans. Robot. Autom.}, vol. 9, no. 5, pp. 531--543, Oct. 1993.
+\bibitem{papadopoulos1993} E. Papadopoulos and S. Dubowsky, ``Dynamic singularities in free-floating space manipulators,'' \emph{ASME J. Dyn. Syst. Meas. Control}, vol. 115, no. 1, pp. 44--52, Mar. 1993.
+\bibitem{vafa1990} Z. Vafa and S. Dubowsky, ``The kinematics and dynamics of space manipulators: the virtual manipulator approach,'' \emph{Int. J. Robot. Res.}, vol. 9, no. 4, pp. 3--21, Aug. 1990.
+\bibitem{torres1992} M. A. Torres and S. Dubowsky, ``Minimizing spacecraft attitude disturbances in space manipulator systems,'' \emph{J. Guid. Control Dyn.}, vol. 15, no. 4, pp. 1010--1017, 1992, doi:10.2514/3.20936.
+\bibitem{nenchev1999} D. N. Nenchev, K. Yoshida, P. Vichitkulsawat, and M. Uchiyama, ``Reaction null-space control of flexible structure mounted manipulator systems,'' \emph{IEEE Trans. Robot. Autom.}, vol. 15, no. 6, pp. 1011--1023, Dec. 1999.
+\bibitem{yoshida2001} K. Yoshida, K. Hashizume, and S. Abiko, ``Zero reaction maneuver: flight validation with ETS-VII space robot and extension to kinematically redundant arm,'' in \emph{Proc. IEEE ICRA}, Seoul, May 2001, pp. 441--446, doi:10.1109/ROBOT.2001.932590.
+\bibitem{rosenberg1993} L. B. Rosenberg, ``Virtual fixtures: perceptual tools for telerobotic manipulation,'' in \emph{Proc. IEEE Virtual Reality Annu. Int. Symp.}, Seattle, Sep. 1993, pp. 76--82, doi:10.1109/VRAIS.1993.380795.
+\bibitem{abbott2007} J. J. Abbott, P. Marayong, and A. M. Okamura, ``Haptic virtual fixtures for robot-assisted manipulation,'' in \emph{Robotics Research}, Springer Tracts in Advanced Robotics, vol. 28, Springer, 2007, pp. 49--64.
+\bibitem{todorov2012} E. Todorov, T. Erez, and Y. Tassa, ``MuJoCo: a physics engine for model-based control,'' in \emph{Proc. IEEE/RSJ IROS}, Vilamoura, Oct. 2012, pp. 5026--5033, doi:10.1109/IROS.2012.6386109.
+\bibitem{hart1988} S. G. Hart and L. E. Staveland, ``Development of NASA-TLX: results of empirical and theoretical research,'' in \emph{Human Mental Workload}, Advances in Psychology, vol. 52, North-Holland, 1988, pp. 139--183, doi:10.1016/S0166-4115(08)62386-9.
 \bibitem{papadopoulos1992} E. Papadopoulos, ``Teleoperation of free-floating space manipulator systems,'' in \emph{Proc. SPIE, Telemanipulator Technology}, 1992. \todo{volume and pages}
-\bibitem{sato1993} Y. Sato, M. Hirata, F. Nagashima, T. Maruyama, and T. Uchiyama, ``Reducing attitude disturbances while teleoperating a space manipulator,'' in \emph{Proc. IEEE ICRA}, 1993, pp. 516--523.
-\bibitem{cocuzza2011} S. Cocuzza, I. Pretto, and S. Debei, ``Novel reaction control techniques for redundant space manipulators: theory and simulated microgravity tests,'' \emph{Acta Astronaut.}, 2011, doi:10.1016/j.actaastro.2010.06.014.
-\bibitem{chen2013} G. Chen, L. Zhang, Q. Jia, M. Chu, and H. Sun, ``Repetitive motion planning of free-floating space manipulators,'' \emph{Int. J. Adv. Robot. Syst.}, vol. 10, 2013, doi:10.5772/56402.
-\bibitem{coelho2020} A. Coelho, H. Singh, K. Kondak, and C. Ott, ``Whole-body bilateral teleoperation of a redundant aerial manipulator,'' in \emph{Proc. IEEE ICRA}, 2020.
+\bibitem{sato1993} Y. Sato, M. Hirata, F. Nagashima, T. Maruyama, and T. Uchiyama, ``Reducing attitude disturbances while teleoperating a space manipulator,'' in \emph{Proc. IEEE ICRA}, vol. 3, 1993, pp. 516--523.
+\bibitem{cocuzza2011} S. Cocuzza, I. Pretto, and S. Debei, ``Novel reaction control techniques for redundant space manipulators: theory and simulated microgravity tests,'' \emph{Acta Astronaut.}, vol. 68, no. 11--12, pp. 1712--1721, 2011, doi:10.1016/j.actaastro.2010.06.014.
+\bibitem{chen2013} G. Chen, L. Zhang, Q. Jia, M. Chu, and H. Sun, ``Repetitive motion planning of free-floating space manipulators,'' \emph{Int. J. Adv. Robot. Syst.}, vol. 10, no. 5, 2013, doi:10.5772/56402.
+\bibitem{coelho2020} A. Coelho, H. Singh, K. Kondak, and C. Ott, ``Whole-body bilateral teleoperation of a redundant aerial manipulator,'' in \emph{Proc. IEEE ICRA}, Paris, 2020, pp. 9150--9156, doi:10.1109/ICRA40945.2020.9197028.
+\bibitem{chan1995} T. F. Chan and R. V. Dubey, ``A weighted least-norm solution based scheme for avoiding joint limits for redundant joint manipulators,'' \emph{IEEE Trans. Robot. Autom.}, vol. 11, no. 2, pp. 286--292, Apr. 1995. \todo{entered from memory, check against the paper}
+\bibitem{jia2019} Q. Jia, B. Yuan, and G. Chen, ``Representation space analytical method for path planning of free-floating space manipulators,'' \emph{IEEE Access}, vol. 7, pp. 54228--54251, 2019. \todo{abstract only}
+\bibitem{umetani2001} Y. Umetani and K. Yoshida, ``Workspace and manipulability analysis of space manipulator,'' \emph{Trans. SICE}, vol. E-1, no. 1, pp. 116--123, 2001. \todo{not read in full}
+\bibitem{cocuzza2010} S. Cocuzza, M. Artusi, and S. Debei, ``Zero reaction workspace of a space manipulator,'' in \emph{Proc. 61st Int. Astronaut. Congr.}, Prague, 2010, Paper IAC-10.D3.3.9. \todo{author list differs between records, abstract not found}
+\bibitem{cocuzza2013} S. Cocuzza and A. Correnti, ``Increased performance reaction control in the operations of hyper-redundant space manipulators,'' in \emph{Proc. 64th Int. Astronaut. Congr.}, Beijing, 2013, Paper IAC-13.D3.3.4. \todo{abstract only}
+\bibitem{pietras2010} M. Pietras, F. Rems, and U. Walter, ``Real-time evaluation of attitude constrains during space robot operations,'' in \emph{Proc. 61st Int. Astronaut. Congr.}, Prague, 2010. \todo{abstract only. A second record with a near-identical abstract lists Pietras, Fleischner and Walter, ``Autonomous control of operative constrains during real-time teleoperation of space robots,'' pp. 8344--8350}
+\bibitem{nenchev1999gnc} D. N. Nenchev and K. Yoshida, ``Singularity-consistent teleoperation techniques for redundant free-flying robots,'' in \emph{Proc. AIAA Guid. Navig. Control Conf.}, Portland, Aug. 1999, Paper AIAA 1999-4305, doi:10.2514/6.1999-4305. \todo{abstract only}
+\bibitem{hauck2025} S. Hauck, D. Abdlkarim, J. Dudley, P. O. Kristensson, E. Ofek, and J. Grubert, ``ReachVox: Clutter-free reachability visualization for robot motion planning in virtual reality,'' in \emph{Proc. IEEE ISMAR}, 2025, arXiv:2508.11426. \todo{abstract only}
 \end{thebibliography}
 \todo{check every reference against the paper itself before submission: volume, issue, pages}
 \end{document}
