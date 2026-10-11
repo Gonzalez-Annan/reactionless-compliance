@@ -495,3 +495,19 @@ All measured, 300 kg model unless said.
   Cocuzza et al., Acta Astronautica 2010: reaction control with joint limits. Kinematic drift over repeated moves:
   a 2002 classification paper and Repetitive Motion Planning of Free-Floating Space Manipulators, 2013.
   No study with people that shows a reach map for a floating base turned up.
+
+## D50 Read the 1992 planner, rewrote what the journal draft claims (2026-10-11)
+Read Papadopoulos, "Teleoperation of Free-floating Space Manipulator Systems", SPIE 1992, sections 1 to 5 (the
+example section was cut off in the copy I got).
+What it already has: a planner for the operator. Operator names target and path, planner checks the path against
+dynamic singularities, previews the simulated motion, executes after approval, and proposes another path if it
+fails (detour through the path-independent workspace plus small closed hand motions that turn the base).
+So "rehearse then execute" is not ours, and neither is "the reach depends on the path".
+What it does not have: any limit on base attitude (it turns the base on purpose), joint limits, collision (named,
+left out), redundancy or reactionless control (example is planar, 2 joints), a map shown to the operator, any
+measurement of how wrong a map is, any user.
+What the draft now claims: the reach under a tilt budget with joint limits and bus contact; the measured
+comparison of maps against the check, across four controllers and over 40-move sessions; the edge failing first
+under the reactionless controllers; the study. Abstract, introduction and related work rewritten, sections added
+for D46 to D49 and the planar check. Title changed.
+Still not read in full: Cocuzza 2010, the two drift papers, Sato 2002, the DLR wall. Marked red in the draft.
