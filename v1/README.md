@@ -57,4 +57,5 @@ Not covered: anything that needs the 10-process pool (D38 to D44, D47 to D49, D5
 
 `python analysis/study/pairs.py` draws the goal sets of the maps study into `data/pairs_medium.csv` (D64).
 `python src/teleop.py --maps N` runs the study for participant N, keyboard only (D63, D65).
+`python src/teleop.py --maps N --dry` is the same session as a pilot. It saves to `data/pilot`, not to the participant folder (D67).
 `python analysis/study/feedback.py --maps --check` checks the analysis on made-up rows.

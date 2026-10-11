@@ -71,8 +71,18 @@ def test_maps():
     assert a["reached"] and swapped, "the cage is probed again once the hand has stopped away from rest"
 
 
+def test_dry_run_is_kept_out_of_the_participants():
+    """--dry: the file a session would write is under data/pilot. No keys here, so it stops at the first prompt."""
+    import subprocess
+    out = [subprocess.run([sys.executable, "src/teleop.py", "--maps", "99", *dry], stdin=subprocess.DEVNULL,
+                          capture_output=True, text=True).stdout for dry in ([], ["--dry"])]
+    assert "participants" in out[0] and "pilot" not in out[0]
+    assert "pilot" in out[1] and "participants" not in out[1]
+
+
 if __name__ == "__main__":
     test_maps()
+    test_dry_run_is_kept_out_of_the_participants()
     print("ok")
 
 

@@ -122,3 +122,7 @@ Everything in the repo so far is scripted runs. `maps_0.csv` is the self-test id
 - 2026-10-12, scripted run on the final sets (D66), a rule and not people: ids 1 2 3 16 went through without an
   error. Nothing in the plan changed because of it. One trap ran into the 90 s limit under the map from the current
   state.
+- 2026-10-12, pilots (D67): the two pilot sessions are run with `--dry`. They are saved to `data/pilot`, are not
+  data and can not get into the analysis. They check the clock, the tool prints the minutes after each block. If
+  either pilot runs over 65 min with consent and the close added, every block is cut to 8 scored pairs, 2 traps,
+  3 edge, 1 inner and 2 outer.

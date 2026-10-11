@@ -7,6 +7,7 @@
     python src/teleop.py --pilot 1                 # delay pilot, participant 1: 4 blocks, five pink goals each
     python src/teleop.py --feedback 1              # feedback study, participant 1: 3 blocks (no cue / colour / hard stop), scored in seconds
     python src/teleop.py --maps 1                  # maps study, participant 1: 4 blocks (cage from rest / cage that held / cage from where the arm is / no cage)
+    python src/teleop.py --maps 1 --dry            # the same session as a pilot: saved to data/pilot, not participant data
     python src/teleop.py --pad ...                 # same, with a gamepad (needs: uv pip install pygame)
 
 Set-and-go (default): move the dot anywhere in 3-D, press Enter (pad: Cross). If the hand can get there with
@@ -654,15 +655,19 @@ def maps_study(axes, pid, size):
     lot in a new order per participant. Before the first block: 4 training pairs under that block's display (use
     "train", block 0), once more if an inner goal was not reached or the outer one not given up.
     Giving a goal up adds REPARK_S, and so does running out of time on it. After each block the participant rates
-    workload (raw NASA-TLX) and trust in what was shown. Keyboard only: the gamepad path has never been run."""
-    pr, rows = pd.read_csv(OUT.parent / f"pairs_{size}.csv"), []
+    workload (raw NASA-TLX) and trust in what was shown. Keyboard only: the gamepad path has never been run.
+    Two columns are on the wall clock, the rest is simulated time: run_s, how long the drive the row came from took
+    (window, maps and driving, 12 pairs in a block), and clock_s, session start to the end of that block's ratings."""
+    pr, rows, t0 = pd.read_csv(OUT.parent / f"pairs_{size}.csv"), [], time.time()
     cost = (f"Right Ctrl gives a goal up as out of reach. That adds {REPARK_S:g} s, and so does a goal still open after {T_OUT:g} s. "
             "A command that is brought back adds nothing but the time it took. Fastest total wins.")
 
     def run(b, c, q):   # one free_drive call over the pairs in q, two rows a pair
+        t = time.time()
         r = free_drive(axes, size, 5, "3d", targets=q[["lx", "ly", "lz", "tx", "ty", "tz"]].to_numpy().reshape(-1, 3), aid=MAPS[c])
+        w = time.time() - t
         return [x | {"pid": pid, "block": b, "cue": MAPS[c], "set": p.set, "pair": p.cand, "cls": p.cls, "use": p.use,
-                     "leg": n % 2 + 1, "depth": p.depth if n % 2 else np.nan}
+                     "leg": n % 2 + 1, "depth": p.depth if n % 2 else np.nan, "run_s": w}
                 for n, (x, p) in enumerate(zip(r, [p for p in q.itertuples() for _ in range(2)]))]
 
     for b, c in enumerate([(pid + x) % 4 for x in (0, 1, 3, 2)], 1):    # 4 orders: every display once in every place and once right after every other
@@ -679,8 +684,10 @@ def maps_study(axes, pid, size):
         w = ask("Workload, 0 (low) to 100 (high), six numbers: " + ", ".join(TLX) + ": ", 6, 0, 100)
         ex = {"tlx": sum(w) / 6, "tlx6": " ".join(f"{x:g}" for x in w), "procs": PROCS,
               "trust": ask("How much did you trust what the screen showed, 1 (not at all) to 7 (fully): ", 1, 1, 7)[0]}
+        ex["clock_s"] = time.time() - t0
         rows += [x | ex for x in r]
         print(f"block time {sum(x['time_s'] for x in r if x['use'] == 'scored'):.0f} s", flush=True)
+        print(f"on the clock: this block {r[0]['run_s'] / 60:.1f} min, {r[0]['run_s'] / len(q):.0f} s a pair. Session so far {ex['clock_s'] / 60:.1f} min", flush=True)
         OUT.mkdir(parents=True, exist_ok=True)
         pd.DataFrame(rows).to_csv(OUT / f"maps_{pid}.csv", index=False)     # saved after every block
     return rows
@@ -721,11 +728,18 @@ if __name__ == "__main__":
     ap.add_argument("--feedback", type=int)               # participant id: reach the goals with no cue / colour / colour and hard stop
     ap.add_argument("--maps", type=int)                   # participant id: maps study, 4 blocks (cage from rest / cage that held / cage from where the arm is / no cage)
     ap.add_argument("--decide", type=int)                 # participant id: go / re-park decisions, 3 kinds of help
+    ap.add_argument("--dry", action="store_true")         # a pilot or a try-out: saved to data/pilot, never to data/participants
     a = ap.parse_args()
     axes = gamepad() if a.pad else keyboard
+    if a.dry:
+        OUT = OUT.parent / "pilot"
     if a.feedback is not None:
         feedback(axes, a.feedback, a.size)
     elif a.maps is not None:
+        f = OUT / f"maps_{a.maps}.csv"
+        if f.exists():
+            raise SystemExit(f"{f} is there already. Move it away or take another id.")
+        print(f"saving to {f}", flush=True)
         maps_study(axes, a.maps, a.size)
     elif a.decide is not None:
         decide(a.decide, a.size)

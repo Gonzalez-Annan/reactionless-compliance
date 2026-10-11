@@ -987,3 +987,24 @@ Time:
 What it does not say: how people do. The rule does not plan, hesitate or learn, and it never goes on a goal its
 map says no to. So the split between the displays is the one the sets were built to allow, the times are a floor,
 and the run is a check that the tool logs what the analysis needs. `tlx` and `trust` are empty in these rows.
+
+## D67 Pilot sessions get their own folder and a clock (2026-10-12)
+
+`python src/teleop.py --maps <id> --dry` runs the session a participant gets and saves it to
+`data/pilot/maps_<id>.csv`. `feedback.py` reads only `data/participants`, so a pilot can not end up in the analysis.
+
+- `--dry` works for every study mode, it moves the folder all of them save to. `--pilot` was taken by the delay
+  pilot.
+- The tool stops if `maps_<id>.csv` is there already. Before, a second run with the same id wrote over the first
+  one without a word.
+- Two new columns, both on the wall clock. `run_s`: how long the drive the row came from took, window and map
+  drawing included, 12 pairs in a block. `clock_s`: from the start of the tool to the end of that block's ratings.
+  The tool prints both after each block. Everything else in a row is still simulated time.
+- Not on that clock: consent and the sheet before the tool is started (5 min in the plan) and the close after the
+  last rating (3 min). Add them by hand or use a stopwatch.
+- What the pilots are for, same rule as in the journal draft: two pilots, not data. If either runs over 65 min,
+  every block is cut to 8 scored pairs, 2 traps, 3 edge, 1 inner and 2 outer.
+
+Checked: `tests/test_maps.py::test_dry_run_is_kept_out_of_the_participants`, the file a session would write is under
+`data/pilot` with `--dry` and under `data/participants` without. Suite 24 of 24.
+Not checked: nobody has driven a session by hand yet. The stored scripted files do not have the two columns.
