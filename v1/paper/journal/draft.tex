@@ -16,8 +16,8 @@ budget, here 2 degrees, only part of the arm's reach can be used, and an operato
 That the reach of such an arm depends on the path is known since the early 1990s, and a planning aid that previews
 a move and checks it before it is executed was proposed in 1992. What has not been measured is how far a map drawn
 for the operator can be trusted under an attitude budget, and nobody has tested people with one. We measure it in
-simulation for a 7 joint arm under four controllers. One move away from rest, a map pulled in to 0.8 of its length
-holds from all of 10 starts under the two controllers that ignore the base, and from none of 10 under the two
+simulation for a 7 joint arm under five controllers. One move away from rest, a map pulled in to 0.8 of its length
+holds from all of 10 starts under the two controllers that ignore the base, and from none of 10 under the three
 reactionless ones, which reach further (median 0.45 m against 0.37 to 0.39 m). Over sessions of 40 moves no
 controller keeps it: the whole map still holds in 1 to 4 of 10 sessions, and three sessions end stuck, all under
 controllers with no pull back to a rest posture. A map recomputed from the current state is right and 12 to 13 s
@@ -47,7 +47,7 @@ about it for the person at the controls. How wrong is a drawn map, under which c
 and is a map worth showing at all next to a check that is always right? Our contributions:
 \begin{enumerate}
 \item The reach of a free-floating arm under a budget on base tilt, with joint limits and collision with the bus
-in it, measured for a 7 joint arm under four controllers. A tilt limit during teleoperation is not new:
+in it, measured for a 7 joint arm under five controllers. A tilt limit during teleoperation is not new:
 Sato et al.~\cite{sato1993} kept one in 1993 by slowing the arm, on a satellite with attitude control. With
 nothing holding the base, the limit turns into an edge of the reach, and that edge is what we measure.
 \item A measured comparison of what can be shown: the map from rest, the same map pulled in, a map recomputed from
@@ -181,7 +181,7 @@ A reactionless controller arrives with less tilt spent (median 0.40 degrees agai
 their limits: its failed moves end with a median of 2 joints at a limit, those of the plain controllers with none.
 So the far reach is bought with joint range, and what is left of the range depends on the start. This is read off
 counts, we have not shown the mechanism. Between 11 and 26 of the 98 lines stop short, at 0.24 to 0.30 m, with no
-joint at a limit, under all four controllers. Those belong to the arm, and we have not yet worked out which
+joint at a limit, under all five controllers. Those belong to the arm, and we have not yet worked out which
 singularity it is.
 
 \textbf{Joint limits inside the controller.} The reactionless controllers lose the map with joints sitting on
@@ -248,6 +248,16 @@ A new state is given the weighted average of its 5 nearest stored states. On sta
 map on 5 states the median error is 0.026 m. It promises 0.05 m too much on 4.9\% of lines and 0.05 m too little
 on 19\%. It answers at once. It is not wired into the tool: one line in twenty too far is the same failure as the
 fixed map, less often. % D46, data/learn_medium.npz
+
+\textbf{Made careful.} A map that promises too much is the costly kind of wrong, so we made the lookup cautious:
+per direction the shortest reach among the $k$ nearest stored states, pulled in by a factor, and no reach at all
+when the base is already over the budget. To promise 0.05~m too much on under 1\% of state and direction pairs
+left out of the fit, it has to give away close to half the reach: 5 nearest pulled in to 0.7 keeps 0.55 of the
+total reach and over-promises on 0.8\%, 10 nearest at 0.8 keeps 0.54 at 0.8\%. Against the simulated map of
+five states the same two settings never over-promise by 0.05~m and keep 0.51. So at 200 stored states the
+careful lookup is about as short as a fixed map that holds from every start, and still wrong sometimes. The
+factor was picked on the same folds it is scored on. % D53, learn.py safe
+\todo{more stored states, then compare with the fixed map on the same states}
 
 \subsection{No map}
 Draw nothing. Rehearse every command and refuse the ones that would break the budget. This is never wrong and

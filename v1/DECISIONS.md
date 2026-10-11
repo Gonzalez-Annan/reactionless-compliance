@@ -545,3 +545,20 @@ So no. Why: hand 3 + level base 3 = 6 of 7 joints, one left to spare the others 
 What this does not rule out: a tuned weight, the acceleration-level solver, or a controller that gives up some
 tilt to save a joint (that spends the budget the map is about, so it is a different trade, not tried).
 For the paper: the answer to "what to show" does not change. One more controller, same result.
+
+## D53 The looked-up map made careful: under 1% over-promise costs about half the reach (2026-10-11)
+D46's lookup (5 nearest, averaged) promised 0.05 m too much on 4.9% of pairs. Too much for a map somebody trusts.
+Careful version (`learn.py safe`): per line the shortest reach among the k nearest stored states, times a pull-in
+factor, and no reach when the base is already over 2 deg (one of the 200 states is, it was 98 of the misses).
+200 states x 98 lines, 5 folds, labels from livemap.fast as before.
+- 5 nearest, no pull-in: over by 0.05 on 3.5%, keeps 0.78 of the total reach.
+- 5 nearest x 0.7: 0.8%, keeps 0.55.   10 nearest x 0.8: 0.8%, keeps 0.54.   20 nearest x 0.7: 0.3%, keeps 0.40.
+- Against the simulated map (rest + 4 starts): 5 nearest x 0.8 and tighter never over by 0.05, keep 0.51 to 0.59.
+- The misses that stay sit in 22 of the 200 states, not spread evenly.
+Blunt: at 200 states this does not beat a fixed map. The map that held from every start (D41) keeps 0.67 of the
+edge on the median direction and needs no lookup. Not like for like (different states, median against total),
+so not a verdict yet.
+Not clean: the factor was picked on the folds it is scored on. Only 5 states have simulated labels.
+Also fixed the draft: abstract and contribution 1 now say five controllers (D52).
+Next that would settle it: 1000 states (about 2.7 h of machine time), then the fixed map and the lookup scored
+on the same left-out states.

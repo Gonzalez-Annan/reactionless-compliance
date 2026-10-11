@@ -2,6 +2,8 @@
   learn.py gen   200 states (100 one move from rest, 100 two moves), from each the 98 reaches with livemap.fast
                  -> data/learn_medium.npz. About 40 min on 10 processes.
   learn.py       fit on those, test on states left out, then on the 5 states of fastmap.py that have a simulated map.
+  learn.py safe  the looked-up map made careful: shortest of the k nearest states, pulled in by a factor. How often
+                 does it still promise too much, and how much reach does it give away? (D53)
 Input: 7 joint angles + base tilt as a rotation vector. Output: reach along each of the 98 lines, m.
 Models, numpy only: mean of the training maps (what a fixed map amounts to), ridge, 5 nearest states.
 ponytail: labels come from livemap.fast (8 mm median off the simulation, D44), not from the simulation itself."""
@@ -47,6 +49,13 @@ def fit(X, Y):
     return {"mean map": lambda x: Y.mean(0), "ridge": lambda x: np.r_[(x - mu) / sd, 1] @ Wt, "5 nearest": knn}
 
 
+def safe(X, Y, k, pull):
+    """-> predict(x): per line the shortest reach among the k nearest stored states, times pull.
+    No reach at all if the base is already over the tilt budget at x: that much is read off the state, not looked up."""
+    mu, sd = X.mean(0), X.std(0) + 1e-9; Z = (X - mu) / sd
+    return lambda x: (np.linalg.norm(x[7:]) < np.radians(T.BASE_MAX)) * pull * Y[np.argsort(np.linalg.norm(Z - (x - mu) / sd, axis=1))[:k]].min(0)
+
+
 def row(name, E):
     print("  %-10s error median %.3f, 95%% %.3f, worst %.3f m, over by 0.05: %.1f%%, short by 0.05: %.1f%%" % (
         name, np.median(abs(E)), np.percentile(abs(E), 95), abs(E).max(), 100 * (E > 0.05).mean(), 100 * (E < -0.05).mean()))
@@ -64,6 +73,23 @@ if __name__ == "__main__":
         np.savez(f, X=R[:, :10], Y=R[:, 10:])
         sys.exit()
     z = np.load(f); X, Y = z["X"], z["Y"]
+    if "safe" in sys.argv:
+        fm = np.load(T.OUT.parent / "fastmap_medium.npz"); S = np.load(T.OUT.parent / "wide98_medium.npz")["S"]
+        Xt = np.array([feat(*state(l)[1::2]) for l in [()] + [(s,) for s in S[:4]]])
+        Yt = np.array([fm["true%d" % i] for i in range(5)])
+        print("left-out states (5 folds, 200 states x 98 lines) | simulated map (5 states x 98 lines)")
+        print("  k pull   over at all  over by 0.02  over by 0.05  reach kept |  over at all  over by 0.05  reach kept")
+        for k in (1, 5, 10, 20):
+            for pull in (1.0, 0.9, 0.8, 0.7):
+                P = np.zeros_like(Y)
+                for j in range(5):
+                    te = np.arange(len(X))[j::5]; tr = np.setdiff1d(np.arange(len(X)), te); g = safe(X[tr], Y[tr], k, pull)
+                    P[te] = [g(x) for x in X[te]]
+                g = safe(X, Y, k, pull); Pt = np.array([g(x) for x in Xt]); E, Et = P - Y, Pt - Yt
+                print("%3d  %.1f      %5.1f%%       %5.1f%%        %5.1f%%       %.2f   |     %5.1f%%        %5.1f%%       %.2f" % (
+                    k, pull, 100 * (E > 0).mean(), 100 * (E > 0.02).mean(), 100 * (E > 0.05).mean(), P.sum() / Y.sum(),
+                    100 * (Et > 0).mean(), 100 * (Et > 0.05).mean(), Pt.sum() / Yt.sum()))
+        sys.exit()
     tilt = np.degrees(np.linalg.norm(X[:, 7:], axis=1))
     print("%d states, tilt there median %.2f, most %.2f deg. reach median %.2f m, %d states with no reach at all" % (
         len(X), np.median(tilt), tilt.max(), np.median(Y), (Y.max(1) < 0.01).sum()))
