@@ -46,9 +46,10 @@ previews the motion and asks the operator to approve it. What is missing is the 
 about it for the person at the controls. How wrong is a drawn map, under which controller, after how many moves,
 and is a map worth showing at all next to a check that is always right? Our contributions:
 \begin{enumerate}
-\item The reach under a budget on base tilt, with joint limits and collision with the bus in it, measured for a
-7 joint arm under four controllers. The earlier workspaces are bounded by singularity, and the base may turn as
-far as it likes.
+\item The reach of a free-floating arm under a budget on base tilt, with joint limits and collision with the bus
+in it, measured for a 7 joint arm under four controllers. A tilt limit during teleoperation is not new:
+Sato et al.~\cite{sato1993} kept one in 1993 by slowing the arm, on a satellite with attitude control. With
+nothing holding the base, the limit turns into an edge of the reach, and that edge is what we measure.
 \item A measured comparison of what can be shown: the map from rest, the same map pulled in, a map recomputed from
 the current state, a map looked up from stored states, and the rehearsal alone. One move from rest and over
 sessions of 12 and 40 moves.
@@ -82,26 +83,37 @@ map could replace the check. No operator was tested. We do not propose alternati
 
 \textbf{Keeping the base still.} Torres and Dubowsky~\cite{torres1992} map which joint motions disturb the base
 least. Reaction null-space control~\cite{nenchev1999} and its flight test on ETS-VII~\cite{yoshida2001} remove the
-disturbance where redundancy allows. \todo{Cocuzza et al., Acta Astronautica 2010: reaction control made robust to
-singularities and joint limits. Read in full and cite} These are controllers. They do not tell an operator where
-the controller will stop working. \todo{Sato 2002: slows the arm to keep attitude in limits, no user in the loop.
-Full reference to check against the paper itself}
+disturbance where redundancy allows. Cocuzza et al.~\cite{cocuzza2011} minimise the reaction torque by least
+squares with joint limits inside the solution, tested on an air-bearing arm. These are controllers. They do not
+tell an operator where the controller will stop working.
 
-\textbf{Drift over repeated moves.} A closed path of the hand does not bring the joints or the base back.
-\todo{kinematic drift classification, 2002, and repetitive motion planning for free-floating manipulators, 2013:
-read in full and cite} That work makes the motion repeatable by planning. We measure what the drift does to a
-displayed map over a session when nobody plans against it.
+\textbf{A tilt limit while teleoperating.} Sato et al.~\cite{sato1993} is the nearest work on the budget itself.
+A ground operator drives a satellite arm, and the satellite attitude has to stay within set limits so the link to
+the ground holds. Their controller slows the arm as the predicted disturbance grows and feeds the disturbance
+forward to the attitude control. The operator works in a graphic simulator and, in their words, does so without
+considering the disturbance. So the limit is hidden from the operator on purpose, and the satellite has attitude
+control to recover with, which is why slowing down is enough. Ours has none. Slowing a free-floating arm does not
+change where its base ends up, so the limit cannot be hidden: some goals are simply out. Tested in a simulator,
+no operators compared. \todo{read from the abstract only, get the paper}
+
+\textbf{Drift over repeated moves.} A redundant arm that brings its hand back does not bring its joints back,
+and on a free base the attitude does not come back either. Chen et al.~\cite{chen2013} plan motions of a
+free-floating arm so that hand, joints and base attitude all reset at the end of a task, and review the earlier
+work on repeatability of redundant arms. That work removes the drift by planning. We measure what the drift does
+to a displayed map over a session when the operator picks the goals and nobody plans against it. Our finding
+that sessions without a pull to rest posture get stuck is this known drift, seen from the operator's seat.
 
 \textbf{Showing limits to operators.} Virtual fixtures~\cite{rosenberg1993,abbott2007} put limits in front of
-users, and have user studies, but the limits are fixed in space. \todo{DLR null-space wall, arXiv 2001.10779: a
-haptic wall that moves with the state, simulation only, no users. Check the full reference} Predictive displays
-show where a delayed robot will be, not where it may go.
+users, and have user studies, but the limits are fixed in space. Coelho et al.~\cite{coelho2020} give the operator
+of an aerial manipulator a haptic wall at the limits of the null-space motion of the base. That wall moves with
+the state, the base is actuated, and the test is a numerical simulation with no users. Predictive displays show
+where a delayed robot will be, not where it may go.
 
-\textbf{The gap.} Path dependence is known and a check before execution is known. We found no work that bounds
-the reach by an attitude budget, none that measures how far a map of that reach can be trusted across controllers
-and over a session, and none that tests people with one. This is what nine searches turned up, with most papers
-read from abstracts and one in full, not a proof that nobody did it. \todo{one systematic search before
-submission}
+\textbf{The gap.} Path dependence is known, a check before execution is known, a tilt limit in teleoperation is
+known, and joint drift is known. We found no work that turns the tilt limit into a reach for a base that nothing
+holds, none that measures how far a map of that reach can be trusted across controllers and over a session, and
+none that tests people with one. This is what a dozen searches turned up, with one paper read in full and the
+rest from abstracts and excerpts, not a proof that nobody did it. \todo{one systematic search before submission}
 
 \section{System}
 A free-floating bus carries a 7 joint arm in MuJoCo~\cite{todorov2012}. Nothing holds the bus: no thrusters, no
@@ -186,6 +198,9 @@ posture. The two that have one did not get stuck. Tilt left behind rises over th
 (median over the first 10 moves against the last 10: 0.31 and 0.45 degrees for ours, 0.95 and 1.22 for damped
 least squares), so the budget is not what runs out. The arm's posture is.
 
+That a redundant arm drifts in posture over repeated moves is known~\cite{chen2013}. What is new here is what
+it costs the map.
+
 So no controller here keeps a fixed map over a session, at 0.8 of its length or less. The rehearsal stays right,
 and that is the thing an operator can trust.
 
@@ -269,6 +284,10 @@ set of lines and not a volume with a proof behind it. No contact, no flexible pa
 \bibitem{todorov2012} E. Todorov, T. Erez, and Y. Tassa, ``MuJoCo: a physics engine for model-based control,'' in \emph{Proc. IEEE/RSJ IROS}, 2012.
 \bibitem{hart1988} S. G. Hart and L. E. Staveland, ``Development of NASA-TLX: results of empirical and theoretical research,'' in \emph{Human Mental Workload}, 1988.
 \bibitem{papadopoulos1992} E. Papadopoulos, ``Teleoperation of free-floating space manipulator systems,'' in \emph{Proc. SPIE, Telemanipulator Technology}, 1992. \todo{volume and pages}
+\bibitem{sato1993} Y. Sato, M. Hirata, F. Nagashima, T. Maruyama, and T. Uchiyama, ``Reducing attitude disturbances while teleoperating a space manipulator,'' in \emph{Proc. IEEE ICRA}, 1993, pp. 516--523.
+\bibitem{cocuzza2011} S. Cocuzza, I. Pretto, and S. Debei, ``Novel reaction control techniques for redundant space manipulators: theory and simulated microgravity tests,'' \emph{Acta Astronaut.}, 2011, doi:10.1016/j.actaastro.2010.06.014.
+\bibitem{chen2013} G. Chen, L. Zhang, Q. Jia, M. Chu, and H. Sun, ``Repetitive motion planning of free-floating space manipulators,'' \emph{Int. J. Adv. Robot. Syst.}, vol. 10, 2013, doi:10.5772/56402.
+\bibitem{coelho2020} A. Coelho, H. Singh, K. Kondak, and C. Ott, ``Whole-body bilateral teleoperation of a redundant aerial manipulator,'' in \emph{Proc. IEEE ICRA}, 2020.
 \end{thebibliography}
 \todo{check every reference against the paper itself before submission: volume, issue, pages}
 \end{document}

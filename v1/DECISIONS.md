@@ -511,3 +511,20 @@ comparison of maps against the check, across four controllers and over 40-move s
 under the reactionless controllers; the study. Abstract, introduction and related work rewritten, sections added
 for D46 to D49 and the planar check. Title changed.
 Still not read in full: Cocuzza 2010, the two drift papers, Sato 2002, the DLR wall. Marked red in the draft.
+
+## D51 The other related papers, and what they take from us (2026-10-11)
+Read from abstracts and excerpts, not in full: Sato et al. ICRA 1993, Cocuzza et al. Acta Astronautica 2011,
+Chen et al. IJARS 2013, Coelho et al. ICRA 2020 (the "DLR wall").
+- Sato 1993 ("Sato 2002" in our notes was the upload date). A tilt limit while teleoperating a satellite arm,
+  kept by slowing the arm plus feedforward to the attitude control. The operator is deliberately not shown it.
+  So "a tilt budget in teleoperation" is not ours. Ours is the free-floating case, where nothing recovers the
+  attitude, slowing does not help, and the limit becomes an edge of the reach that somebody has to see.
+- Chen 2013. Joints and base attitude do not come back after a closed hand path, known since the 1980s for
+  redundant arms; they plan the reset. So the stuck sessions of D49 are known drift. Ours is what it does to a map.
+- Cocuzza 2011. A reactionless controller with joint limits in it. A controller, no workspace, no operator.
+  Not tried here: would its handling of joint limits keep our edge still? Open.
+- Coelho 2020. Haptic wall that moves with the state, aerial arm, base actuated, simulation only, no users.
+The "2002 drift classification" paper did not turn up again, dropped from the draft.
+What is left as ours after all of this: the tilt-bounded reach of a free-floating arm as a thing to draw, the
+measured trust in maps of it (4 controllers, 1 to 40 moves), and the study with people. No single idea in it is
+new. The measurement and the study are.
