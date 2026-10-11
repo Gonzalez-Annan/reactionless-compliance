@@ -845,3 +845,145 @@ writes nothing into the repo. Last run: 39 PASS, 0 FAIL, 90 s.
 
 It does not cover anything that needs the 10-process pool, the sweep table, the scripted pre-study counts or
 part B of `planar.py`. One line is known to differ from its D-number (D16 rest pose, old text) and says so.
+
+## D63 Four conditions in the maps study (2026-10-12)
+
+The main study has four conditions: rest map, the map that held, the map from the current state, no map. This is
+a choice. Nothing new was measured for it.
+
+Five would have cost: 64 min a session and not 60, 8 scored pairs a block and not 10, seven tests under Holm and
+not five (D61). The looked-up map (D54, D55) stays in `teleop.py` as a display, `free_drive` still draws it. No
+participant sees it.
+
+In the tool: `T.MAPS` has four names and `python src/teleop.py --maps N` runs `maps_study`. The block order is
+`[(pid + x) % 4 for x in (0, 1, 3, 2)]`, four orders. The goal set of a display is `(c + pid + pid // 4) % 4`.
+`tests/test_order.py` counts ids 1 to 20: every display 5 times in every place and 5 times right after every
+other display. A set in a place, and a display on a set, 4 to 6 times each.
+
+## D64 Goal sets from pairs.py (2026-10-12)
+
+`python analysis/study/pairs.py` draws the pairs of the maps study and writes `data/pairs_medium.csv`. The
+rehearsals are kept in `data/pairs_cand_medium.npz`. Simulation, no people.
+
+A pair: 2080 are drawn from seed 0, 2000 with the test goal at 0.5 to 1.0 of the rest edge and 80 at 1.2 to 1.4.
+The lead goal is 0.6 of the way out in the map that held. The arm goes from rest to the lead goal, settles 1 s,
+then goes straight to the test goal, as `teleop.check` does it.
+
+| class | where the test goal is | the second move |
+|---|---|---|
+| trap | inside the rest map, 4 cm or more outside the map that held | ends 4 cm or more short |
+| edge | same | ends within 5 mm |
+| inner | at 0.9 or less of the map that held | ends within 5 mm |
+| outer | at 1.2 to 1.4 of the rest edge | ends 4 cm or more short |
+
+4 cm because the tool counts a goal as reached within 2 cm, so a goal missed by 1 cm would be no trap. A pair is
+kept only if it is in the same class in 7 rehearsals: the lead move ending on the lead goal, and 2 cm off it in
+six directions.
+
+| | trap | edge | inner | outer |
+|---|---|---|---|---|
+| in the class, lead move on the lead goal | 79 | 929 | 480 | 79 |
+| still in it in all 7 | 55 | 188 | 50 | 45 |
+
+For edge, inner and outer only as many as needed were tried, so their second row is a floor. Traps were all
+tried: 79 of 2000 pairs are traps by these rules and 55 get through the 2 cm check. That is few. Two scored traps
+a block times four sets, plus four for practice, uses 12 of the 55.
+
+Picked: 52 pairs. 4 sets of 10 scored pairs (2 traps, 4 edge, 2 inner, 2 outer), 2 more per set that start its
+block and are not scored (1 edge, 1 trap), 4 for training (2 inner, 1 edge, 1 outer).
+
+- Scored traps come from two bands of depth, four traps next to each other in each: 0.68 to 0.72 and 0.94 to 0.97
+  of the rest edge. One of each band to a set. Mean trap depth by set: 0.825, 0.837, 0.832, 0.830.
+- A first pick gave sets with scored traps at (0.51, 0.92), (0.64, 0.94), (0.72, 0.97), (0.78, 1.00), means 0.72
+  to 0.89. The draft promises the same depths in every set, so it was thrown away. Nothing is reported from it.
+- The traps that start the blocks are from a middle band, 0.86 to 0.88.
+- Every set has two edge goals at the depth of each of its traps, the nearer within 0.001. So depth does not tell
+  a trap from an edge goal.
+- Inner goals at 0.52 to 0.90 of the map that held, outer at 1.20 to 1.40 of the rest edge.
+- On the 12 traps the hand ends 4.7 to 21 cm short. What ends the move in the rehearsal: tilt 7, bus 4, and 1
+  where neither limit trips and the hand is still 5.4 cm short when the time is up (a practice trap of set 2). In
+  the real move the fence brings the arm back on all three kinds, the last by its time limit of 30 s.
+
+The map from the current state was not used to sort. On the picked pairs it was probed after the lead move:
+
+- It stops the dot short of all 12 traps. One only just: a scored trap of set 2 lies 1% outside it.
+- It also stops short of 3 of the 21 edge goals, and the arm reaches all three. Two are scored (set 0, 8% outside;
+  set 1, 25% outside), one is a practice goal of set 2 (1%).
+
+So a participant who waits for that map should meet no trap, and loses one reachable edge goal in set 0 and one
+in set 1. That is the map being wrong on the safe side between its 98 lines. It goes into the missed goes of that
+condition. We do not pick around it.
+
+Not covered: a lead move that took another path than the rehearsal's. So scoring uses the rehearsal from the
+participant's own state when the goal opens (`true_go`), not the class in the file.
+
+## D65 Tool changes for the four-condition design (2026-10-12)
+
+The list was a todo in the draft (D61). Where it stands:
+
+| # | what | state |
+|---|---|---|
+| 1 | a script draws and sorts the pairs, the tool reads its file | done (D64). `maps_study` reads `data/pairs_medium.csv` |
+| 2 | the prompt says what a give-up and a command brought back cost | done, same words in training and in every block |
+| 3 | log whether the current-state map was in, and how long a map took | done per goal, not per command. `early`: sends made while the cage on screen was not from where the hand is. `map_s`: the longest wait for a cage in that goal, wall clock |
+| 4 | a time-out | counts as a give-up: +30 s, `parked` true, and `timeout` true so it can be told apart |
+| 5 | gamepad | not done, never run. The study is keyboard only |
+| 6 | `feedback.py --maps` | done: H1 first, the planned tests only, the exact test of `power.py`, test goals with at least one wrong go. `--maps --check` passes on made-up rows |
+| 7 | set index, one more step every four participants | done (D63) |
+| 8 | practice | done: 4 training pairs under the first block's display, once more if no inner goal was reached or the outer one was not given up. Every block starts with 1 edge and 1 trap pair, not scored |
+| 9 | scripted operator on the new sets | D66 |
+
+Two more things found on the way:
+
+- A live probe still running when the arm is reset held the pool, so the next cage came late and its logged time
+  was wrong. The pool is started again in that case. Timed on this machine, 10 processes, two tries: the next
+  cage comes 2.3 and 3.0 s later than it would have (a cage takes 11 to 15 s here).
+- No probe is asked for while the hand sits on the open goal.
+
+Rows of `maps_<id>.csv`: `use` is train, block or scored, `block` 0 is the training. Only `use` scored and `leg`
+2 are analysed. The scripted files of the first design are in `data/scripted/first_design`. No script reads them.
+
+Still open: the scripted operator of the first design gave up all 4 reachable goals just outside the rest map
+under the current-state map without sending. Believed cause: its stuck timer ran while the new cage was still
+being drawn. That was changed. Not confirmed, the new sets have no goal just outside the rest map.
+
+## D66 Scripted operator on the final goal sets (2026-10-12)
+
+`python analysis/study/prestudy.py`, ids 1 2 3 16, about 5 min an id. A rule plays the operator, not people.
+Nothing here is participant data. Files: `data/scripted/maps_{1,2,3,16}.csv`, 416 rows, 160 scored test goals,
+40 per display, every display on every set once.
+
+| display | reached | wrong go | missed | refused | gave up | s per goal |
+|---|---|---|---|---|---|---|
+| rest map | 24 | 8, all on traps | 0 | 0 | 16 | 27.3 |
+| map that held | 8 | 0 | 16 | 0 | 32 | 33.2 |
+| current-state map | 22 | 0 | 2 | 0 | 18 | 32.6 |
+| no map | 24 | 0 | 0 | 16 | 16 | 18.3 |
+
+s per goal has the 30 s of a give-up in it. Missed: the goal could be reached and the rule gave it up without a go.
+
+What it says:
+
+- The sets do what they were built for. When the goal opened, 64 of 64 edge and 32 of 32 inner goals could be
+  reached, 0 of 32 outer and 0 of 32 traps (`true_go`). The first move of every scored pair arrived, 160 of 160.
+- Rest map: the rule went on all 8 traps and was brought back on all 8. No other display had a wrong go.
+- Map that held: no wrong go, but it gave up all 16 edge goals. Only the 8 inner goals were reached.
+- Current-state map: no wrong go, 14 of 16 edge goals reached. The 2 it gave up are the 2 known from D64 (pairs 67
+  and 268). Under the rest map and with no map both were reached.
+- No map: 16 goes refused, 8 on traps and 8 on outer goals, nothing brought back.
+- Worst tilt on a test goal 2.02 deg (rest map), 2.04 deg over all rows.
+
+Time:
+
+- A scored pair, both moves, without the 30 s: median 11.6 simulated s, 4.4 to 47.9, and 93.0 for one pair that
+  ran into the time-out. By display, median: no map 9.0, map that held 10.4, rest map 10.8, current-state map 18.8.
+- The current-state map made the rule wait 9.8 to 15.3 s for a cage, median 12.0, on 52 goals, 10 processes
+  (`map_s`). That wait is in its time. No send was made on an old cage (`early` 0).
+- One time-out: id 2, trap pair 155, current-state map. The rule sat 90 s without a go and without giving up, so
+  the row has `timeout` and `parked` true and 120 s. The cage came in 12.7 s, so it was not the map being late.
+  Believed: the dot kept creeping along the cage, so the rule's 2 s stuck test never fired. Not checked. Other
+  jobs ran on the machine during that block (a LaTeX build and two small scripts).
+
+What it does not say: how people do. The rule does not plan, hesitate or learn, and it never goes on a goal its
+map says no to. So the split between the displays is the one the sets were built to allow, the times are a floor,
+and the run is a check that the tool logs what the analysis needs. `tlx` and `trust` are empty in these rows.

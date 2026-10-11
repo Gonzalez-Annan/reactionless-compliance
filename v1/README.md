@@ -54,3 +54,7 @@ Not covered: anything that needs the 10-process pool (D38 to D44, D47 to D49, D5
 `planar.py` and the scripted pre-study counts. The end of the output lists each one with the reason.
 
 `python analysis/study/power.py` prints the sample size table of the study design (D61), about two minutes.
+
+`python analysis/study/pairs.py` draws the goal sets of the maps study into `data/pairs_medium.csv` (D64).
+`python src/teleop.py --maps N` runs the study for participant N, keyboard only (D63, D65).
+`python analysis/study/feedback.py --maps --check` checks the analysis on made-up rows.

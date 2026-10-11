@@ -119,6 +119,5 @@ if __name__ == "__main__":
         same = [power(n, 0.9, 0.9, t, **kw)[0] for n in (12, 20, 30)]      # no difference to find
         assert max(same) < ALPHA / 2 + 0.01, same       # one side of a two-sided test, so about 0.025 at most
         print("%-58s                %.2f  %.2f  %.2f   (must stay under %.3f)" % ((s,) + tuple(same) + (ALPHA / 2 + 0.01,)))
-    print("Five conditions instead of four: 8 test goals a block, still 2 traps, the same two blocks and the same n.")
-    print("The rows with e 0 do not change. With e there are 6 goals inside the rest map and not 8, so a little less noise.")
-    print("What changes is the number of secondary tests and the time.")
+    print("Four conditions were decided (D63). With five: 8 test goals a block, still 2 traps, the same two blocks and the same n,")
+    print("so the rows with e 0 would not change. With e there would be 6 goals inside the rest map and not 8, so a little less noise.")

@@ -409,26 +409,40 @@ So for the rule holding back loses, and waiting loses 2 to 7 s a test goal. A pe
 drawn and the rule cannot, so this is not a forecast. But by our own arithmetic H1 may well fail under this
 score, and a result for H1 holds for this score.
 
-\textbf{Goal sets.} As the tool stands, the 15 goals of a block are spread from 0.5 to 1.4 of the rest edge and 7
-are scored. In the scripted run 47 of 112 scored goals lay beyond 1.05 of the rest edge, where every map says no,
-and only 3 were goals that the rest map allows and the arm cannot reach. We call such a pair a trap. As built, a
-block holds a trap about one time in five, and the conditions can hardly differ. % data/scripted
-So the sets are drawn again before the first participant. We draw pairs with a fixed seed, rehearse each from
-the state its lead goal leaves, and sort them into four classes. Traps: the test goal is inside the rest map,
-outside the map that held, and cannot be reached. Edge goals: inside the rest map, outside the map that held,
-reachable. Inner goals: inside the map that held, reachable. Outer goals: at 1.2 to 1.4 of the rest edge, not
-reachable. A person's lead move does not end where the rehearsal's did, so a pair is kept only if its class stays
-the same when the lead move ends 2 cm off the lead goal in each of six directions. A block has 10 pairs: 2 traps,
-4 edge, 2 inner, 2 outer. There are as many sets as conditions. Every set has the same number of pairs in each
-class and the same spread of depth within a class, and no pair is in two sets. Within a set the edge goals are
-drawn at the depths of the traps, one within 0.03 of each trap. In the map data traps lie further out than
+\textbf{Goal sets.} In the first design the 15 goals of a block were spread from 0.5 to 1.4 of the rest edge and
+7 were scored. In the scripted run of that design 47 of 112 scored goals lay beyond 1.05 of the rest edge, where
+every map says no, and only 3 were goals that the rest map allows and the arm cannot reach. We call such a pair a
+trap. A block held a trap about one time in five, and the conditions could hardly differ. % data/scripted/first_design
+So the sets were drawn again, before any participant. We draw 2080 pairs with a fixed seed, rehearse each from
+the state its lead goal leaves, one second after the lead move ends, and sort them into four classes. Traps: the
+test goal is inside the rest map, outside the map that held, and cannot be reached. Edge goals: inside the rest
+map, outside the map that held, reachable. Inner goals: inside the map that held, reachable. Outer goals: at 1.2
+to 1.4 of the rest edge, not reachable. Reachable means the rehearsed hand ends within 5 mm of the goal. Not
+reachable means it ends 4 cm or more short, and outside the map that held means 4 cm or more outside it: the tool
+counts a goal as reached within 2 cm, so a goal missed by a centimetre would be no trap. Pairs in between are
+dropped. A person's lead move does not end where the rehearsal's did, so a pair is kept only if its class stays
+the same when the lead move ends 2 cm off the lead goal in each of six directions. Of 2000 pairs with the test
+goal inside the rest map 79 are traps by these rules, and 55 of them pass the 2 cm check. % analysis/study/pairs.py
+A block has 10 pairs: 2 traps, 4 edge, 2 inner, 2 outer. There are four sets, one for each condition, with the
+same number of pairs in each class, and no pair is in two sets. The scored traps come from two bands of depth,
+0.68 to 0.72 and 0.94 to 0.97 of the rest edge, one trap of each band to a set, so the mean depth of the traps
+is 0.83 to 0.84 in every set. Each trap has two edge goals at its depth in its set, the nearer within 0.001.
+Inner goals lie at 0.52 to 0.90 of the map that held and outer goals at 1.20 to 1.40 of the rest edge.
+% data/pairs_medium.csv
+In the map data traps lie further out than
 reachable goals of the same shell (28\% of pairs are traps at 0.95 to 1.0 of the rest edge, 7 to 9\% below 0.8),
 and the dot's colour shows depth. Without the match a participant could sort traps from edge goals by colour
 under any map. % wide98_medium.npz
+The map from the current state is not used to sort the pairs. We probed it on the pairs that were picked, after
+the lead move. It stops the dot short of all 8 scored traps, one of them by only 1\% of its depth. It also stops
+short of 2 of the 16 scored edge goals, one in each of two sets, and the arm can reach both. So a participant
+who waits for that map should meet no trap and loses a reachable goal in two of the four sets. We keep those
+pairs: this is what that map does between its 98 lines, and it counts as a missed go. % analysis/study/pairs.py
 A participant meets each set once and so sees no pair twice. Which set goes with which condition moves on by one
-with each participant and by one more after every four. As the tool does it now, two sets always come first or
-last in a session and two always in the middle. With the extra step each set comes at each place 4 to 6 times in
-20 sessions and each condition meets each set 4 to 6 times. This is how the map and not the goal differs between
+with each participant and by one more after every four. Without the extra step two sets would always come first
+or last in a session and two always in the middle. With it each set comes at each place 4 to 6 times in
+20 sessions and each condition meets each set 4 to 6 times. % tests/test_order.py
+This is how the map and not the goal differs between
 conditions: the sets are matched class by class, and what is left of a set is spread over the conditions and the
 places. Pairs come in a new random order for each participant and block.
 
@@ -455,7 +469,7 @@ it because in the scripted run it follows the number of goals a display makes th
 each, more than it follows the map.
 
 \textbf{Order.} A Williams square: four orders, five participants each, every condition once in every place and
-once after every other. % teleop.py feedback
+once after every other. % teleop.py maps_study, tests/test_order.py
 This balances what one block leaves in the next only if that is the same whatever comes next. It may not be: a
 participant who has met the current-state map may send less with the rest map afterwards. We cannot remove
 that. We show it: the H1 difference for the 10 who had the rest map before the current-state map next to the 10
@@ -470,13 +484,14 @@ is spread over the conditions by the orders. A participant goes on when they hav
 given up the outer one. The four pairs may be repeated once. Each block then starts with two practice pairs under
 its own condition, one edge and one trap in random order, which are not scored. So every display has been met on
 the two kinds of goal where the displays differ before it is scored, and under the two displays that allow a
-wrong go the participant has had the chance to see one. Practice pairs are in no set. During a block the
+wrong go the participant has had the chance to see one. The two practice pairs of a block go with its set and
+are not scored. The four pairs of the training are in no set. During a block the
 experimenter says nothing.
 
 A session is then 12 practice pairs and 40 scored pairs. The hour is spent like this: 5 min for consent and the
 sheet, 8 min for the controls and the four practice pairs, four blocks of 1 min of fixed words, 12 pairs and
 2 min of ratings, and 3 min to close. That is 60 min if a pair takes 40 s on the clock, which is our guess. The
-scripted rule needs 9 to 23 simulated seconds a pair and does not hesitate. % data/scripted
+scripted rule needs 4 to 48 simulated seconds a pair, 12 at the median, and does not hesitate. % D66
 On top come the stop at every goal while the tool rehearses the truth, which no time column holds, and the time
 people take to think. Two pilot sessions check the clock and are not data. If either runs over 65 min, every
 block is cut to 8 scored pairs, 2 traps, 3 edge, 1 inner and 2 outer, before the first participant. Traps and
@@ -577,35 +592,21 @@ this design & 0.5 & 0.2 & 1.12 & 0.70 & 0.13 & 0.27 & 0.43 \\
 \end{tabular}
 \end{table}
 
-\textbf{With the looked-up map as a fifth condition.} A block has 8 pairs, 2 traps, 3 edge, 1 inner and 2 outer,
-in five sets, so a session keeps 40 scored pairs and adds two practice pairs and one round of fixed words and
-ratings. That does not fit the hour: the same budget gives 64 min, or 61 min with 7 pairs a block and one outer
-goal. A Williams design for five conditions has ten orders, two participants each, and each condition meets each
-set 4 times. A participant is left out if fewer than 6 pairs of a block can be scored. H1, its two blocks and
-its traps stay as they are, so the table does not change but for a little less noise in its lower rows, where
-6 and not 8 test goals lie inside the rest map. Two secondary contrasts join: fewer wrong goes with the
-looked-up map than with the rest map, and fewer seconds on reached test goals than with the current-state map,
-because it answers at once. Holm's method then covers seven tests and not five. What we give up is one edge and
-one inner pair per block, which makes missed goes and seconds coarser in every condition, and the traps are then
-2 of the 6 test goals inside the rest map. Against the full simulation the looked-up map keeps 0.67 of the reach
-and promises 0.05 m too much on 1.4\% of pairs, in 43 of 199 states, and only near its stored states. So which
-traps it lets through has to be counted by rehearsal when the pool is drawn. % D55
-\todo{The tool runs the looked-up map as a fifth block now, in ten orders, but with four goal sets, so the rest
-map and the looked-up map share one (D60). Four or five conditions: for the team to decide once the pilot has
-timed a pair.}
+\textbf{Four conditions, not five.} The looked-up map could have been a fifth condition. We left it out. With it
+a block has 8 pairs and not 10, the same session budget gives 64 min and not 60, a Williams design needs ten
+orders with two participants each, and Holm's method covers seven tests and not five. What that buys is one more
+display, compared on one edge and one inner pair fewer in every block. The looked-up map stays a display of the
+tool and a result of the simulation: against the full simulation it keeps 0.67 of the reach and promises 0.05 m
+too much on 1.4\% of pairs, in 43 of 199 states, and only near its stored states. % D55, D63
+No participant sees it.
 
-\todo{Tool and script, before the first participant: (1) a script that draws and sorts the pairs, with the 2 cm
-check and the depth match, and teleop.py taking that list where it now takes data/decide4\_medium.npz and scores
-a random 7 of 15 goals; (2) the block prompt says ``Fastest total wins'': add what a give-up and a command
-brought back cost; (3) log for every command whether the current-state map was in, and how long each map took;
-(4) a time-out is logged as not given up and without the 30 s; (5) the gamepad buttons are untested, which is
-why the keyboard; (6) feedback.py tests seconds per goal first and all pairs, by another form of the signed-rank
-test, and sums wrong goes: make it H1 first, the planned tests only, the exact test of power.py, and test
-goals with at least one wrong go; (7) the set index in teleop.py gets one more step after every four
-participants; (8) practice pairs under the first block's display, and one edge and one trap before each block;
-(9) run the scripted operator through the new sets and report it as scripted.
-Also find out why the scripted operator gave up all 4 reachable goals just outside the rest map under the
-current-state map without sending.}
+\todo{Before the first participant: (1) the gamepad has never been run, so the study is keyboard only; (2) nobody
+has driven the maps study by hand yet, only the scripted operator and a test with the driving stubbed out: the two
+pilot sessions come first; (3) when a probe is dropped the pool of processes is started again. On the machine the scripted runs were made
+on the next map then comes 2 to 3 s later, two tries. Not timed on the laptop the study will run on; (4) the scripted operator of the first design gave up all 4 reachable
+goals just outside the rest map under the current-state map without sending. We believe its timer ran while the
+map was still being drawn and changed that, but the new sets have no goal just outside the rest map, so it is not
+confirmed.}
 
 \todo{For the team: time as the only aim follows D28. If a command brought back should cost more than its time,
 give it a price in seconds and put it in the prompt. Not an order of aims with no price.}
@@ -615,9 +616,15 @@ first participant.}
 
 \subsection{Results}
 \todo{No participant has been run. Ethics approval and consent to settle first.} A scripted operator has been run
-through the four blocks of the first design, 28 scored goals per display, on the goals as the tool draws them now. It is a rule and not a person, and nothing here is participant
-data. It took 32.6 s per goal with the rest map, 34.7 with the map that held, 34.9 with the map from the current
-state and 22.1 with no map, and 15 of its sends were refused. % D43
+through the study as a participant gets it, four ids, 40 scored test goals per display. It is a rule and not a
+person, and nothing here is participant data. With the rest map it went on all 8 traps and was brought back on
+all 8. No other display had a command brought back. With the map that held it gave up all 16 edge goals. With
+the map from the current state it reached 14 of the 16 and gave up the 2 that map is known to stop short of.
+With no map 16 commands were refused, 8 on traps and 8 on outer goals. A test goal took 27.3 s with the rest
+map, 33.2 with the map that held, 32.6 with the map from the current state and 18.3 with no map, the 30 s of a
+give-up included. The map from the current state kept the rule waiting 9.8 to 15.3 s a goal, and one trap ran
+into the 90 s limit under it. The rule never goes on a goal its map says no to, so this is the split the goal
+sets allow and not a forecast of what people do. % D66, data/scripted
 
 \section{Limits}
 Simulation only. One arm, one bus mass, one budget. The controller comparison and the sessions are 10 starts

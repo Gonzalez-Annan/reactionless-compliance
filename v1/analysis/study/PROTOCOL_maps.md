@@ -106,3 +106,19 @@ Everything in the repo so far is scripted runs. `maps_0.csv` is the self-test id
   6. Tests: exact Wilcoxon signed-rank per participant, H1 alone at 0.05, five secondary tests under Holm. No
      Friedman test on the primary measure.
   The tool does not do 3, 5 and 6 yet. The list is in the draft.
+- 2026-10-12, later, before any participant: four conditions decided (D63). `lookup` is out of the study, the tool
+  can still draw it. The tool now does 3, 5 and 6 of the entry above (D64, D65). What got fixed while building it:
+  1. Goal sets come from `analysis/study/pairs.py`, file `data/pairs_medium.csv`: 4 sets of 10 scored pairs.
+     "Cannot be reached" means the rehearsed hand ends 4 cm or more short, "reachable" within 5 mm, "outside the map
+     that held" 4 cm or more outside it. The rehearsal starts 1 s after the lead move ends.
+  2. Scored traps lie at 0.68 to 0.72 and at 0.94 to 0.97 of the rest edge in every set, each with an edge goal at
+     its depth.
+  3. A goal still open after 90 s counts as given up: +30 s, and `timeout` is set in the log.
+  4. Log columns that are new: `use` (train, block, scored), `cls`, `pair`, `timeout`, `early`, `map_s`. Only rows
+     with `use` scored and `leg` 2 are analysed.
+  5. The map from the current state stops short of all 8 scored traps, and of 2 of the 16 scored edge goals that the
+     arm can reach (sets 0 and 1). Known before data. They stay in and count as missed goes.
+  6. Keyboard only. The gamepad has never been run.
+- 2026-10-12, scripted run on the final sets (D66), a rule and not people: ids 1 2 3 16 went through without an
+  error. Nothing in the plan changed because of it. One trap ran into the 90 s limit under the map from the current
+  state.
