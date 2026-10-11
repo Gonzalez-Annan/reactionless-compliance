@@ -251,13 +251,16 @@ fixed map, less often. % D46, data/learn_medium.npz
 
 \textbf{Made careful.} A map that promises too much is the costly kind of wrong, so we made the lookup cautious:
 per direction the shortest reach among the $k$ nearest stored states, pulled in by a factor, and no reach at all
-when the base is already over the budget. To promise 0.05~m too much on under 1\% of state and direction pairs
-left out of the fit, it has to give away close to half the reach: 5 nearest pulled in to 0.7 keeps 0.55 of the
-total reach and over-promises on 0.8\%, 10 nearest at 0.8 keeps 0.54 at 0.8\%. Against the simulated map of
-five states the same two settings never over-promise by 0.05~m and keep 0.51. So at 200 stored states the
-careful lookup is about as short as a fixed map that holds from every start, and still wrong sometimes. The
-factor was picked on the same folds it is scored on. % D53, learn.py safe
-\todo{more stored states, then compare with the fixed map on the same states}
+when the base is already over the budget. We scored it against one fixed map given the same allowance: per
+direction a low percentile of the stored reaches. 1000 states, one or two moves from rest, 600 stored, 200 to pick
+the settings on (the furthest-reaching setting that promises 0.05~m too much on under 1\% of state and direction
+pairs), 200 to score. On the 200 it never saw, the lookup (10 nearest, pulled in to 0.9) keeps 0.69 of the total
+reach and over-promises on 1.5\% of pairs. The fixed map (2nd percentile) keeps 0.29 and over-promises on 1.3\%.
+So the lookup shows more than twice the reach at about the same risk, and neither kept the 1\% it was picked
+for. A fixed map that holds from every stored state has no reach left, because some states are already at the
+budget. With 200 stored states instead of 1000 the lookup kept 0.55. The reaches are the fast estimate, not
+the full simulation, which we have for five states only. % D53, D54, learn.py safe
+\todo{simulate 30 states in full and score against those}
 
 \subsection{No map}
 Draw nothing. Rehearse every command and refuse the ones that would break the budget. This is never wrong and

@@ -562,3 +562,19 @@ Not clean: the factor was picked on the folds it is scored on. Only 5 states hav
 Also fixed the draft: abstract and contribution 1 now say five controllers (D52).
 Next that would settle it: 1000 states (about 2.7 h of machine time), then the fixed map and the lookup scored
 on the same left-out states.
+
+## D54 Looked-up map against a fixed map, same states, same allowance. D53's lean was wrong (2026-10-11)
+D53 said the careful lookup was no better than a fixed map. That compared it with D41's 0.67, which came from
+one-move starts only. Scored on the same states it is the other way round.
+800 more states (`learn.py gen more`, data/learn2_medium.npz), 1000 in all, half one move from rest, half two.
+Fixed map with the same allowance = per line a low percentile of the stored reaches. `learn.py safe`.
+5 folds, 1000 states, over by 0.05 m / reach kept:
+- looked up: 10 nearest 1.0%, 0.77. 10 nearest x 0.9: 0.6%, 0.69. 5 nearest x 0.8: 0.7%, 0.68.
+- fixed: 2nd percentile 0.6%, 0.25. 5th 1.6%, 0.38. Shortest over every state: 0.00 (some states sit at the budget).
+- 200 -> 1000 states moved the lookup from 0.55 to about 0.69 at the same over-promise.
+Clean score (600 stored, settings picked on 200 for under 1%, scored on 200 never used):
+- looked up (10 nearest x 0.9): over by 0.05 on 1.5%, keeps 0.69.
+- fixed (2nd percentile): 1.3%, keeps 0.29.
+So: the lookup shows more than twice the reach of a fixed map at about the same risk. Neither held the 1% it
+was picked for on new states. Both numbers stand on livemap.fast labels, only 5 states have a simulated map.
+Next: simulate about 30 states in full and score against those. Then it can go into the study as a condition.
