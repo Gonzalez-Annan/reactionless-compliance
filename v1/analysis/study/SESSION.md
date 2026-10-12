@@ -232,7 +232,9 @@ to be changed after the first participant. What it prints goes into the paper as
 ## Not in the sessions
 
 The band display (D70, `python src\teleop.py --show band`) is built and scored but it is not one of the four
-conditions. Putting it in is a change of design and has to be decided and logged before participant 1.
+conditions. It shows two looked-up edges at once and moves the inner one out when the probed cage is in, 11 to
+20 s after the hand stops. Putting it in is a change of design and has to be decided and logged before
+participant 1.
 
 ## Key card
 

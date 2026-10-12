@@ -16,7 +16,7 @@ a person drive the arm with the fewest wrong goes.
 python analysis/envelope/static.py
 ```
 
-About 3 minutes, 10 processes. It exits with code 1, that is the result and not a crash.
+4 to 5 minutes, 10 processes. It exits with code 1, that is the result and not a crash.
 
 The cage drawn at rest is loaded and never redrawn. 140 goals are fixed in the world: 80 inside the cage or on
 its edge, 60 just outside. Every goal is rehearsed from rest and again after one 0.3 m move of the hand. If the
@@ -44,16 +44,34 @@ Five ways to show the workspace are built. `python src/teleop.py --show NAME` op
 | `guaranteed` | the small cage that held from every start one move out | no | yes, most of the edge is given up | reach |
 | `live` | the cage probed from where the arm is now | no | almost none | 11 to 20 s wait, the old cage is shown meanwhile |
 | `gate` | no cage, every command is rehearsed and refused if it would fail | no | no | no picture to plan with |
-| `band` | two looked-up edges and the rehearsal on every go (D70) | no | 0.4% of lines by 5 cm | a third of the reach is "not known" until you send |
+| `band` | two looked-up edges, the inner one moved out to the probed cage when that is in, and the rehearsal on every go (D70) | no | 0.4% of lines by 5 cm | part of the reach is "not known" until you send or the probe is in |
 
 `band` is the new one. One edge can not close both gaps: pull it in and it hides goals the arm can reach, let
 it out and it shows goals it can not. So it draws two. Inside the inner edge a go is expected to work. Past the
 outer edge nothing was reachable. Between them the picture says it does not know, and the rehearsal answers.
-Both edges are there at once, there is nothing to wait for.
+Both edges are there the moment the hand stops, there is nothing to wait for.
 
-`python analysis/envelope/learn.py safe` scores both edges against the full simulation on 199 states it was not
-built from: the reach is past the outer edge by 5 cm on 0.4% of the lines, the inner edge is 5 cm too far on
-1.4%, and the band is 0.29 m wide on a 0.40 m reach.
+The cage is also probed from where the hand stopped, as for `live`. When that is in, 11 to 20 s later, the inner
+edge moves out to it and the marker on the hand turns green. So the green starts small and grows. The outer edge
+stays looked up: pulled in to the probed cage it hid goals the arm can reach.
+
+`python analysis/envelope/learn.py safe` scores both looked-up edges against the full simulation on 199 states
+it was not built from: the reach is past the outer edge by 5 cm on 0.4% of the lines, the inner edge is 5 cm too
+far on 1.4%, and the band is 0.29 m wide on a 0.40 m reach.
+
+`static.py` also prints what the band shows on its 700 checks after a move, 409 on goals the arm can reach and
+291 on goals it can not:
+
+| | green | "not known" | out of reach |
+|---|---|---|---|
+| can be reached, as looked up | 90 | 319 | 0 |
+| can not be reached, as looked up | 2 | 255 | 34 |
+| can be reached, probed cage in | 325 | 84 | 0 |
+| can not be reached, probed cage in | 6 | 251 | 34 |
+
+It never shows a goal the arm can reach as out of reach. A wrong green costs one refused command. As looked up,
+82% of these checks near the edge are "not known". With the probed cage in, 79% of the goals the arm can reach
+are green.
 
 A scripted rule on the 40 scored goals of the study. This is a rule, not people:
 
@@ -63,12 +81,17 @@ A scripted rule on the 40 scored goals of the study. This is a rule, not people:
 | cage that held | 8 | 0 | 16 | 0 | 32 | 31.1 |
 | cage from now | 22 | 0 | 2 | 0 | 18 | 30.3 |
 | no cage | 24 | 0 | 0 | 16 | 16 | 18.7 |
-| band | 24 | 0 | 0 | 11 | 16 | 18.7 |
+| band | 24 | 0 | 0 | 11 | 16 | 19.3 |
 
 24 of the 40 goals can be reached. Under the band the rule reached all 24 and never sent a command that had to
 be brought back. 10 goals were inside the inner edge and all 10 went. 5 were past the outer edge and were given
 up without a send. The other 25 were in the band: 14 went, 11 were refused. So the picture alone answered 15 of
-40 and the rehearsal answered the rest. Against no cage that is 5 refusals less and the same time.
+40 and the rehearsal answered the rest.
+
+Against no cage that is 5 refusals fewer and 0.6 s a goal slower. The rule sends as soon as the dot is on the
+ball, so 34 of its 35 sends were made before the probed cage was in. The probing still runs in the background
+and slows the rehearsal, 0.3 s to 0.5 s on a 0.2 m move. For somebody who does not wait for green the probe is
+a price and not a help (D70).
 
 Whether any of this holds for people is not known. That is the study.
 
@@ -136,7 +159,7 @@ python analysis/sizing.py            # ~5 min, fig6: reach and wheel momentum ag
 | `src/task.py` | reference path, scripted operator, trial runner, metrics |
 | `src/safety.py` | effective mass and v_max map |
 | `src/teleop.py` | the tool: set a goal dot in 3-D and send it, the cage, the displays, the study sessions |
-| `src/livemap.py` | the cage from where the arm is now: probed (`live`) and looked up (`lookup`, `band`) |
+| `src/livemap.py` | the cage from where the arm is now: probed (`live`), looked up (`lookup`), and both (`band`) |
 | `src/view.py` | drawing, and replay of scripted trials in the MuJoCo viewer |
 | `analysis/envelope/` | every measurement of the cage. `static.py` is the test above, `learn.py` builds and scores the looked-up edges |
 | `analysis/study/` | the study: run sheet, protocol, goal sets, power, scripted rule, analysis |

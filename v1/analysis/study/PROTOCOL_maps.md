@@ -148,3 +148,7 @@ Everything in the repo so far is scripted runs. `maps_0.csv` is the self-test id
   the cage on screen at the last send. No test uses it. `analysis/envelope/static.py` now counts both ways the
   cage from rest is wrong and prints what the band shows for the same goals. The four conditions, the hypotheses
   and the analysis are not changed.
+- 2026-10-13, the band also probes (D70, commit `f19dc4b`): the cage is probed from where the hand stopped and the
+  band's inner edge moves out to it when it is in. The outer edge stays looked up. For the band the columns
+  `early` and `map_s` are now filled: sends made before the probe was in, and how long the probe took. Nothing
+  changes for the four conditions, the hypotheses or the analysis.

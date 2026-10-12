@@ -1125,3 +1125,234 @@ Open:
   watch for it in the two pilots.
 - The tool tells the participant that a fresh cage takes about 12 s. The last two runs gave 10.9 to 19.6 s on our
   laptop. Not changed here. That line gets set on the laptop the study runs on.
+
+## D70 The cage is not static: both gaps counted, and the band (2026-10-13)
+
+The objection in the team: the cage is a fixed picture, the controller keeps the base level, so a workspace drawn
+once is enough. Tested here. It is not enough.
+
+Our statement: on a floating base, where the hand can safely go next depends on what the arm has already done. A
+workspace drawn once is right for the first move only. After that it is wrong near its edge.
+
+What is right in the objection, and we say so:
+
+- Most answers do not change. A goal deep inside the cage is still a go after a move. The error is near the edge.
+- With thrusters holding the base the cage would be static. But then nothing is reactionless, and that is the
+  project.
+- Switching the picture from "from start pose" to "from the arm now" does not change the robot. It changes which
+  question the picture answers. Where the two greens differ, the fixed one is wrong.
+
+The test: `python analysis/envelope/static.py`. Exits 1 by design, 4 to 5 min, not part of `reproduce.py`. The
+cage is the saved rest map and is never redrawn. 20 random directions, 80 goals at 0.6, 0.8, 0.9 and 1.0 of the
+way to the cage edge and 60 more at 1.05, 1.1 and 1.2. Each goal is rehearsed from rest and again after one 0.3 m
+move, with the base tilt that move leaves.
+
+From rest 80 of 80 inside goals go and 54 of 60 outside goals are refused. After one move the same cage is wrong
+two ways:
+
+- A wrong go: the cage says go, the arm can not. 36 of 400 checks. By depth 1 at 0.6, 5 at 0.8, 6 at 0.9, 24 at
+  1.0. Stopped by tilt 24 times, the bus 2, time 10. The deepest one is 19.2 cm inside the edge.
+- A wrong no: the cage says no, the arm can. 30 of 270 checks. 21 at 1.05, 9 at 1.1, none at 1.2. The furthest
+  one is 6.9 cm outside the edge.
+
+| move, m | tilt left, deg | wrong go, of 80 | at 0.6, 0.8, 0.9, 1.0 | stopped by | wrong no, of 54 | at 1.05, 1.1, 1.2 |
+|---|---|---|---|---|---|---|
+| (0, 0, 0.3) | 0.00 | 11 | 0, 0, 0, 11 | tilt 8, time 3 | 0 | 0, 0, 0 |
+| (0, 0, -0.3) | 0.20 | 2 | 0, 0, 0, 2 | time 2 | 18 | 10, 8, 0 |
+| (-0.3, 0, 0) | 0.68 | 6 | 0, 1, 1, 4 | time 3, tilt 3 | 3 | 3, 0, 0 |
+| (0.3, 0, 0) | 0.81 | 4 | 0, 0, 1, 3 | tilt 2, time 2 | 2 | 2, 0, 0 |
+| (0, 0.3, 0) | 0.76 | 13 | 1, 4, 4, 4 | tilt 11, bus 2 | 7 | 6, 1, 0 |
+
+The first row: the move leaves no tilt at all and 11 goals still flip. It is where the arm is, not only the tilt.
+
+The same two gaps are in the sweeps we already had. Read only, nothing new simulated:
+
+- `data/wide98_medium.npz`, 98 lines from 40 starts one move out. The edge from the start, as a fraction of the
+  rest cage on that line: nearer than 0.98 on 26.4% of the pairs (a wrong go), further than 1.02 on 17.5% (a wrong
+  no). At 5%: 14.1% and 7.9%. At 10%: 9.9% and 1.6%. Smallest 0.24, largest 1.14. 22 of the 40 starts have a line
+  past 1.05.
+- `data/wide_medium.npz` with `data/guar_medium.npz`, 20 lines from 40 starts: nearer by more than 0.02 of the cage
+  on 25.5%, further on 20.2%. At 0.05: 10.8% and 9.6%. At 0.10: 7.9% and 2.1%.
+- Weak spots: the edge on a line was found by bisection, which takes it that the answer flips once along the line.
+  The starts are one move out, 0.3 to 0.8 of the way to the edge.
+
+What each display does about the two gaps:
+
+| display | wrong go | wrong no | price |
+|---|---|---|---|
+| cage from rest | yes | yes | none, it is just wrong near the edge |
+| cage that held | no | yes, most of the edge | reach |
+| cage from now | no | almost none | 11 to 20 s wait |
+| no cage | no | no | nothing to plan with, every answer costs a send |
+| band | no | 0.4% of lines by 5 cm | part of the reach is "not known" until you send or the probe is in |
+
+The study's goals already catch both gaps, so the hypotheses stay as they are:
+
+- A trap (2 a block) is inside the rest cage and out of reach after the lead move. It catches a wrong go. That is
+  H1, cage from rest against cage from now, and it depends on people.
+- An edge goal (4 a block) can be reached and is 4 cm or more outside the cage that held. It catches a wrong no.
+  Under the cage that held that is by construction, so it is not a hypothesis. Its price shows in the reached
+  count and in seconds per goal.
+- Inner and outer goals (2 and 2 a block) are checks.
+
+The band (`livemap.band`, `python src/teleop.py --show band`). One edge can not close both gaps: pull it in and it
+hides goals the arm can reach, let it out and it shows goals it can not. So two edges, both looked up from the 10
+stored states nearest to the arm now, the same neighbours as `lookup` (D54):
+
+- inner edge: 0.9 times the shortest stored reach on the line. Inside it a go is expected to work.
+- outer edge: 1.1 times the longest. Past it nothing was reachable in any of the 10, and the dot stops there.
+- between them the picture says it does not know. The rehearsal answers, as on every send.
+
+This is D35 (the cage is a guide, the rehearsal is the gate) with a guide that says where it is unsure, and D25's
+fence of 0.9 and 1.1 taken from the rest pose to wherever the arm is. At rest the band is closed on the measured
+rest cage. It opens after the first move. A wrong go is zero by construction, a wrong inner edge costs one refused
+command. A refused goal turns the dot red and the blue ball shows how far the hand would have got. The log has a
+new column `zone`: 0 if the dot was inside the inner edge at the last send, 1 if it was in the band.
+
+Scored by `python analysis/envelope/learn.py safe` against the full simulation, on 199 states the stored set was
+not built from:
+
+- the arm reaches past the outer edge by 5 cm on 0.4% of the lines, at all on 2.0%
+- the inner edge is 5 cm too far on 1.4%
+- the outer edge sits at 1.36 of the real reach, the band is 0.285 m wide on a 0.40 m reach
+- of the real reach 0.67 is inside the inner edge and 0.33 is in the band
+
+Settings next to it, same 199 states, full simulation:
+
+| k | push | reach past the outer edge by 5 cm, % | by 10 cm, % | at all, % | outer edge / reach | band, m |
+|---|---|---|---|---|---|---|
+| 3 | 1.0 | 6.5 | 1.6 | 28.5 | 1.10 | 0.176 |
+| 3 | 1.1 | 1.9 | 0.5 | 10.7 | 1.21 | 0.222 |
+| 3 | 1.2 | 0.7 | 0.2 | 4.2 | 1.32 | 0.268 |
+| 5 | 1.0 | 3.5 | 1.0 | 17.4 | 1.16 | 0.200 |
+| 5 | 1.1 | 1.0 | 0.3 | 5.5 | 1.27 | 0.248 |
+| 10 | 1.0 | 1.7 | 0.5 | 7.9 | 1.24 | 0.234 |
+| 10 | 1.0 plus 0.05 m | 0.5 | 0.1 | 1.7 | 1.36 | 0.284 |
+| 10 | 1.1, as built | 0.4 | 0.1 | 2.0 | 1.36 | 0.285 |
+| 10 | 1.2 | 0.2 | 0.1 | 0.4 | 1.48 | 0.337 |
+| 20 | 1.0 | 0.7 | 0.2 | 3.3 | 1.33 | 0.272 |
+| 20 | 1.1 | 0.1 | 0.1 | 0.6 | 1.46 | 0.327 |
+
+What is weak about these numbers:
+
+- The setting was picked after looking at 48 settings on the same 199 states. It is not a held-out score.
+- The stored reaches are `fast()` estimates. Against the full simulation they are short by more than 5 cm on 5.9%
+  of the lines and over on 1.2%.
+- The band is wide. A hand more than two moves out has no near stored neighbour. The rehearsal stays the authority.
+
+The band on the gap test, same goals and same moves, printed by `static.py`:
+
+| | inside the inner edge | in the band | past the outer edge |
+|---|---|---|---|
+| can be reached (409), as looked up | 90 | 319 | 0 |
+| can not be reached (291), as looked up | 2 | 255 | 34 |
+| can be reached (409), probed cage in | 325 | 84 | 0 |
+| can not be reached (291), probed cage in | 6 | 251 | 34 |
+
+As looked up it is never wrong on a no (0 of 409) and wrong on a go twice in 291, each a refused command. None of
+the 36 wrong goes of the rest cage is shown green (32 in the band, 4 past the outer edge) and none of the 30 wrong
+noes is shown out of reach (all 30 in the band). But 82% of the 700 checks are in the band. Near the edge the
+looked-up picture is honest and says little.
+
+So the band also asks for the probed cage from where the hand stopped, the one "cage from now" waits for. When it
+is in, the inner edge moves out to it (`livemap.sharpen`). Green goes from 90 to 325 of the 409 goals the arm can
+reach, 22% to 79%. Wrong greens go from 2 to 6 of 291, each still only a refusal. Wrong noes stay 0. Why 6 was not
+looked into. The probed cage is 98 lines and the goals sit between them.
+
+The outer edge is not pulled in. Tried on the same checks, with the outer edge at a multiple of the probed cage and
+never past the looked-up one:
+
+| outer edge at | goals the arm can reach past it, of 409 | goals it can not reach past it, of 291 |
+|---|---|---|
+| 1.00 of the probed cage | 84 | 285 |
+| 1.05 | 28 | 269 |
+| 1.10 | 10 | 211 |
+| 1.20 | 4 | 119 |
+| 1.30 | 3 | 80 |
+| looked up, as built | 0 | 34 |
+
+Every multiple brings wrong noes back, 3 still at 1.30. A wrong no is the gap the band is there to close, so the
+outer edge stays where it was looked up. Where the probe got further than that on a line, it goes out to the probe.
+
+As built, commit `f19dc4b`:
+
+- `livemap.sharpen(B, tips, c)`, one function. In `src/teleop.py` the band uses the same pool and the same
+  `livemap.ask` as the cage from now.
+- The marker on the hand is yellow while the probe is out and green when it is in. Top left says "looked up", then
+  "probed".
+- Nobody has to wait. Both edges are on screen the moment the hand stops. The green just grows later.
+- `early` counts the band's sends made before the probe was in. `map_s` is how long the probe took.
+- A probe still running when the hand stops somewhere new, or at a reset, is thrown away and the pool is started
+  again. So a probe that comes in always belongs to the edges on screen.
+- `tests/test_maps.py::test_band`: the pool and the probe are stand-ins made with `create_autospec`. Before the
+  probe is in, a trap is sent from the band and refused. With a probe that is wrong by metres the trap turns
+  green, is sent, and is still refused. The arm does not move either time.
+- One run with the real pool and no window, a trap pair and an edge pair of the study, the go held until the
+  marker was green: the probe was in after 12.5 s both times. Mean inner edge 0.33 m looked up and 0.45 m probed,
+  0.34 and 0.48 on the second pair. Mean outer edge 0.55 m before and after, 0.60 and 0.61 on the second pair. The
+  trap stayed in the band, was sent and refused. The edge goal was green and reached.
+
+The scripted rule under the band, id 1, the 40 scored goals, commit `f19dc4b` (`python analysis/study/prestudy.py
+band`, saved to `data/scripted_band/maps_1.csv`). A rule, not people. Next to D69's table:
+
+| display | reached | wrong go | missed | refused | gave up | s per goal |
+|---|---|---|---|---|---|---|
+| no cage (D69) | 24 | 0 | 0 | 16 | 16 | 18.7 |
+| band, looked up only (`f989119`) | 24 | 0 | 0 | 11 | 16 | 18.7 |
+| band with the probe (`f19dc4b`) | 24 | 0 | 0 | 11 | 16 | 19.3 |
+
+- The two band runs are the same goal by goal on reached, refused, zone and number of sends, all 40.
+- Where the dot was at the send: 10 goals inside the inner edge and all 10 went (6 edge, 4 inner). 5 past the
+  outer edge, given up with no send (4 outer, 1 trap). 25 in the band: 14 went (10 edge, 4 inner) and 11 were
+  refused (7 traps, 4 outer). So the picture alone answered 15 of 40 and the rehearsal answered the rest.
+- The probe did nothing for this rule. 34 of its 35 sends were made before the probe was in. The rule sends when
+  the dot is on the ball, it does not look at the marker. The probe came in on 4 goals only, all outer, after
+  13.1 to 15.5 s. One of the four was sent after that. It was still in the band and it was refused.
+- And the probe cost time: 0.6 s a goal against the run without it. All of it is on the 35 goals with a send,
+  0.68 s each, 0.17 to 1.36 s. The 5 goals with no send took the same time to the hundredth. The reason: the
+  rehearsal is timed on the wall clock and counted into the goal's time, and it runs slower while 10 processes
+  probe. Timed alone, the rehearsal of a 0.2 m move takes 0.3 s with nothing else running and 0.5 s while a
+  probe runs.
+- Against no cage that is 5 refusals fewer and 0.6 s a goal slower. For somebody who sends without waiting, the
+  probe is a price and not a help. It can only pay for somebody who waits for green. Nothing here measures that.
+- The run took 11.2 min on the wall clock against 4.6 min. Same reason.
+
+The restart of the pool, timed three times with a probe running: 0.03 s to stop the old pool and 0.19 to 0.21 s
+for the new one. So the window stands still for about 0.2 s when the hand stops somewhere new while a probe is
+still out. A probe on a pool just started takes 15.1 s, on a warm pool 12.7 s. Left as it is. Without the
+restart the old probe has to finish first, and that is up to 12.7 s more to wait. These are this laptop's
+numbers, 12 CPUs and 10 processes.
+
+What this does not show:
+
+- Whether any picture helps a person. Nothing here has people in it. That is the study.
+- What the growing green is worth. The scripted rule sends as soon as the dot is on the ball, it does not look at
+  yellow or green. A rule that only trusts green was not built.
+- The study hands the goals to the participant. With given goals the rehearsal alone is the fastest and a picture
+  can only tie or lose on time. What a picture is for needs a task where the person chooses where to go.
+
+Fixed on the way:
+
+- `prestudy.py band` wrote to `data/scripted/band`. The tool looks for its goal files one level above its output
+  folder, so the run died. Now `data/scripted_band`. Commit `f989119`.
+- The run sheet said the id plus 40 gets the same goals. It gets the same order of displays and the same goal set
+  under each display, but another order of the goals inside a block. Corrected in `analysis/study/SESSION.md`.
+
+The run sheet is `analysis/study/SESSION.md`: setup, the two pilots, the session word for word, what to do when
+something goes wrong, the cards and the log sheet. Written by P2. The team confirms these before participant 1:
+
+- a stopped session is not analysed, its file goes to `data/stopped`, the next new person gets the id plus 40
+- nobody is dropped for doing badly
+- the briefing, read out in the same words to everyone
+- the closing questions
+
+Open:
+
+- Does the band join the study? It is a fifth display and, like `lookup`, not in `T.MAPS`. Block order, goal sets
+  and power are made for four. Decide and log it before participant 1, or leave it out.
+- The band's picture now depends on the clock, on when the probe comes in. Two runs of one session can differ.
+- The probing slows the rehearsal, 0.3 s to 0.5 s on a 0.2 m move, and that time is the participant's. Fewer
+  probing processes would make the rehearsal faster and the probe later. Not tried. It only matters if the band
+  joins the study, and then it has to be settled on the study laptop.
+- No session has been driven by hand yet and the gamepad path has never run.
+- Ethics, consent form, recruitment.
