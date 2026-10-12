@@ -136,3 +136,15 @@ Everything in the repo so far is scripted runs. `maps_0.csv` is the self-test id
   tool. Its own steering shook the dot on the fence, so its stuck test never fired. The rule now gives a goal up
   when the dot has not come closer for 2 s. The run was done again on ids 1 2 3 4, a rule and not people: the same
   counts, and no goal runs into the 90 s limit. The tool and the plan are not changed.
+- 2026-10-13, run sheet and the band display (D70): `SESSION.md` is the sheet for whoever runs a session. It says
+  four things the plan did not say, and the team has to confirm them before participant 1. One, a session that
+  stops in the middle is not analysed. The file goes to `data/stopped/` and the next new person gets the id plus
+  40. That id has the same order of displays and the same goal set under each display, since both repeat every
+  8 ids. Only the order of the goals inside a block differs. Two, nobody is dropped for doing badly. Three, the
+  briefing is read out word for word. Four, three questions are asked at the close. The answers are notes, not
+  measures, and no test is run on them. Also new: the tool can show a fifth display, `band`, two looked-up edges
+  with every go rehearsed. It is not one of the four conditions. A scripted run of it on the 40 scored goals of
+  id 1, a rule and not people, is in `data/scripted_band`. The log has a new column `zone`, where the dot was on
+  the cage on screen at the last send. No test uses it. `analysis/envelope/static.py` now counts both ways the
+  cage from rest is wrong and prints what the band shows for the same goals. The four conditions, the hypotheses
+  and the analysis are not changed.
