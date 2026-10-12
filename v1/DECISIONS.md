@@ -1074,3 +1074,54 @@ Against D66:
 
 On the wall clock the four scripted sessions took 7.1, 8.7, 7.4 and 7.7 min (`clock_s`). That says nothing about
 people.
+
+## D69 The scripted rule gives a goal up when the dot stops getting closer (2026-10-12)
+
+The time-out of D66 and D68 is found. It was the rule, not the tool. `teleop.py` is not changed.
+
+Cause, measured on a replay of trap pair 155 under the current-state map:
+
+- The rule's stuck test waited for the dot to stand still. At the fence the rule's own steering shakes the dot
+  between 15.0 and 17.5 mm from the ball. So it never stood still, and the goal ran into the 90 s limit.
+- While a new cage is drawn the dot is not fenced and gets to the ball. The new cage then pulls it back. So
+  "closer than before" has to be counted from when the cage is in.
+
+Fix, in `axes()` of `analysis/study/prestudy.py`: before a go, no closer for 2 s means give up (`STUCK`, 200
+steps), counted from when the cage is in. After a go the rule gives up on a red dot or after 40 s (`AFTER_GO`).
+`tests/test_rule.py` checks a shaking dot, a dot pulled back by a new cage and a dot that is still closing.
+Commit `4ac74a8`.
+
+The scripted run again with the fixed rule, ids 1 2 3 4. Still a rule and not people. Files:
+`data/scripted/maps_{1,2,3,4}.csv`, 416 rows, 160 scored test goals, 40 per display. The four files of D68 are in
+git at `59de19d`.
+
+| display | reached | wrong go | missed | refused | gave up | s per goal |
+|---|---|---|---|---|---|---|
+| rest map | 24 | 8, all on traps | 0 | 0 | 16 | 26.8 |
+| map that held | 8 | 0 | 16 | 0 | 32 | 31.1 |
+| current-state map | 22 | 0 | 2 | 0 | 18 | 30.3 |
+| no map | 24 | 0 | 0 | 16 | 16 | 18.7 |
+
+Against D68:
+
+- Every count is the same. So are the two missed edge goals under the current-state map (pairs 67 and 268), the
+  refused goes (8 on traps, 8 on outer goals), the classes when the goal opened (64 of 64 edge, 32 of 32 inner,
+  0 of 32 outer, 0 of 32 traps) and the worst tilt (2.02 deg on a test goal, 2.04 over all rows).
+- No goal runs into the 90 s limit (D68: 1). Pair 155 under the current-state map is given up after 46.4 s, cage
+  in 15.1 s. The longest scored goal is 73.6 s, under the rest map.
+- The times per goal moved, because the rule gives up on a different test now. They are not one to one with D68.
+- The wait for a cage was 13.9 to 19.6 s, median 16.1, on 52 goals (D68: 10.9 to 17.7, median 13.7). It runs on
+  the wall clock. We believe the laptop was busier in this run, that is not measured. No send was made on an old
+  cage.
+- A scored pair without the 30 s: median 11.4 simulated s, 4.4 to 47.9 (D68: 11.7). By display, median: no map
+  9.5, map that held 8.8, rest map 10.6, current-state map 21.0 (D68: 9.0, 10.4, 10.8, 20.9).
+
+On the wall clock the four scripted sessions took 9.2, 10.8, 9.6 and 8.9 min (`clock_s`). That says nothing about
+people.
+
+Open:
+
+- We believe a person holding the keys does not shake the dot the way the rule's steering does. Not tested, so
+  watch for it in the two pilots.
+- The tool tells the participant that a fresh cage takes about 12 s. The last two runs gave 10.9 to 19.6 s on our
+  laptop. Not changed here. That line gets set on the laptop the study runs on.

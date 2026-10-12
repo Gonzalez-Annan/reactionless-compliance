@@ -97,7 +97,7 @@ ROWS = [
     dict(name="goal sets of the maps study", run=["analysis/study/pairs.py"], rm=[], writes="data/pairs_medium.csv", rt="2 s on the stored rehearsals [m]",
          rec="D64", backs="2080 pairs: 79 traps, 55 hold with the lead move 2 cm off; 52 picked, scored traps at 0.68 to 0.72 and 0.94 to 0.97 of the rest edge",
          why="rewrites data/pairs_medium.csv, the goal sets of the study; rehearsing from nothing starts Pool(10)"),
-    dict(name="scripted pre-study", run=["analysis/study/prestudy.py"], rm=[], writes="data/scripted/maps_{1,2,3,4}.csv", rt="about 30 min, 7 min an id; uses the live-map Pool [m]",
+    dict(name="scripted pre-study", run=["analysis/study/prestudy.py"], rm=[], writes="data/scripted/maps_{1,2,3,4}.csv", rt="30 to 40 min, 7 to 11 min an id; uses the live-map Pool [m]",
          rec="D68, D66", backs="40 test goals per display (rest / held / current / none): wrong goes 8 / 0 / 0 / 0, given up 16 / 32 / 18 / 16, missed 0 / 16 / 2 / 0. A fixed rule plays the operator, NOT people",
          why="no script re-scores data/scripted; feedback.py reads only data/participants, which is empty"),
     dict(name="looked-up map, 200 states", run=[E + "learn.py", "gen"], rm=[], writes="data/learn_medium.npz", rt="about 40 min, 10 processes [d]",

@@ -132,3 +132,7 @@ Everything in the repo so far is scripted runs. `maps_0.csv` is the self-test id
   block orders no rule gets both exact at 20. The scripted run was done again on ids 1 2 3 4, a rule and not
   people: the same counts as in D66, and the same trap ran into the 90 s limit under the map from the current
   state. Nothing in the plan changed because of it.
+- 2026-10-12, scripted rule fixed (D69): the time-out of the two scripted runs above was the rule and not the
+  tool. Its own steering shook the dot on the fence, so its stuck test never fired. The rule now gives a goal up
+  when the dot has not come closer for 2 s. The run was done again on ids 1 2 3 4, a rule and not people: the same
+  counts, and no goal runs into the 90 s limit. The tool and the plan are not changed.
