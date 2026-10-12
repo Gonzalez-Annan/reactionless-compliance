@@ -7,7 +7,7 @@ It runs teleop.maps_study as a participant would get it: training, then four blo
 The runs of the first design (15 goals a block, 7 scored, D43) are in data/scripted/first_design and are not read here.
 
 The rule: steer the dot to the ball. Go once when the dot is on it (live map: only when the map is current).
-Give the goal up when the dot has been stuck short of the ball for 2 s (the cage holds it), when the go was
+Give the goal up when the dot has got no closer to the ball for 2 s (the cage holds it), when the go was
 refused (red dot), or when the ball is still there 40 s after a go (the fence brought the arm back).
 A person would plan, hesitate and learn. The rule does none of that, so the times are a floor, not a forecast."""
 import sys; sys.path.insert(0, "src")
@@ -26,7 +26,6 @@ def operator():
         n[0] += 1
         if s.get("text") == "updating":      # the live map costs wall time, so the simulation waits for the clock here
             sync[0] = sync[0] or (time.time(), d.time)
-            last[1] = n[0]                   # stuck is counted from when the cage is in: the dot may be free to move in the new one
             time.sleep(max(0, (d.time - sync[0][1]) - (time.time() - sync[0][0])))
         else:
             sync[0] = None
@@ -39,9 +38,11 @@ def operator():
         if "tgt" not in s or "link" not in s:
             return 0, 0, 0, 0, 0, False, False, False
         if s["tgt"] is not at[0]:
-            at[:] = [s["tgt"], n[0], None]
+            at[:], last[:] = [s["tgt"], n[0], None], [np.inf, n[0]]
         e = err()
-        if abs(np.linalg.norm(e) - last[0]) > 1e-6:
+        if s.get("text") == "updating":                  # no fence yet, the dot gets to the ball and the new cage pulls it back. Stuck is counted from then
+            last[:] = [np.inf, n[0]]
+        elif np.linalg.norm(e) < last[0] - 1e-6:         # closer than it has been. On a fence this steering can shake the dot and get nowhere (pair 155)
             last[:] = [np.linalg.norm(e), n[0]]
         az, el = np.radians(90.0), np.radians(-45.0)     # the inverse of T.move at the stub camera
         fwd = np.array([np.cos(el) * np.cos(az), np.cos(el) * np.sin(az), np.sin(el)])
