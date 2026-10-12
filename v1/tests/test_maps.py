@@ -4,6 +4,7 @@ gate: a near goal is sent and reached, a far one is refused by the rehearsal and
 guaranteed: the dot cannot leave the small cage, so a goal outside it is given up without a send.
 live: after the first move the cage is probed again from where the hand stopped and swapped in.
 lookup: the same swap with the cage looked up from the stored states, and the lookup itself against learn.py safe.
+band: two looked-up edges and the rehearsal on every go. A trap is refused, a goal past the outer edge is never sent.
 Run from the repo root."""
 import sys; sys.path.insert(0, "src")
 import types, numpy as np, teleop as T
@@ -17,6 +18,8 @@ def drive(aid, G, steps=30000):
         n[0] += 1
         if not seen or s["rays"] is not seen[-1]:
             seen.append(s["rays"])                      # every cage the operator was shown
+        if s.get("far") is not None:
+            s["refusal"] = (list(s["rgba"]), s["far"])  # band: the dot and the far ball as shown on a refused go
         return n[0] < steps
 
     def axes():                                         # sx, sy, dz, cx, cy, go, snap, fine
@@ -126,3 +129,38 @@ def test_lookup(monkeypatch):
     assert a["reached"] and swapped, "the cage is looked up once the hand has stopped away from rest"
     assert b["parked"] and b["sends"] == 0, "the dot stops at the looked-up cage, so nothing is sent"
     assert "hand" not in s, "nothing to wait for: no hand ball"
+
+
+def test_band(monkeypatch):
+    """The band (D70): two edges from the same ten stored states. The inner one is lookup's, the outer one is never
+    inside it, and with the base over budget there is no reach on either. In the tool every go is rehearsed:
+    a trap (inside the rest cage, no longer reachable after the lead move) is sent from the band, refused, shown red
+    with the far ball, and does not move the arm. A goal past the outer edge is held there and never sent."""
+    global home
+    import livemap
+    sys.path.insert(0, "analysis/envelope"); import learn
+    for legs in ((), ([0.15, 0.1, 0.1],)):
+        m, d, sid, Rb0 = learn.state(legs); p = d.site_xpos[sid].copy()
+        B = np.array(livemap.band(m, d, sid, Rb0)); lo, hi = (np.linalg.norm(B[:, i] - p, axis=1) for i in (0, 2))
+        assert B.shape == (98, 3, 3) and np.allclose(B[:, 0], livemap.lookup(m, d, sid, Rb0), atol=1e-12) and (B[:, 1] == B[:, 2]).all()
+        assert (hi >= lo).all() and (hi > lo + 0.01).any(), "the outer edge is never inside the inner one"
+        print("band", len(legs), "move(s): inner edge %.2f m, outer edge %.2f m (means)" % (lo.mean(), hi.mean()))
+    d.qpos[3:7] = (Rb0 * T.Rot.from_rotvec([np.radians(T.BASE_MAX + 0.01), 0, 0])).as_quat()[[3, 0, 1, 2]]
+    assert (np.array(livemap.band(m, d, sid, Rb0)) == d.site_xpos[sid]).all(), "base over budget: no reach on either edge"
+
+    _, goals, dep, _, truth = T.pool("medium")
+    G, D, TR = goals.reshape(-1, 3), dep.ravel(), truth.ravel()
+    m, d, sid, _ = T.setup("medium"); home = d.site_xpos[sid].copy()
+    monkeypatch.setattr(T.multiprocessing, "Pool", None)            # the band needs no pool
+    import pandas as pd
+    t = pd.read_csv(T.OUT.parent / "pairs_medium.csv").query("cls == 'trap'").iloc[0]   # a study trap: inside the rest cage, out of reach after its lead move
+    trap = home + t[["lx", "ly", "lz", "tx", "ty", "tz"]].to_numpy(float).reshape(2, 3)
+    (a, b), s, swapped = drive("band", trap)
+    assert a["reached"] and a["zone"] == 0 and swapped, "from rest both edges are the measured cage: a green go, then the band is looked up"
+    assert not b["true_go"] and b["sends"] == b["refused"] == 1 and b["zone"] == 1, "the trap is inside the outer edge, so it is sent, from the band, and refused"
+    assert b["trips"] == 0 and b["path_m"] < 0.01 and not b["reached"], "a refused go does not move the arm"
+    rgba, far = s["refusal"]
+    assert rgba == T.RED and np.linalg.norm(far - trap[1]) > 0.04, "red dot, and the far ball short of the trap"
+
+    (a, b), s, _ = drive("band", G[[np.flatnonzero((D < 0.6) & TR)[0], np.flatnonzero(D > 1.3)[0]]])
+    assert a["reached"] and b["parked"] and b["sends"] == 0 and "refusal" not in s, "the dot stops at the outer edge, so nothing is sent"

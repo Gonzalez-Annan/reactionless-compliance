@@ -68,11 +68,11 @@ def fit(X, Y):
     return {"mean map": lambda x: Y.mean(0), "ridge": lambda x: np.r_[(x - mu) / sd, 1] @ Wt, "5 nearest": knn}
 
 
-def safe(X, Y, k, pull):
+def safe(X, Y, k, pull, agg=np.min):
     """-> predict(x): per line the shortest reach among the k nearest stored states, times pull.
     No reach at all if the base is already over the tilt budget at x: that much is read off the state, not looked up."""
     mu, sd = X.mean(0), X.std(0) + 1e-9; Z = (X - mu) / sd
-    return lambda x: (np.linalg.norm(x[7:]) < np.radians(T.BASE_MAX)) * pull * Y[np.argsort(np.linalg.norm(Z - (x - mu) / sd, axis=1))[:k]].min(0)
+    return lambda x: (np.linalg.norm(x[7:]) < np.radians(T.BASE_MAX)) * pull * agg(Y[np.argsort(np.linalg.norm(Z - (x - mu) / sd, axis=1))[:k]], 0)
 
 
 def row(name, E):
@@ -166,6 +166,17 @@ if __name__ == "__main__":
             if fs.exists():
                 P = g(*best, I)
                 print("   against the full simulation, %d states: over at all %.1f%%, %s" % (len(I), 100 * (P > Ys).mean(), say(P, Ys)))
+        # the band (D70, livemap.band): the same neighbours give a second, outer edge, their LONGEST reach times push.
+        # The reach past the outer edge is a wrong no (the dot is held there). The reach between the two is where the picture
+        # does not know and the rehearsal decides. ponytail: K and PUSH were chosen with all three rows in view, so the
+        # full-simulation row is not a clean test of the choice. New states would be.
+        K, PULL, PUSH = 10, 0.9, 1.1
+        for name, on, Yt in [("picking states, fast labels", pk, Y[pk]), ("scoring states, fast labels", sc, Y[sc])] + ([("full simulation", I, Ys)] if fs.exists() else []):
+            Lo, U = look(K, PULL, on), np.array([safe(X[st], Y[st], K, PUSH, np.max)(x) for x in X[on]])
+            print("band, %s, %d states: reach past the outer edge by 0.05 m on %.1f%% of pairs, at all on %.1f%%. inner edge over by 0.05 m on %.1f%%. "
+                  "outer edge is %.2f of the reach, band %.3f m wide. of the reach: %.2f inside the inner edge, %.2f in the band, %.3f past the outer edge"
+                  % (name, len(on), 100 * (Yt - U > 0.05).mean(), 100 * (Yt > U).mean(), 100 * (Lo - Yt > 0.05).mean(), U.sum() / Yt.sum(), (U - Lo).mean(),
+                     np.minimum(Lo, Yt).sum() / Yt.sum(), (np.minimum(U, Yt) - np.minimum(Lo, Yt)).sum() / Yt.sum(), np.maximum(Yt - U, 0).sum() / Yt.sum()))
         sys.exit()
     tilt = np.degrees(np.linalg.norm(X[:, 7:], axis=1))
     print("%d states, tilt there median %.2f, most %.2f deg. reach median %.2f m, %d states with no reach at all" % (

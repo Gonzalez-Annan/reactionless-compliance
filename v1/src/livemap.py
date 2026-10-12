@@ -53,6 +53,19 @@ def fast(m, d, sid, Rb0, u, dt=0.02):
     return best
 
 
+def near(d, Rb0, k):
+    """-> (the reaches stored for the k states nearest to this one, k x 98, nearest first; base under the tilt budget).
+    Nearest in 7 joint angles + base tilt as a rotation vector, z-scored with the stored set's own mean and std."""
+    global S
+    if "S" not in globals():                             # the stored states, loaded once
+        a, b = (np.load(T.OUT.parent / f"learn{n}_medium.npz") for n in ("", 2))
+        X, Y = np.r_[a["X"], b["X"]], np.r_[a["Y"], b["Y"]]
+        S = X.mean(0), X.std(0) + 1e-9, X, Y
+    mu, sd, X, Y = S
+    x = np.r_[d.qpos[7:], (Rb0.inv() * T.Rot.from_quat(d.qpos[[4, 5, 6, 3]])).as_rotvec()]
+    return Y[np.argsort(np.linalg.norm((X - mu) / sd - (x - mu) / sd, axis=1))[:k]], np.linalg.norm(x[7:]) < np.radians(T.BASE_MAX)
+
+
 def lookup(m, d, sid, Rb0, k=10, pull=0.9):
     """The cage looked up instead of probed: per line the shortest reach among the k stored states nearest to this one
     (7 joint angles + base tilt as a rotation vector, z-scored with the stored set's own mean and std), times pull.
@@ -61,12 +74,21 @@ def lookup(m, d, sid, Rb0, k=10, pull=0.9):
     of them stored, on 200 it never saw it was 0.05 m too far on 1.5% of the lines and kept 0.69 of the reach (D54).
     ponytail: the stored reaches are fast() estimates and a hand more than two moves out has no near neighbour, so
     T.check stays the authority. Medium servicer only, as init()."""
-    global S
-    if "S" not in globals():                             # the stored states, loaded once
-        a, b = (np.load(T.OUT.parent / f"learn{n}_medium.npz") for n in ("", 2))
-        X, Y = np.r_[a["X"], b["X"]], np.r_[a["Y"], b["Y"]]
-        S = X.mean(0), X.std(0) + 1e-9, X, Y
-    mu, sd, X, Y = S
-    x = np.r_[d.qpos[7:], (Rb0.inv() * T.Rot.from_quat(d.qpos[[4, 5, 6, 3]])).as_rotvec()]
-    r = pull * Y[np.argsort(np.linalg.norm((X - mu) / sd - (x - mu) / sd, axis=1))[:k]].min(0)
-    return d.site_xpos[sid] + (np.linalg.norm(x[7:]) < np.radians(T.BASE_MAX)) * r[:, None] * np.array(T.DIRS)
+    Yk, lvl = near(d, Rb0, k)
+    r = pull * Yk.min(0)
+    return d.site_xpos[sid] + lvl * r[:, None] * np.array(T.DIRS)
+
+
+def band(m, d, sid, Rb0, k=10, pull=0.9, push=1.1):
+    """Two edges instead of one (D70), from the same k neighbours as lookup. A single edge is wrong both ways: pull it
+    in and it hides goals the arm can reach, let it out and it shows goals it cannot.
+    Inner: lookup's edge, pull x the shortest stored reach. Inside it a go is expected to work.
+    Outer: push x the longest stored reach. Past it nothing was reachable in any of the k states.
+    Between the two the picture does not know, and says so. T.check answers every send.
+    -> per line [inner tip, outer tip, outer tip], the three shells view.draw_envelope draws.
+    learn.py safe scores both edges: against the full simulation the reach is past the outer one by 0.05 m on 0.4% of
+    the lines and the inner one is 0.05 m too far on 1.4%. The band is wide, 0.29 m on a 0.40 m reach.
+    ponytail: one k and two factors for every line and state. Narrow it per line if the width is what hurts."""
+    Yk, lvl = near(d, Rb0, k)
+    return [d.site_xpos[sid] + lvl * np.array([pull * a, push * b, push * b])[:, None] * e
+            for a, b, e in zip(Yk.min(0), Yk.max(0), np.array(T.DIRS))]

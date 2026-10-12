@@ -2,6 +2,7 @@
 whether the maps can differ at all on these goals before people are used. Run from the repo root:
 python analysis/study/prestudy.py            ids 1 2 3 4: the four orders, and every display on every goal set once
 python analysis/study/prestudy.py 1          one id
+python analysis/study/prestudy.py band       the band display (D70) alone, all four blocks -> data/scripted/band
 -> data/scripted/maps_<id>.csv (never data/participants) and a table per display on the scored test goals.
 It runs teleop.maps_study as a participant would get it: training, then four blocks on the sets of data/pairs_medium.csv.
 The runs of the first design (15 goals a block, 7 scored, D43) are in data/scripted/first_design and are not read here.
@@ -70,20 +71,26 @@ def operator():
 
 if __name__ == "__main__":
     T.OUT = pathlib.Path("data/scripted")
+    band = "band" in sys.argv[1:]
+    if band:                     # not a study condition: every block shows it, so it meets all four goal sets, the 40 scored goals each display met
+        T.MAPS, T.OUT = ("band",) * 4, T.OUT / "band"
     builtins.input = lambda q="": ""
     T.ask = lambda q, n, lo, hi: [float("nan")] * n      # a rule has no workload and no trust
-    for pid in [int(a) for a in sys.argv[1:]] or [1, 2, 3, 4]:
+    for pid in [1] if band else [int(a) for a in sys.argv[1:]] or [1, 2, 3, 4]:
         axes, T.viewer_hook = operator()
         T.maps_study(axes, pid, "medium")
     df = pd.concat(pd.read_csv(f) for f in sorted(T.OUT.glob("maps_*.csv")))
     df = df[(df.leg == 2) & (df.use == "scored")]
+    df = df.assign(zone=df.get("zone", np.nan))         # runs from before D70 have no zone column
     g = df.groupby("cue")
     n = lambda f: g.apply(lambda x: int(f(x).sum()))
     out = pd.DataFrame({"goals": g.size(), "s_per_goal": g.time_s.mean().round(1), "reached": g.reached.sum(),
                         "wrong_go_goals": n(lambda x: x.trips > 0), "on_traps": n(lambda x: (x.trips > 0) & (x.cls == "trap")),
                         "missed": n(lambda x: x.parked & x.true_go), "refused": g.refused.sum(), "gave_up": g.parked.sum(),
                         "timeouts": g.timeout.sum(), "early_sends": g.early.sum(), "map_s_max": g.map_s.max().round(1),
-                        "worst_tilt_deg": g.peak_base_deg.max().round(2)}).reindex(T.MAPS)
+                        "worst_tilt_deg": g.peak_base_deg.max().round(2)} | ({"sent_from_green": n(lambda x: x.zone == 0), "refused_on_green": n(lambda x: (x.zone == 0) & (x.refused > 0)),
+                         "sent_from_band": n(lambda x: x.zone == 1), "refused_in_band": n(lambda x: (x.zone == 1) & (x.refused > 0))} if band else {})
+                       ).reindex(list(dict.fromkeys(T.MAPS)))
     print("SCRIPTED OPERATOR, not participants. Scored test goals, ids", *sorted(df.pid.unique()))
     print(out.to_string())
     t = df.groupby("cls").true_go.agg(["size", "sum"])      # the classes were sorted by rehearsal: did they hold where the rule's lead moves ended
