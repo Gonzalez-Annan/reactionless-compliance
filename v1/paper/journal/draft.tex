@@ -439,9 +439,11 @@ short of 2 of the 16 scored edge goals, one in each of two sets, and the arm can
 who waits for that map should meet no trap and loses a reachable goal in two of the four sets. We keep those
 pairs: this is what that map does between its 98 lines, and it counts as a missed go. % analysis/study/pairs.py
 A participant meets each set once and so sees no pair twice. Which set goes with which condition moves on by one
-with each participant and by one more after every four. Without the extra step two sets would always come first
-or last in a session and two always in the middle. With it each set comes at each place 4 to 6 times in
-20 sessions and each condition meets each set 4 to 6 times. % tests/test_order.py
+with each participant and by one more with every second one. Without the extra step two sets would always come first
+or last in a session and two always in the middle. With it each condition meets each set equally often whenever the
+number of participants is a multiple of four, 5 times in 20 sessions, and each set comes at each place 4 to 6
+times. With these four block orders both counts are exact only at a multiple of eight, whatever the rule. At 20 we
+keep the one that involves the condition exact. % tests/test_order.py, D68
 This is how the map and not the goal differs between
 conditions: the sets are matched class by class, and what is left of a set is spread over the conditions and the
 places. Pairs come in a new random order for each participant and block.

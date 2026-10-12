@@ -677,7 +677,7 @@ def maps_study(axes, pid, size):
             rows += t
             if any(x["reached"] for x in t if x["leg"] == 2 and x["cls"] == "inner") and all(x["parked"] for x in t if x["leg"] == 2 and x["cls"] == "outer"):
                 break
-        k = (c + pid + pid // 4) % 4    # the set of this display: one on with every participant and one more every four
+        k = (c + pid + pid // 2) % 4    # the set of this display: one on with every participant and one more every two (D68)
         q = pd.concat([pr[(pr.set == k) & (pr.use == u)].sample(frac=1, random_state=pid * 10 + c) for u in ("block", "scored")])
         input(f"Block {b}/4. {WORDS[MAPS[c]]}\n{cost} The first two pairs are practice. Enter to start.")
         r = run(b, c, q)

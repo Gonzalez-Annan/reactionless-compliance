@@ -1,4 +1,4 @@
-"""Maps study: what a participant gets (blocks, practice, training) and how displays and goal sets go round over 20 ids.
+"""Maps study: what a participant gets (blocks, practice, training) and how displays and goal sets go round over 24 ids.
 free_drive is stubbed, nothing is simulated."""
 import sys; sys.path.insert(0, "src")
 import builtins, collections, numpy as np, teleop as T
@@ -32,12 +32,13 @@ def test_blocks(monkeypatch):
 
 def test_balance(monkeypatch):
     place, after, at, meet = (collections.Counter() for _ in range(4))
-    for pid in range(1, 21):
+    for pid in range(1, 25):
         b = run(monkeypatch, pid)[0].query("block > 0").drop_duplicates("block")
         cues, sets = list(b.cue), list(b.set)
         assert sorted(cues) == sorted(T.MAPS) and sorted(sets) == [0, 1, 2, 3]      # every display and every set once
         place.update(enumerate(cues)); after.update(zip(cues, cues[1:])); at.update(enumerate(sets)); meet.update(zip(cues, sets))
-    assert len(place) == 16 and set(place.values()) == {5}      # every display 5 times in every place
-    assert len(after) == 12 and set(after.values()) == {5}      # and 5 times right after every other
-    for x in (at, meet):                                        # a set in a place, a display on a set: 4 to 6 times each
-        assert len(x) == 16 and 4 <= min(x.values()) and max(x.values()) <= 6
+        if pid % 4 == 0:        # after every four ids, 20 too: every display as often in every place, right after every other and on every set
+            assert [len(x) for x in (place, after, meet)] == [16, 12, 16]
+            assert all(set(x.values()) == {pid // 4} for x in (place, after, meet))
+            off = sorted(at[i, k] - pid // 4 for i in range(4) for k in range(4))     # a set in a place: even after every 8 ids,
+            assert off == ([0] * 16 if pid % 8 == 0 else [-1] * 4 + [0] * 8 + [1] * 4)  # 8 of the 16 one off in between. No rule does better (D68)

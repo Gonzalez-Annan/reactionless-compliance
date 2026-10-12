@@ -856,7 +856,7 @@ not five (D61). The looked-up map (D54, D55) stays in `teleop.py` as a display, 
 participant sees it.
 
 In the tool: `T.MAPS` has four names and `python src/teleop.py --maps N` runs `maps_study`. The block order is
-`[(pid + x) % 4 for x in (0, 1, 3, 2)]`, four orders. The goal set of a display is `(c + pid + pid // 4) % 4`.
+`[(pid + x) % 4 for x in (0, 1, 3, 2)]`, four orders. The goal set of a display is `(c + pid + pid // 4) % 4` (changed in D68).
 `tests/test_order.py` counts ids 1 to 20: every display 5 times in every place and 5 times right after every
 other display. A set in a place, and a display on a set, 4 to 6 times each.
 
@@ -1008,3 +1008,37 @@ and the run is a check that the tool logs what the analysis needs. `tlx` and `tr
 Checked: `tests/test_maps.py::test_dry_run_is_kept_out_of_the_participants`, the file a session would write is under
 `data/pilot` with `--dry` and under `data/participants` without. Suite 24 of 24.
 Not checked: nobody has driven a session by hand yet. The stored scripted files do not have the two columns.
+
+## D68 Every display now meets every goal set equally often (2026-10-12)
+
+The goal set of a display was `(c + pid + pid // 4) % 4` (D61, D63). It is now `(c + pid + pid // 2) % 4`: one on
+with every participant and one more with every second one. One token in `src/teleop.py`. Nobody has been run, so
+no data is touched.
+
+Why. With the old rule and 20 participants a display met a goal set 4 to 6 times. The sets are matched by class but
+they are not the same goals, so a display that got an easier set more often could look better for that alone. The
+study compares displays, so this is the count that has to be exact.
+
+Counts over ids 1 to n, for n = 4, 8, 12, 16, 20, 24:
+
+| count | old rule | new rule |
+|---|---|---|
+| a display in a place | exact at every n | same, the rule does not touch the block order |
+| a display right after another | exact at every n | same |
+| a display on a set | exact at 16 only, else 8 of the 16 cells one off | exact at every n, 5 each at 20 |
+| a set in a place | exact at 16 only, else 8 of the 16 cells one off | exact at 8, 16 and 24, else 8 of 16 one off, 4 to 6 at 20 |
+
+The new column is what `tests/test_order.py::test_balance` asserts, ids 1 to 24. The old column for the two set
+counts is from a throwaway script that is not in the repo.
+
+One table is still one off in 8 cells at 20, and it is the one that matters less. With displays even over places
+and over sets, the difference between two displays carries no main effect of place and none of set. What it leaves
+open is a set that is harder late in a session than early.
+
+Both exact at 20 is not possible with these four block orders, whatever the rule. This is an argument, not a
+script. Take one goal set. For each participant note the display c that carries it and the place it comes in. The
+place fixes `c - pid` mod 4. If both tables are even over n = 4m participants, c takes each value m times, `pid`
+mod 4 does too, and so does `c - pid`. The first two make the sum of `c - pid` a multiple of 4, the third makes it
+6m. So m has to be even: 8, 16, 24, not 20. For odd m the same sum says every goal set is off in at least one of
+the two tables, so at least 8 cells are off in all. The old rule had 16, 8 in each table. The new one has 8, all
+in the table of sets and places.

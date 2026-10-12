@@ -1,6 +1,6 @@
 """Scripted pre-study for the maps study. NOT participant data: a fixed rule plays the operator, so this only says
 whether the maps can differ at all on these goals before people are used. Run from the repo root:
-python analysis/study/prestudy.py            ids 1 2 3 16: the four orders, and every display on every goal set once
+python analysis/study/prestudy.py            ids 1 2 3 4: the four orders, and every display on every goal set once
 python analysis/study/prestudy.py 1          one id
 -> data/scripted/maps_<id>.csv (never data/participants) and a table per display on the scored test goals.
 It runs teleop.maps_study as a participant would get it: training, then four blocks on the sets of data/pairs_medium.csv.
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     T.OUT = pathlib.Path("data/scripted")
     builtins.input = lambda q="": ""
     T.ask = lambda q, n, lo, hi: [float("nan")] * n      # a rule has no workload and no trust
-    for pid in [int(a) for a in sys.argv[1:]] or [1, 2, 3, 16]:
+    for pid in [int(a) for a in sys.argv[1:]] or [1, 2, 3, 4]:
         axes, T.viewer_hook = operator()
         T.maps_study(axes, pid, "medium")
     df = pd.concat(pd.read_csv(f) for f in sorted(T.OUT.glob("maps_*.csv")))

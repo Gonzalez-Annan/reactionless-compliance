@@ -126,3 +126,7 @@ Everything in the repo so far is scripted runs. `maps_0.csv` is the self-test id
   data and can not get into the analysis. They check the clock, the tool prints the minutes after each block. If
   either pilot runs over 65 min with consent and the close added, every block is cut to 8 scored pairs, 2 traps,
   3 edge, 1 inner and 2 outer.
+- 2026-10-12, before any participant (D68): the set index now gets one more step with every second participant,
+  not every fourth (item 3 of the entry of the same day). With 20 participants every display then meets every goal
+  set exactly 5 times. Before it was 4 to 6. A set still comes in a given place 4 to 6 times, and with these four
+  block orders no rule gets both exact at 20.
