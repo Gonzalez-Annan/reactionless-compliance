@@ -2,7 +2,7 @@
 whether the maps can differ at all on these goals before people are used. Run from the repo root:
 python analysis/study/prestudy.py            ids 1 2 3 4: the four orders, and every display on every goal set once
 python analysis/study/prestudy.py 1          one id
-python analysis/study/prestudy.py band       the band display (D70) alone, all four blocks -> data/scripted/band
+python analysis/study/prestudy.py band       the band display (D70) alone, all four blocks -> data/scripted_band
 -> data/scripted/maps_<id>.csv (never data/participants) and a table per display on the scored test goals.
 It runs teleop.maps_study as a participant would get it: training, then four blocks on the sets of data/pairs_medium.csv.
 The runs of the first design (15 goals a block, 7 scored, D43) are in data/scripted/first_design and are not read here.
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     T.OUT = pathlib.Path("data/scripted")
     band = "band" in sys.argv[1:]
     if band:                     # not a study condition: every block shows it, so it meets all four goal sets, the 40 scored goals each display met
-        T.MAPS, T.OUT = ("band",) * 4, T.OUT / "band"
+        T.MAPS, T.OUT = ("band",) * 4, T.OUT.with_name("scripted_band")     # one level under data/, where the tool looks for its goal files
     builtins.input = lambda q="": ""
     T.ask = lambda q, n, lo, hi: [float("nan")] * n      # a rule has no workload and no trust
     for pid in [1] if band else [int(a) for a in sys.argv[1:]] or [1, 2, 3, 4]:
