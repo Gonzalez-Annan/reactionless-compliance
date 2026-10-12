@@ -129,4 +129,6 @@ Everything in the repo so far is scripted runs. `maps_0.csv` is the self-test id
 - 2026-10-12, before any participant (D68): the set index now gets one more step with every second participant,
   not every fourth (item 3 of the entry of the same day). With 20 participants every display then meets every goal
   set exactly 5 times. Before it was 4 to 6. A set still comes in a given place 4 to 6 times, and with these four
-  block orders no rule gets both exact at 20.
+  block orders no rule gets both exact at 20. The scripted run was done again on ids 1 2 3 4, a rule and not
+  people: the same counts as in D66, and the same trap ran into the 90 s limit under the map from the current
+  state. Nothing in the plan changed because of it.

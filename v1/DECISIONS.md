@@ -1042,3 +1042,35 @@ mod 4 does too, and so does `c - pid`. The first two make the sum of `c - pid` a
 6m. So m has to be even: 8, 16, 24, not 20. For odd m the same sum says every goal set is off in at least one of
 the two tables, so at least 8 cells are off in all. The old rule had 16, 8 in each table. The new one has 8, all
 in the table of sets and places.
+
+The scripted run again, on the new order. D66 used ids 1 2 3 16, because with the old rule those gave the four
+block orders and every display on every goal set once. With the new rule ids 1 2 3 4 do, and `prestudy.py` now
+runs those. Still a rule and not people. Files: `data/scripted/maps_{1,2,3,4}.csv`, 416 rows, 160 scored test
+goals, 40 per display. The four files of D66 are in git at `269bb4c`. The new ones have the two clock columns of
+D67.
+
+| display | reached | wrong go | missed | refused | gave up | s per goal |
+|---|---|---|---|---|---|---|
+| rest map | 24 | 8, all on traps | 0 | 0 | 16 | 27.3 |
+| map that held | 8 | 0 | 16 | 0 | 32 | 33.2 |
+| current-state map | 22 | 0 | 2 | 0 | 18 | 33.9 |
+| no map | 24 | 0 | 0 | 16 | 16 | 18.3 |
+
+Against D66:
+
+- Every count is the same. So are the two missed edge goals under the current-state map (pairs 67 and 268), the
+  refused goes (8 on traps, 8 on outer goals), the classes when the goal opened (64 of 64 edge, 32 of 32 inner,
+  0 of 32 outer, 0 of 32 traps), the first moves (160 of 160) and the worst tilt (2.02 deg on a test goal, 2.04
+  over all rows).
+- Three of the four times are the same to 0.1 s. The current-state map went from 32.6 to 33.9 s per goal. Its
+  wait for a cage was 10.9 to 17.7 s, median 13.7, on 52 goals (D66: 9.8 to 15.3, median 12.0). That wait runs on
+  the wall clock, so it moves with what else the laptop is doing. No send was made on an old cage.
+- A scored pair without the 30 s: median 11.7 simulated s, 4.4 to 47.9 (D66: 11.6). By display, median: no map
+  9.0, map that held 10.4, rest map 10.8, current-state map 20.9 (D66: 18.8).
+- The time-out came back: trap pair 155 under the current-state map, 93.0 s for the pair, cage in 12.1 s. In D66
+  it was id 2 in block 1, now it is id 4 in block 4. Twice in two runs, so it comes with this pair, this display
+  and the rule, and the load on the machine is unlikely to be the reason. Why the rule's stuck test does not fire
+  there is still not checked. The goal counts as given up either way.
+
+On the wall clock the four scripted sessions took 7.1, 8.7, 7.4 and 7.7 min (`clock_s`). That says nothing about
+people.
