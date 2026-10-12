@@ -9,7 +9,9 @@ A static cage gives the same answer both times. It can be wrong two ways:
 -> the goals where the answer changes, and what stopped the hand.
 Last, what the band display (D70) shows for the same goals after the same moves. It has two edges, looked up from
 where the arm is. It is wrong when a goal the arm can reach is past its outer edge, and when a goal the arm can
-not reach is inside its inner edge. The second kind costs a refused command, because every go is checked."""
+not reach is inside its inner edge. The second kind costs a refused command, because every go is checked.
+Then the same band once the cage probed from where the move ended is in (livemap.sharpen, what the tool draws
+after 11 to 20 s), and what would happen if the outer edge were pulled in to that probed cage as well."""
 import sys; sys.path.insert(0, "src")
 from collections import Counter
 import numpy as np, mujoco
@@ -95,12 +97,14 @@ if __name__ == "__main__":
     table([[r[2] for r in rows] for rows in R[1:]])
     print("  The band is wrong on the first line where it says past the outer edge, on the second where it says inside the inner edge.")
     with Pool(10, livemap.init) as pl:                        # the cage probed from where each move ended: 98 lines, what the live display shows after its wait
-        P = [(d.site_xpos[sid].copy(), list(np.array(livemap.ask(pl, d).get()))) for m, d, sid, Rb0, _, _ in map(moved, DETS)]
+        P = [(d.site_xpos[sid].copy(), list(np.array(livemap.ask(pl, d).get())), livemap.band(m, d, sid, Rb0)) for m, d, sid, Rb0, _, _ in map(moved, DETS)]
     print()
-    print("THE SAME BAND ONCE THE PROBED CAGE IS IN: the inner edge is moved to the cage probed from where the move ended. Outer edge as above.")
+    print("THE SAME BAND ONCE THE PROBED CAGE IS IN (livemap.sharpen, as the tool draws it): the inner edge is moved to the cage")
+    print("probed from where the move ended. The outer edge stays, or goes out to the probed cage where that is further.")
     N = range(len(DETS)), range(len(E)), range(len(A))
     dP = [[[T.depth(P[i][1], P[i][0], p0 + A[j] * E[k]) for j in N[2]] for k in N[1]] for i in N[0]]     # 1 is the probed cage's edge
-    table([[[0 if dP[i][k][j] <= 1 else max(1, R[1 + i][k][2][j]) for j in N[2]] for k in N[1]] for i in N[0]])
+    S = [livemap.sharpen(B, tips, c) for c, tips, B in P]
+    table([[[sum(T.depth([s[x] for s in S[i]], P[i][0], p0 + A[j] * E[k]) > 1 for x in (0, 2)) for j in N[2]] for k in N[1]] for i in N[0]])
     print("  And if the outer edge is pulled in to a multiple of the probed cage (never past the looked-up one):")
     for f in (1.0, 1.05, 1.1, 1.2, 1.3):
         a = [(R[1 + i][k][1][j] == "", dP[i][k][j] > f or R[1 + i][k][2][j] == 2) for i in N[0] for k in N[1] for j in N[2]]

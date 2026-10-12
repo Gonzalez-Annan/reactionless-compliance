@@ -92,3 +92,12 @@ def band(m, d, sid, Rb0, k=10, pull=0.9, push=1.1):
     Yk, lvl = near(d, Rb0, k)
     return [d.site_xpos[sid] + lvl * np.array([pull * a, push * b, push * b])[:, None] * e
             for a, b, e in zip(Yk.min(0), Yk.max(0), np.array(T.DIRS))]
+
+
+def sharpen(B, tips, c):
+    """The band B once the cage probed from the same place c is in (tips, from ask): the inner edge moves to the
+    probed tip. The outer edge stays where it was looked up, unless the probe got further on that line.
+    The outer edge is not pulled in to the probed cage: at 1.1 times it, 10 of 409 goals the arm could reach were
+    past it, against 0 past the looked-up one (analysis/envelope/static.py, D70)."""
+    far = lambda t, b: t if np.linalg.norm(t - c) > np.linalg.norm(b - c) else b
+    return [np.array([t, far(t, b[2]), far(t, b[2])]) for b, t in zip(B, tips)]

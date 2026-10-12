@@ -42,6 +42,7 @@ def drive(aid, G, steps=30000):
     rows = T.free_drive(axes, "medium", 5, "3d", targets=G - home, aid=aid)
     for r in rows:
         print(aid, {k: (round(v, 2) if isinstance(v, float) else v) for k, v in r.items()})
+    s["seen"] = seen
     return rows, s, len(seen) > 1
 
 
@@ -135,7 +136,10 @@ def test_band(monkeypatch):
     """The band (D70): two edges from the same ten stored states. The inner one is lookup's, the outer one is never
     inside it, and with the base over budget there is no reach on either. In the tool every go is rehearsed:
     a trap (inside the rest cage, no longer reachable after the lead move) is sent from the band, refused, shown red
-    with the far ball, and does not move the arm. A goal past the outer edge is held there and never sent."""
+    with the far ball, and does not move the arm. A goal past the outer edge is held there and never sent.
+    The cage probed from the same place moves the inner edge to it (livemap.sharpen), the outer edge only outwards.
+    The pool and the probe are stand-ins here. With a probe that is wrong by metres the trap turns green, is sent,
+    and is still refused: a wrong inner edge costs a refusal, not a tilt."""
     global home
     import livemap
     sys.path.insert(0, "analysis/envelope"); import learn
@@ -151,7 +155,19 @@ def test_band(monkeypatch):
     _, goals, dep, _, truth = T.pool("medium")
     G, D, TR = goals.reshape(-1, 3), dep.ravel(), truth.ravel()
     m, d, sid, _ = T.setup("medium"); home = d.site_xpos[sid].copy()
-    monkeypatch.setattr(T.multiprocessing, "Pool", None)            # the band needs no pool
+    S = livemap.sharpen([np.array([[0, 0, 1.0], [0, 0, 2.0], [0, 0, 2.0]])] * 3, np.array([[0, 0, 1.5], [0, 0, 2.5], [0, 0, 0.5]]), np.zeros(3))
+    assert np.array_equal(S, [[[0, 0, 1.5], [0, 0, 2], [0, 0, 2]], [[0, 0, 2.5]] * 3, [[0, 0, 0.5], [0, 0, 2], [0, 0, 2]]]), "inner edge to the probed tip, out or in. Outer edge only out"
+
+    import multiprocessing.pool
+    from unittest.mock import create_autospec
+    ready, pools = [False], []                                      # the probe is not in yet: the band as looked up
+
+    def ask(pl, d):                                                 # a probe that says 3 m on every line
+        job = create_autospec(multiprocessing.pool.AsyncResult, instance=True)
+        job.ready.return_value, job.get.return_value = ready[0], [d.site_xpos[sid] + 3.0 * np.array(u) for u in T.DIRS]
+        return job
+    monkeypatch.setattr(T.multiprocessing, "Pool", lambda *a: pools.append(create_autospec(multiprocessing.pool.Pool, instance=True)) or pools[-1])
+    monkeypatch.setattr(livemap, "ask", ask)
     import pandas as pd
     t = pd.read_csv(T.OUT.parent / "pairs_medium.csv").query("cls == 'trap'").iloc[0]   # a study trap: inside the rest cage, out of reach after its lead move
     trap = home + t[["lx", "ly", "lz", "tx", "ty", "tz"]].to_numpy(float).reshape(2, 3)
@@ -161,6 +177,15 @@ def test_band(monkeypatch):
     assert b["trips"] == 0 and b["path_m"] < 0.01 and not b["reached"], "a refused go does not move the arm"
     rgba, far = s["refusal"]
     assert rgba == T.RED and np.linalg.norm(far - trap[1]) > 0.04, "red dot, and the far ball short of the trap"
+    assert a["early"] == 0 and b["early"] == 1 and np.isnan(b["map_s"]), "the trap was sent before the probe was in"
+    assert len(pools) == 1 and pools[0].terminate.call_count == 1, "one pool, stopped at the end"
 
+    ready[0] = True                                                 # the same pair, and now the probe comes in before the send
+    (a, b), s, _ = drive("band", trap)
+    assert any(np.allclose(np.linalg.norm(np.array(c)[:, i] - trap[0], axis=1), 3.0, atol=0.02) for c in s["seen"] for i in (0, 2)), "the probed cage was shown, both edges on it where it is the further one"
+    assert b["zone"] == 0 and b["early"] == 0, "the trap is green now and sent after the probe"
+    assert b["sends"] == b["refused"] == 1 and b["trips"] == 0 and b["path_m"] < 0.01, "and still refused, the arm does not move"
+
+    ready[0] = False
     (a, b), s, _ = drive("band", G[[np.flatnonzero((D < 0.6) & TR)[0], np.flatnonzero(D > 1.3)[0]]])
     assert a["reached"] and b["parked"] and b["sends"] == 0 and "refusal" not in s, "the dot stops at the outer edge, so nothing is sent"

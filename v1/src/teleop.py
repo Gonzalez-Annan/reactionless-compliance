@@ -335,7 +335,9 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
     the outer one nothing was reachable in any nearby stored state, and the dot is held there. In between the picture
     does not know: the dot is yellow. Every go is rehearsed as in "gate", so a wrong inner edge costs a refusal and not
     a tilt. Refused: red dot, and the blue ball is how far the hand would have got. At rest both edges sit on the cage.
-    ponytail: the band is not narrowed when the probed cage could be had. Add that if pilots show people wait in it.
+    The cage is also probed from where the hand stopped, as in "live". When it is in, the inner edge moves out to it
+    (livemap.sharpen) and the hand ball turns green. The outer edge stays: pulled in, it hid goals the arm can reach
+    (static.py). Nobody has to wait for the probe. "early" counts the sends made before it was in.
     ponytail: with a delay the rehearsal is of the state at the key press, not at arrival of the command."""
     m, d, sid, Rb0 = setup(size)
     s, hook = viewer_hook()
@@ -370,7 +372,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
             import livemap
         if aid == "band":                                   # at rest the edge is measured, so both edges sit on it. The band opens after the first move
             s["rays"] = rest0 = [np.tile(r[-1], (3, 1)) for r in rest0]
-        if aid == "live":
+        if aid in ("live", "band"):
             pl, s["label"] = multiprocessing.Pool(PROCS, livemap.init), "map"
         if not aid:
             threading.Thread(target=preview, args=(m, sid, Rb0, scheme, mode, s), daemon=True).start()
@@ -394,13 +396,20 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                 goal = move(goal, sx, sy, dz, az, el, G_MAX * dt * (FINE if fine else 1))
             fresh = bool(job) and job.ready()
             if fresh:                               # the live cage is in: lines from where the hand was when it was asked for
-                s["rays"], centre, job, cutat, mt = [np.tile(t, (3, 1)) for t in job.get()], asked, None, None, max(mt, time.time() - tj)
+                s["rays"], centre, job, cutat, mt = (livemap.sharpen(s["rays"], job.get(), asked) if aid == "band" else [np.tile(t, (3, 1)) for t in job.get()]), asked, None, None, max(mt, time.time() - tj)
             if aid == "live":
                 if not job and np.linalg.norm(p - asked) > TOL and np.linalg.norm(p - target) < TOL and not (todo and np.linalg.norm(p - todo[0]) < NEAR):
                     job, asked, tj = livemap.ask(pl, d), p, time.time()      # the hand has stopped somewhere new
                 s["hand"], s["text"] = (p, YELLOW if job else GREEN), "updating" if job else "current"
             if aid in ("lookup", "band") and np.linalg.norm(p - asked) > TOL and np.linalg.norm(p - target) < TOL:    # the same, looked up: no wait
                 s["rays"], centre, asked, cutat, fresh = (livemap.band(m, d, sid, Rb0) if aid == "band" else [np.tile(t, (3, 1)) for t in livemap.lookup(m, d, sid, Rb0)]), p, p, None, True
+                if aid == "band":                   # and the probe is asked for from the same place: the inner edge moves out to it when it is in
+                    if job:                         # one still running is from a place the hand has left
+                        pl.terminate()
+                        pl = multiprocessing.Pool(PROCS, livemap.init)
+                    job, tj = livemap.ask(pl, d), time.time()
+            if aid == "band":                       # not "updating": the two edges on screen are already from here, nobody has to wait
+                s["hand"], s["text"] = (p, YELLOW if job else GREEN), "looked up" if job else "probed"
             if snap or sx or sy or dz:
                 no = False
             if (snap or sx or sy or dz or fresh) and len(s["rays"]) == len(DIRS):    # the fence needs the whole cage
@@ -421,7 +430,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                 if "t0" in s:
                     s["t0"] += time.time() - t      # do not fast-forward the viewer after the rehearsal
                 sends, refused, zs = sends + 1, refused + (not ok), kz
-                early += int(aid == "live" and (bool(job) or np.linalg.norm(p - asked) > TOL))
+                early += int(aid in ("live", "band") and (bool(job) or np.linalg.norm(p - asked) > TOL))
                 if ok:
                     pend.append((d.time + delay, goal.copy()))
                 if not aid:
@@ -484,7 +493,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                 if not todo:
                     break
                 if rest or maps and len(rows) % 2 == 0:     # from rest, as the pool's truth was measured (maps: every second goal)
-                    if aid == "live" and job:       # a probe still running would hold the pool: the next cage would be late and its logged time wrong
+                    if aid in ("live", "band") and job:     # a probe still running would hold the pool: the next cage would be late and its logged time wrong
                         pl.terminate()
                         pl = multiprocessing.Pool(PROCS, livemap.init)
                     if aid in ("live", "lookup", "band"):
@@ -500,7 +509,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
         for _ in range(DECIM):
             mujoco.mj_step(m, d)
     s["v"].close()
-    if aid == "live":
+    if aid in ("live", "band"):
         pl.terminate()
     print(f"peak base drift {peak:.2f} deg")
     return rows
@@ -655,7 +664,8 @@ WORDS = {   # maps study: what the participant is told about each display, the s
             "you are still looking at the cage from rest.",
     "gate": "There is no cage. Every command is checked before it runs and refused if it would fail.",
     "band": "Inside the green a command is expected to go through. In the orange, between the green and the blue lines, it is not known until you send. "
-            "Past the blue lines nothing can be reached and the dot stops there. Every command is checked before it runs and refused if it would fail.",
+            "Past the blue lines nothing can be reached and the dot stops there. After a move the green is small at first. It grows when the marker "
+            "on the hand turns green, that takes 11 to 20 s. You do not have to wait for it. Every command is checked before it runs and refused if it would fail.",
 }
 
 
