@@ -34,24 +34,26 @@ long: 28 wrong goes of 400 and 32 wrong noes of 270. All 28 are stopped by the b
 clock. With 8 times it is the same again, so it settles there (D72). 28 and 32 are the numbers for the paper.
 36 is what the tool refuses today, 8 of them for being slow.
 
-`python analysis/envelope/robust.py` is the same test with one thing changed at a time. 30 to 40 minutes.
+`python analysis/envelope/robust.py --clock 4` is the same test with one thing changed at a time, at the longer
+clock. 30 to 40 minutes. Without `--clock 4` it runs at the tool's clock, and D72 has both tables side by side.
 
 | set-up | wrong go | wrong no |
 |---|---|---|
-| as above: medium servicer, 2 deg limit, 0.3 m move | 36 of 400 | 30 of 270 |
-| move 0.1 m | 4 of 400 | 15 of 270 |
-| move 0.2 m | 30 of 400 | 22 of 270 |
-| move 0.4 m | 40 of 320 | 31 of 216 |
+| as above: medium servicer, 2 deg limit, 0.3 m move | 28 of 400 | 32 of 270 |
+| move 0.1 m | 3 of 400 | 15 of 270 |
+| move 0.2 m | 26 of 400 | 25 of 270 |
+| move 0.4 m | 21 of 320 | 39 of 216 |
 | large servicer | 0 of 395 | 3 of 270 |
-| small servicer, move 0.1 m | 11 of 204 | 14 of 147 |
+| small servicer, move 0.1 m | 5 of 219 | 17 of 102 |
 | limit 1 deg | 18 of 320 | 29 of 216 |
-| limit 3 deg | 35 of 380 | 17 of 270 |
+| limit 3 deg | 14 of 400 | 22 of 265 |
 
-The gap grows with the move and is close to nothing on the large servicer, where the base hardly tilts. A
-tighter limit gives more wrong noes. It does not give more wrong goes: under 3 deg 28 of the 35 are time-outs
-and not the tilt. The small servicer can not make most of the moves, so its row is a weak one.
-
-This table is at the tool's clock. `robust.py --clock 4` counts it with the longer one.
+The rows with 320 and 216 have four moves and not five, so the lines here count the four moves both sides
+have (D72). The wrong noes grow with the move all the way: 15, 25, 32, 39 of 216 for 0.1 to 0.4 m. The wrong
+goes jump from 0.1 to 0.2 m and then stay level: 3, 19, 19, 21 of 320. A tighter limit gives more of both: 18
+and 29 under 1 deg, 15 and 25 under 2 deg, 11 and 16 under 3 deg. On the large servicer, where the base hardly
+tilts, the gap is close to nothing. The small servicer row is not settled: its 5 wrong goes still run out of
+time and its cage is cut short by the clock too. It is not for the paper as it is.
 
 The stored sweep says the same on 98 directions and 40 starts (`data/wide98_medium.npz`): after one move the
 edge is more than 5% inside the rest edge on 14.1% of the lines and more than 5% outside it on 7.9%.

@@ -1540,5 +1540,38 @@ Open:
   it: refusing a move that takes more than twice its time is a rule one can state.
 - Practice pair 602 of set 2. Swap it for a trap that hits a limit, or keep it. Before participant 1.
 - Run `pairs.py` from scratch once and see that the same sets come out. Before participant 1.
-- The table of D71 (other moves, servicers, limits) is at clock 2. Its rows with many time-outs will move the
-  most: 0.4 m, 3 deg, the small servicer. `python analysis/envelope/robust.py --clock 4` counts it again.
+- The small servicer row below is not settled at 4. Run it at 8 if the paper wants that row.
+
+**The other set-ups at clock 4.** `python analysis/envelope/robust.py --clock 4`. The cage of each set-up is
+still drawn with the tool's clock, only the rehearsals get longer. The first row has to give 28 and 32, and does.
+
+| set-up | wrong go, clock 2 | clock 4 | wrong no, clock 2 | clock 4 |
+|---|---|---|---|---|
+| medium, 2 deg, 0.3 m | 36 of 400 | 28 of 400 | 30 of 270 | 32 of 270 |
+| move 0.1 m | 4 of 400 | 3 of 400 | 15 of 270 | 15 of 270 |
+| move 0.2 m | 30 of 400 | 26 of 400 | 22 of 270 | 25 of 270 |
+| move 0.4 m | 40 of 320 | 21 of 320 | 31 of 216 | 39 of 216 |
+| large servicer | 0 of 395 | 0 of 395 | 3 of 270 | 3 of 270 |
+| large, move 0.1 m | 0 of 395 | 0 of 395 | 0 of 270 | 0 of 270 |
+| small, move 0.1 m | 11 of 204 | 5 of 219 | 14 of 147 | 17 of 102 |
+| limit 1 deg | 18 of 320 | 18 of 320 | 29 of 216 | 29 of 216 |
+| limit 3 deg | 35 of 380 | 14 of 400 | 17 of 270 | 22 of 265 |
+
+Against what `robust.py` wrote down before its first run:
+
+- "The gap grows with the move." Half right. The 0.4 m row has four moves (straight up does not arrive), so
+  count the other four at every size. Wrong noes: 15, 25, 32, 39 of 216 for 0.1, 0.2, 0.3, 0.4 m. That grows
+  all the way. Wrong goes: 3, 19, 19, 21 of 320. That jumps once and then stays level. At clock 2 it looked
+  like steady growth up to 40, but 22 of those 40 were time-outs.
+- "Close to nothing on the large servicer." Holds. 0 wrong goes, 3 wrong noes, and none at all at 0.1 m.
+- "Bigger under 1 deg, smaller under 3 deg." Holds now, on both counts. The 1 deg row has four moves
+  ((0, 0.3, 0) tilts the base 1.54 deg on the way), so count the other four: wrong goes 18, 15, 11 of 320 for
+  1, 2, 3 deg, wrong noes 29 and 25 of 216 and 16 of 212. At clock 2 it failed for the wrong goes, because 28
+  of the 35 under 3 deg were time-outs.
+- Outside the small servicer no wrong go is a time-out at clock 4. Under 3 deg, 3 of the 14 are a hand that
+  stalls short of the goal, which is neither the tilt nor the bus.
+- The small servicer is not settled. All 5 of its wrong goes still run out of time. And from rest only 34 of
+  the 60 goals outside its cage are refused (49 at clock 2), so its cage is cut short by the clock itself.
+  Not for the paper as it is.
+- Only the first row was also run at 8. For the others "settled" rests on there being no time-outs among the
+  wrong goes.
