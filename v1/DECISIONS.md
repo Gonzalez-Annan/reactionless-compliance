@@ -1575,3 +1575,53 @@ Against what `robust.py` wrote down before its first run:
   Not for the paper as it is.
 - Only the first row was also run at 8. For the others "settled" rests on there being no time-outs among the
   wrong goes.
+
+## D73 The four calls before participant 1, and pairs.py from nothing (2026-10-14)
+
+D72 left four things open before participant 1. Team lead's calls, 2026-10-14:
+
+- The band stays out of the study. Four conditions, as in D63. Putting it in is a change of design, and its
+  setting was picked on the same states it is scored on (D70). It goes into the paper as a display that was
+  built and scored in simulation, not as a condition.
+- The tool's clock stays at 2. The paper says so and quotes the counts at 4 (D72).
+- Practice pair 602 of set 2 stays. It is not scored. In the four scripted sessions the rule did not reach it
+  under any display, and with the cage from rest it went and lost 73 s, the same as on the other three
+  practice traps (72 to 73 s). A rule, not people.
+- `pairs.py` was run from nothing. Below.
+
+**pairs.py from nothing.** The stored rehearsals (`data/pairs_cand_medium.npz`) were moved aside, so nothing
+was read back, and `python analysis/study/pairs.py` drew and rehearsed everything again. Under 14 min on 10
+processes.
+
+- `data/pairs_medium.csv` comes out the same to the byte: 52 pairs, same set, use and class, every number the
+  same.
+- All 3748 rehearsals of the run are the same to the digit as the stored ones. Same 79 traps of 2080, same 55
+  that hold in all 7, same 33 probes of the cage from now.
+- The stored file had 606 more rehearsals than this run makes. They are left over from earlier settings of the
+  pick and nothing reads them. The file in the repo is now the one this run wrote.
+
+**The 2.4 mm of D72 was my re-run, not the code.** D72 ran pairs 602 and 1408 again and got 5.32 and 0.23 cm
+short where the file has 5.40 and 0.47. Run again now in one process:
+
+| pair | goals as drawn, three times | goals read back from the csv |
+|---|---|---|
+| 602 | 5.398269 cm short each time, the stored value | 5.316293 cm |
+| 1408 | 0.466149 cm short each time, the stored value | 0.228939 cm |
+
+The csv holds the goals relative to the hand at rest. Adding the rest position back moves a goal by 4e-17 to
+1e-16 m, the last bit of the number. On these two pairs that becomes 0.8 and 2.4 mm at the end of the move. So
+the move repeats to the digit, and it is that touchy. Both are pairs whose rehearsal runs out of time.
+
+What it means for the study: the tool reads its goals from the csv, so it never gets the exact numbers that
+were rehearsed, and no person ends a lead move on the goal to the last bit anyway. The design covers it. A pair
+is kept only if it stays in its class with the lead move ending 2 cm off in six directions, and "can not be
+reached" means 4 cm short where the tool counts 2 cm as reached. Same class in every run above.
+
+Not checked: how touchy a rehearsal is that ends on the tilt or the bus. Only these two pairs were run both
+ways.
+
+Open:
+
+- Two pilots, the ethics paperwork, 20 people. Nothing is left open on the goal sets.
+- The small servicer row at clock 8, if the paper wants that row.
+- The Munich paper (IAC-10 B6.2.2) is still read as an abstract only.

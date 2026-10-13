@@ -149,7 +149,8 @@ people the power is 0.93 or more if people act the way the rule does, and 0.32 t
 - `python analysis/study/prestudy.py`: the scripted rule above, saved to `data/scripted`. `prestudy.py band` and
   `prestudy.py band wait` are the two band rows
 
-`band` is not one of the four. Putting it in is the team's call and has to be made before participant 1.
+`band` is not one of the four and stays out of the study (D73). It goes into the paper as a display that was
+built and scored in simulation.
 
 No participant has been run. Nothing was invented.
 
@@ -212,8 +213,8 @@ python analysis/sizing.py            # ~5 min, fig6: reach and wheel momentum ag
 
 - The study. Ethics approval, consent form, recruiting 20 people, two pilots first. Nobody has driven a
   session by hand yet.
-- Two things on the goal sets before participant 1: the practice trap of set 2 is a trap only by the tool's
-  clock, and `pairs.py` should be run from scratch once to see that the same sets come out (D72).
+- Nothing is open on the goal sets. `pairs.py` run from nothing gives the same file to the byte, and the
+  practice trap of set 2 stays (D73).
 - The gamepad path has never run (needs `pygame`). The study is keyboard only.
 - Checking the ISO/TS 15066 chest values in `safety.py` against the standard.
 - Checking every reference in the paper against `P2_Literature_Survey.xlsx`.
