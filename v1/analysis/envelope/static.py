@@ -24,20 +24,22 @@ DETS = ((0, 0, 0.3), (0, 0, -0.3), (-0.3, 0, 0), (0.3, 0, 0), (0, 0.3, 0))    # 
 WHY = dict(tilt="base tilt passed 2 deg", bus="arm would hit the bus", stall="hand stalled short of the goal", time="ran out of time")
 
 
-def moved(det):
-    m, d, sid, Rb0 = T.setup("medium"); p0 = d.site_xpos[sid].copy(); base = 0.0
+def moved(det, size="medium", peak=None):
+    m, d, sid, Rb0 = T.setup(size); p0 = d.site_xpos[sid].copy(); base = top = 0.0
     if det is not None:
         for k in range(int(6 / m.opt.timestep)):              # 6 s: 3 s of travel at V_GO, the rest to settle
             if k % T.DECIM == 0:
-                p, base = T.ctrl(m, d, sid, Rb0, p0 + np.array(det), 5, "3d")
+                p, base = T.ctrl(m, d, sid, Rb0, p0 + np.array(det), 5, "3d"); top = max(top, base)
             mujoco.mj_step(m, d)
+        if peak is not None:
+            peak.append(top)                                  # the most the base tilted on the way, for robust.py
         assert np.linalg.norm(p - p0 - det) < T.TOL, "the move itself did not arrive"
     return m, d, sid, Rb0, p0, base
 
 
 def one(job):
-    edge, det = job                                           # edge: the cage's 2 deg edge along one direction, from the rest hand position
-    m, d, sid, Rb0, p0, base = moved(det)
+    edge, det, size, T.BASE_MAX = job                         # edge: the cage's edge along one direction, from the rest hand position. The tilt limit is set per process
+    m, d, sid, Rb0, p0, base = moved(det, size)
     c = d.site_xpos[sid].copy(); B = livemap.band(m, d, sid, Rb0)    # the band's two edges from here: looked up, nothing simulated
     zone = [sum(T.depth([b[i] for b in B], c, p0 + f * edge) > 1 for i in (0, 2)) for f in FRACS + OUTER]   # 0 inside the inner edge, 1 between the two, 2 past the outer one
     out = []
@@ -54,7 +56,7 @@ if __name__ == "__main__":
     U = np.random.default_rng(0).normal(size=(20, 3)); U /= np.linalg.norm(U, axis=1)[:, None]    # the 20 directions of start.py hard
     E = [u / T.depth(list(tips), p0, p0 + u) for u in U]      # depth 1 is the cage's edge
     with Pool(10) as pl:
-        R = pl.map(one, [(e, det) for det in (None,) + DETS for e in E])
+        R = pl.map(one, [(e, det, "medium", T.BASE_MAX) for det in (None,) + DETS for e in E])
     R = [R[i:i + len(E)] for i in range(0, len(R), len(E))]   # [start][direction] -> (base tilt left, [what stopped each goal, "" if it arrived])
     A = FRACS + OUTER; nin = len(FRACS)
     go = [(k, j) for k in range(len(E)) for j in range(nin) if R[0][k][1][j] == ""]

@@ -36,3 +36,17 @@ def test_dot_pulled_back_by_a_new_cage_is_stuck():
 
 def test_closing_dot_is_not_stuck():
     assert not any(gave_up(np.linspace(0.3, 0.002, 3 * P.STUCK)))
+
+
+def test_waiting_rule_sends_only_from_green():
+    """band wait (D71), dot on the ball: yellow while the probe runs is neither sent nor given up, yellow when the
+    probe is in is given up, green is sent. The plain rule sends from yellow."""
+    def on_ball(text, rgba, wait=True):
+        axes, fresh = P.operator(wait)
+        s, _ = fresh()
+        s["tgt"], s["link"], s["text"], s["rgba"] = np.zeros(3), (None, np.zeros(3)), text, rgba
+        return bool(axes()[5]), bool(axes.park())
+    assert on_ball("looked up", P.T.YELLOW) == (False, False)
+    assert on_ball("probed", P.T.YELLOW) == (False, True)
+    assert on_ball("looked up", P.T.GREEN) == (True, False)
+    assert on_ball("looked up", P.T.YELLOW, wait=False) == (True, False)
