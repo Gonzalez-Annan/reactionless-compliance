@@ -28,6 +28,26 @@ cage were static, the answer would be the same both times.
 - **Wrong no.** 30 of 270 checks: the goal was refused from rest and goes after one move. The cage still shows it
   outside. The furthest one is 7 cm outside the edge.
 
+Of the 36 wrong goes, 26 are stopped by the base tilt or the bus limit. The other 10 are rehearsals that ran
+out of time, so some of those may only be slow and not out of reach (D71).
+
+`python analysis/envelope/robust.py` is the same test with one thing changed at a time. 30 to 40 minutes.
+
+| set-up | wrong go | wrong no |
+|---|---|---|
+| as above: medium servicer, 2 deg limit, 0.3 m move | 36 of 400 | 30 of 270 |
+| move 0.1 m | 4 of 400 | 15 of 270 |
+| move 0.2 m | 30 of 400 | 22 of 270 |
+| move 0.4 m | 40 of 320 | 31 of 216 |
+| large servicer | 0 of 395 | 3 of 270 |
+| small servicer, move 0.1 m | 11 of 204 | 14 of 147 |
+| limit 1 deg | 18 of 320 | 29 of 216 |
+| limit 3 deg | 35 of 380 | 17 of 270 |
+
+The gap grows with the move and is close to nothing on the large servicer, where the base hardly tilts. A
+tighter limit gives more wrong noes. It does not give more wrong goes: under 3 deg 28 of the 35 are time-outs
+and not the tilt. The small servicer can not make most of the moves, so its row is a weak one.
+
 The stored sweep says the same on 98 directions and 40 starts (`data/wide98_medium.npz`): after one move the
 edge is more than 5% inside the rest edge on 14.1% of the lines and more than 5% outside it on 7.9%.
 
@@ -73,6 +93,10 @@ It never shows a goal the arm can reach as out of reach. A wrong green costs one
 82% of these checks near the edge are "not known". With the probed cage in, 79% of the goals the arm can reach
 are green.
 
+The 6 wrong greens are all rehearsals that ran out of time, 0.5 to 2.2 cm short of the goal. A probe line
+straight at each of those goals gets 1 to 7 cm past it. So the green is right about where the hand can get, and
+the rehearsal's clock is short near the tilt limit (`python analysis/envelope/greens.py`, D71).
+
 A scripted rule on the 40 scored goals of the study. This is a rule, not people:
 
 | display | reached | wrong go | missed | refused | gave up | s per goal |
@@ -82,6 +106,7 @@ A scripted rule on the 40 scored goals of the study. This is a rule, not people:
 | cage from now | 22 | 0 | 2 | 0 | 18 | 30.3 |
 | no cage | 24 | 0 | 0 | 16 | 16 | 18.7 |
 | band | 24 | 0 | 0 | 11 | 16 | 19.3 |
+| band, waits for green | 22 | 0 | 2 | 0 | 18 | 24.9 |
 
 24 of the 40 goals can be reached. Under the band the rule reached all 24 and never sent a command that had to
 be brought back. 10 goals were inside the inner edge and all 10 went. 5 were past the outer edge and were given
@@ -92,6 +117,10 @@ Against no cage that is 5 refusals fewer and 0.6 s a goal slower. The rule sends
 ball, so 34 of its 35 sends were made before the probed cage was in. The probing still runs in the background
 and slows the rehearsal, 0.3 s to 0.5 s on a 0.2 m move. For somebody who does not wait for green the probe is
 a price and not a help (D70).
+
+The last row is a rule that only sends from green and waits for the probe when the dot is yellow. No refusals,
+but 5.6 s a goal slower, and 2 goals it could reach were given up. A refused command costs under a second here
+and the wait costs 20 to 28 s for each one it saves. So for a rule on given goals, waiting loses (D71).
 
 Whether any of this holds for people is not known. That is the study.
 
@@ -108,7 +137,8 @@ people the power is 0.93 or more if people act the way the rule does, and 0.32 t
 - `python analysis/study/feedback.py --maps`: the analysis, written before any data
 - `python analysis/study/power.py`: the sample size table (D61), about two minutes
 - `python analysis/study/pairs.py`: draws the goal sets into `data/pairs_medium.csv` (D64)
-- `python analysis/study/prestudy.py`: the scripted rule above, saved to `data/scripted`
+- `python analysis/study/prestudy.py`: the scripted rule above, saved to `data/scripted`. `prestudy.py band` and
+  `prestudy.py band wait` are the two band rows
 
 `band` is not one of the four. Putting it in is the team's call and has to be made before participant 1.
 
@@ -119,7 +149,7 @@ No participant has been run. Nothing was invented.
 Needs Python 3.12 with `mujoco numpy scipy pandas matplotlib pytest`. Windows. Everything is run from this folder.
 
 ```
-python -m pytest tests -q        # 28 tests, about 4 min
+python -m pytest tests -q        # 29 tests, about 4 min
 python reproduce.py              # re-scores the stored data against DECISIONS.md, 39 checks, about 2 min
 python src/teleop.py             # drive the arm: arrows, PgUp/PgDn, Enter to send. Keys are in the file header
 python src/teleop.py --show band # the band display, no goals, nothing saved
@@ -133,8 +163,8 @@ processes. The longest are `wide.py --98` (77 min) and `learn.py gen more` (abou
 them and deletes the old files first, so only use it if you mean it.
 
 Not covered by `reproduce.py`: anything that needs the 10-process pool (D38 to D44, D47 to D49, D52), the sweep
-table, part B of `planar.py`, the scripted counts and `static.py`. The end of its output lists each one with the
-reason.
+table, part B of `planar.py`, the scripted counts, `static.py`, `robust.py` and `greens.py`. The end of its
+output lists the older ones with the reason.
 
 ## The CA3 paper
 
@@ -161,11 +191,11 @@ python analysis/sizing.py            # ~5 min, fig6: reach and wheel momentum ag
 | `src/teleop.py` | the tool: set a goal dot in 3-D and send it, the cage, the displays, the study sessions |
 | `src/livemap.py` | the cage from where the arm is now: probed (`live`), looked up (`lookup`), and both (`band`) |
 | `src/view.py` | drawing, and replay of scripted trials in the MuJoCo viewer |
-| `analysis/envelope/` | every measurement of the cage. `static.py` is the test above, `learn.py` builds and scores the looked-up edges |
+| `analysis/envelope/` | every measurement of the cage. `static.py` is the test above, `robust.py` repeats it on other set-ups, `learn.py` builds and scores the looked-up edges |
 | `analysis/study/` | the study: run sheet, protocol, goal sets, power, scripted rule, analysis |
 | `tests/` | the gates: momentum, J*, 3-D reactionless, joint limits, the fence, the displays, the session |
 | `data/` | stored maps and sweeps, goal sets, scripted runs. `participants/` is empty |
-| `DECISIONS.md` | every choice, with its numbers. D70 is the two gaps and the band |
+| `DECISIONS.md` | every choice, with its numbers. D70 is the two gaps and the band, D71 the three checks on it |
 | `paper/main.tex` | the CA3 paper (IEEE) |
 | `paper/journal/draft.tex` | the journal draft, the study design is in it |
 

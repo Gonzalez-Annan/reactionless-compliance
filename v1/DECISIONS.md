@@ -1356,3 +1356,124 @@ Open:
   joins the study, and then it has to be settled on the study laptop.
 - No session has been driven by hand yet and the gamepad path has never run.
 - Ethics, consent form, recruitment.
+
+## D71 Three checks on D70: other set-ups, the 6 wrong greens, a rule that waits (2026-10-13)
+
+D70 left three things open. Does the gap hold on another set-up. Why does the band show 6 goals green that are
+refused. What is the growing green worth to a rule that waits for it. All three are run now. Simulation and a
+scripted rule, no people. For 1 the expected result was written into the script before the run. For 2 I had a
+guess. For 3 nothing was written down before.
+
+**1. Other set-ups.** `python analysis/envelope/robust.py`, 30 to 40 min, 10 processes. One thing is changed at
+a time against `static.py`: the first move, the servicer, the tilt limit. The cage from rest is drawn again for
+each servicer and each limit, 98 lines. Same 20 directions, same 7 depths.
+
+| set-up | moves | wrong go | wrong no | deepest wrong go | furthest wrong no |
+|---|---|---|---|---|---|
+| as `static.py`: medium, 2 deg, 0.3 m | 5 | 36 of 400 (9.0%) | 30 of 270 (11.1%) | 19.2 cm | 6.9 cm |
+| move 0.1 m | 5 | 4 of 400 (1.0%) | 15 of 270 (5.6%) | 13.8 cm | 6.9 cm |
+| move 0.2 m | 5 | 30 of 400 (7.5%) | 22 of 270 (8.1%) | 19.2 cm | 6.9 cm |
+| move 0.4 m | 4 | 40 of 320 (12.5%) | 31 of 216 (14.4%) | 19.2 cm | 6.9 cm |
+| large servicer | 5 | 0 of 395 | 3 of 270 (1.1%) | none | 21.3 cm |
+| large, move 0.1 m | 5 | 0 of 395 | 0 of 270 | none | none |
+| small, move 0.1 m | 3 | 11 of 204 (5.4%) | 14 of 147 (9.5%) | 1.3 cm | 1.3 cm |
+| limit 1 deg | 4 | 18 of 320 (5.6%) | 29 of 216 (13.4%) | 15.3 cm | 5.1 cm |
+| limit 3 deg | 5 | 35 of 380 (9.2%) | 17 of 270 (6.3%) | 16.6 cm | 8.3 cm |
+
+The first row is the control. It has to give the counts of `static.py` and the script stops if it does not.
+A move is left out when the hand does not arrive or the base passes the limit on the way: (0, 0, 0.4) at 0.4 m,
+(0, 0.3, 0) under 1 deg, and two of the five 0.1 m moves on the small servicer.
+
+What was expected, and what came out:
+
+- **The gap grows with the move. Yes for the count, no for the cause.** On the four moves that arrive at every
+  length, wrong goes are 4, 23, 25, 40 of 320 at 0.1, 0.2, 0.3, 0.4 m, and wrong noes 15, 22, 30, 31 of 216. But
+  the wrong goes that the tilt or the bus stops are 3, 19, 18, 18. From 0.2 m on, the rise is rehearsals that
+  ran out of time: 1, 4, 7, 22.
+- **Close to nothing on the large servicer. Yes.** 0 wrong goes at 0.3 m and at 0.1 m, 3 wrong noes at 0.3 m and
+  none at 0.1 m. The base tilts 0.07 deg at most on those moves.
+- **Bigger under 1 deg, smaller under 3 deg. Half wrong.** On the four moves both limits allow, wrong noes are
+  29, 23, 11 of 216 at 1, 2, 3 deg, as expected. Wrong goes are 18 of 320, 23 of 320, 32 of 304, the other way.
+  The ones the tilt stops are 18, 13, 2, as expected. The ones that run out of time are 0, 10, 27. The other 3
+  at 3 deg stall.
+- **The small servicer is a weak case.** Four of its five 0.3 m moves do not arrive, so it is only run at 0.1 m
+  on three moves. Its whole cage is 13 cm deep and already wrong from rest: 68 of 80 goals inside it go. On the
+  same three moves the medium one has 1 wrong go of 240 and 9 wrong noes of 162, the small one 11 of 204 and 14
+  of 147. So lighter is worse, but all 11 are time-outs and none is more than 1.3 cm inside the edge.
+
+What this does to the number in D70: of the 36 wrong goes, 24 are stopped by the tilt, 2 by the bus, and 10 are
+rehearsals that ran out of time. The tool refuses all 36, so for the operator they are all wrong goes. But only
+26 of 400 (6.5%) hit a limit. The other 10 may be goals the arm can reach, only slower than the rehearsal
+allows. That is what check 2 found on the 6 it looked at. The paper has to give both numbers.
+
+**2. The 6 wrong greens.** `python analysis/envelope/greens.py`, about 5 min. My guess was that the straight
+join between two probed lines cuts the corner. Wrong. Green is the same as inside the probed cage on 700 of 700
+checks, and the probed cage is right about all 6. The rehearsal ran out of time on every one:
+
+| after move | direction | goal | rehearsal stops | a probe line straight at the goal gets |
+|---|---|---|---|---|
+| (0, 0, -0.3) | 5 | 1.00 | 0.5 cm short | 5.4 cm past it |
+| (0, 0, -0.3) | 19 | 1.00 | 0.7 cm short | 4.2 cm past it |
+| (-0.3, 0, 0) | 3 | 1.00 | 1.8 cm short | 1.1 cm past it |
+| (-0.3, 0, 0) | 9 | 1.00 | 0.8 cm short | 2.2 cm past it |
+| (0.3, 0, 0) | 7 | 1.00 | 2.2 cm short | 2.2 cm past it |
+| (0.3, 0, 0) | 19 | 0.90 | 0.7 cm short | 6.9 cm past it |
+
+The rehearsal gives a move twice its length at 0.10 m/s plus 1 s. A probe line gets 25 s. Near the tilt limit
+the hand is slow, so the rehearsal stops with the hand still moving. 5 of the 6 probe lines ended on the tilt
+and 1 on a stall, all past the goal.
+
+Pulling the green edge in does not pay. Share of the probed cage, greens on the 409 goals the arm can reach,
+greens on the 291 it can not:
+
+| share | right greens | wrong greens |
+|---|---|---|
+| 1.00 | 325 | 6 |
+| 0.98 | 299 | 6 |
+| 0.95 | 261 | 5 |
+| 0.90 | 210 | 1 |
+| 0.85 | 171 | 0 |
+
+Getting from 6 wrong greens to 1 costs 115 right ones. Left as it is: a wrong green costs one refused command.
+
+**3. A rule that waits for green.** `python analysis/study/prestudy.py band wait`, data in
+`data/scripted_band_wait`. Same display, same 40 scored goals, id 1. The rule only sends when the dot is green.
+If it is yellow it waits for the probed cage and gives the goal up if it is still not green then.
+
+| | reached | wrong go | missed | refused | gave up | s per goal |
+|---|---|---|---|---|---|---|
+| no cage | 24 | 0 | 0 | 16 | 16 | 18.7 |
+| band, sends at once (D70) | 24 | 0 | 0 | 11 | 16 | 19.3 |
+| band, waits for green | 22 | 0 | 2 | 0 | 18 | 24.9 |
+
+- No refusals at all. 22 sends, all from green, all went. 9 were green at once, 13 after the probe.
+- 2 goals it could have reached were given up, both edge goals that stayed yellow with the probed cage in.
+- 5.6 s a goal slower, 995 s against 772 s over the 40 goals. For 11 refusals fewer that is 20 s a refusal.
+- The 24.9 s is as logged and may be low. 17 of the 18 give-ups have a probe time. On 10 of them the goal
+  lasted more than 1 s less on the simulation clock than its probe took on the wall clock, up to 16 s less. Two
+  things can do that and neither was timed. The probe's time runs from when it was asked for, which is when the
+  hand stopped, and that can be before the goal opened. Or the simulation fell behind the wall clock while the
+  10 processes probed. It is not the truth rehearsal at the start of a goal, that takes 0.3 to 0.9 s with
+  nothing else running. With the full probe time counted on those 10 goals it is 27.1 s a goal and 28 s a
+  refusal, and that is the upper bound.
+- Blocks 1 and 2 ran with something else loading the laptop: 5.3 and 4.9 min, probes of 15 to 24 s. Blocks 3 and
+  4: 2.7 and 2.8 min, probes of 10 to 14 s. It is 24.2 s a goal in the loaded half and 25.5 s in the clean one,
+  so the load is not what makes it slow.
+
+So for a rule on given goals, waiting for green loses. A refused command costs under a second here, the wait
+costs 20 to 28 s for each refusal it saves. The band's worth in this task is the two looked-up edges, which are
+there at once. The probe would only pay where a refused command is expensive, or where the person picks the
+goal and a bigger green changes what they pick. Nothing here measures that.
+
+Nothing in the protocol changes. The band is not a study condition and this rule is not a person.
+`tests/test_rule.py` has a check on the waiting rule (`test_waiting_rule_sends_only_from_green`).
+
+Open:
+
+- The rehearsal's clock. 10 of the 36 wrong goes and all 6 wrong greens are time-outs. A longer clock would
+  turn some of them into goes, and it is the same `check` that makes the truth of every goal in the study. Count
+  again with twice the time before the paper quotes 36 of 400. Not done.
+- The two clocks in the scripted band runs, see above. The row `cage from now` waits on the same kind of probe
+  and was not looked at again.
+- Everything is still one arm, one rest pose and one controller. The servicer and the limit are now varied, the
+  arm is not.
