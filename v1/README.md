@@ -28,8 +28,11 @@ cage were static, the answer would be the same both times.
 - **Wrong no.** 30 of 270 checks: the goal was refused from rest and goes after one move. The cage still shows it
   outside. The furthest one is 7 cm outside the edge.
 
-Of the 36 wrong goes, 26 are stopped by the base tilt or the bus limit. The other 10 are rehearsals that ran
-out of time, so some of those may only be slow and not out of reach (D71).
+That is with the tool's own rehearsal, which gives a move twice its length at 0.10 m/s plus 1 s. 10 of the 36
+wrong goes ran out of that time (D71). `python analysis/envelope/static.py 4` gives every rehearsal twice as
+long: 28 wrong goes of 400 and 32 wrong noes of 270. All 28 are stopped by the base tilt or the bus, none by the
+clock. With 8 times it is the same again, so it settles there (D72). 28 and 32 are the numbers for the paper.
+36 is what the tool refuses today, 8 of them for being slow.
 
 `python analysis/envelope/robust.py` is the same test with one thing changed at a time. 30 to 40 minutes.
 
@@ -47,6 +50,8 @@ out of time, so some of those may only be slow and not out of reach (D71).
 The gap grows with the move and is close to nothing on the large servicer, where the base hardly tilts. A
 tighter limit gives more wrong noes. It does not give more wrong goes: under 3 deg 28 of the 35 are time-outs
 and not the tilt. The small servicer can not make most of the moves, so its row is a weak one.
+
+This table is at the tool's clock. `robust.py --clock 4` counts it with the longer one.
 
 The stored sweep says the same on 98 directions and 40 starts (`data/wide98_medium.npz`): after one move the
 edge is more than 5% inside the rest edge on 14.1% of the lines and more than 5% outside it on 7.9%.
@@ -95,7 +100,9 @@ are green.
 
 The 6 wrong greens are all rehearsals that ran out of time, 0.5 to 2.2 cm short of the goal. A probe line
 straight at each of those goals gets 1 to 7 cm past it. So the green is right about where the hand can get, and
-the rehearsal's clock is short near the tilt limit (`python analysis/envelope/greens.py`, D71).
+the rehearsal's clock is short near the tilt limit (`python analysis/envelope/greens.py`, D71). With twice the
+time on the rehearsal no wrong green is left: 331 of the 420 goals the arm can reach are green, and none of the
+280 it can not (D72).
 
 A scripted rule on the 40 scored goals of the study. This is a rule, not people:
 
@@ -195,7 +202,7 @@ python analysis/sizing.py            # ~5 min, fig6: reach and wheel momentum ag
 | `analysis/study/` | the study: run sheet, protocol, goal sets, power, scripted rule, analysis |
 | `tests/` | the gates: momentum, J*, 3-D reactionless, joint limits, the fence, the displays, the session |
 | `data/` | stored maps and sweeps, goal sets, scripted runs. `participants/` is empty |
-| `DECISIONS.md` | every choice, with its numbers. D70 is the two gaps and the band, D71 the three checks on it |
+| `DECISIONS.md` | every choice, with its numbers. D70 is the two gaps and the band, D71 the three checks on it, D72 the count with a longer clock |
 | `paper/main.tex` | the CA3 paper (IEEE) |
 | `paper/journal/draft.tex` | the journal draft, the study design is in it |
 
@@ -203,6 +210,8 @@ python analysis/sizing.py            # ~5 min, fig6: reach and wheel momentum ag
 
 - The study. Ethics approval, consent form, recruiting 20 people, two pilots first. Nobody has driven a
   session by hand yet.
+- Two things on the goal sets before participant 1: the practice trap of set 2 is a trap only by the tool's
+  clock, and `pairs.py` should be run from scratch once to see that the same sets come out (D72).
 - The gamepad path has never run (needs `pygame`). The study is keyboard only.
 - Checking the ISO/TS 15066 chest values in `safety.py` against the standard.
 - Checking every reference in the paper against `P2_Literature_Survey.xlsx`.

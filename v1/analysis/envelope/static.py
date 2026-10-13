@@ -13,8 +13,8 @@ not reach is inside its inner edge. The second kind costs a refused command, bec
 Then the same band once the cage probed from where the move ended is in (livemap.sharpen, what the tool draws
 after 11 to 20 s), and what would happen if the outer edge were pulled in to that probed cage as well.
 python analysis/envelope/static.py 4 gives every rehearsal 4 times its length at V_GO instead of 2. The probes keep
-their own clock. Expected before the run: most of the 10 wrong goes that ran out of time now go, the 26 that hit
-a limit stay, and the 6 wrong greens of the band are gone."""
+their own clock. With no number it is the tool's clock: 36 wrong goes and 30 wrong noes, 10 of the 36 out of time.
+At 4 and at 8 it is 28 and 32, and no rehearsal runs out of time (D72)."""
 import sys; sys.path.insert(0, "src")
 from collections import Counter
 import numpy as np, mujoco

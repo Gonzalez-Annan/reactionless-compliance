@@ -1477,3 +1477,68 @@ Open:
   and was not looked at again.
 - Everything is still one arm, one rest pose and one controller. The servicer and the limit are now varied, the
   arm is not.
+
+## D72 The recount: the rehearsal's clock at 2, 4 and 8 times (2026-10-13)
+
+D71 left this open: 10 of the 36 wrong goes and all 6 wrong greens were rehearsals that ran out of time, so count
+again with a longer clock before the paper quotes 36 of 400. Done. Simulation only, no people.
+
+How. `teleop.py` has one new number, `SLACK = 2.0`: a rehearsed or probed line may take that many times its
+length at 0.10 m/s, plus 1 s. At 2.0 nothing in the tool changes. `python analysis/envelope/static.py 4` sets it
+to 4 for the rehearsals only, from rest and after the move alike. The cage and the probes keep their own clock.
+
+Expected, written into the script before the run: most of the 10 time-outs now go, the 26 that hit a limit stay,
+the 6 wrong greens are gone. Nothing was written down for the wrong noes.
+
+| clock | wrong go | tilt | bus | time | wrong no | wrong greens, probed cage in |
+|---|---|---|---|---|---|---|
+| 2, the tool today | 36 of 400 (9.0%) | 24 | 2 | 10 | 30 of 270 (11.1%) | 6 |
+| 4 | 28 of 400 (7.0%) | 26 | 2 | 0 | 32 of 270 (11.9%) | 0 |
+| 8 | 28 of 400 (7.0%) | 26 | 2 | 0 | 32 of 270 (11.9%) | 0 |
+
+- It settles at 4. At 8 every line of the output is the same, and no rehearsal runs out of time.
+- Of the 10 time-outs, 8 were only slow and now go. The other 2 creep on until the base passes 2 deg. So the
+  count came out as expected, and "26 hit a limit" in D71 was 2 short. It is 28.
+- Wrong goes per first move, clock 2 then 4: (0, 0, 0.3) 11 and 9, (0, 0, -0.3) 2 and 0, (-0.3, 0, 0) 6 and 4,
+  (0.3, 0, 0) 4 and 2, (0, 0.3, 0) 13 and 13.
+- Wrong noes went up by 2. Two goals outside the cage that ran out of time after a move now arrive. From rest
+  nothing moves: 80 of 80 inside go and 54 of 60 outside are refused at every clock.
+- The deepest wrong go is still 19.2 cm inside the edge and the furthest wrong no 6.9 cm outside it.
+- The band, 700 checks after a move, at clock 4: 420 on goals the arm can reach and 280 on goals it can not (409
+  and 291 before). With the probed cage in, 331 of the 420 are green and 89 "not known". Of the 280 none is
+  green, 246 are "not known", 34 out of reach. As looked up it is 90 and 330 of the 420, and 2, 244, 34 of the
+  280. It still never shows a goal the arm can reach as out of reach.
+
+What the paper quotes: 28 of 400 wrong goes (7.0%) and 32 of 270 wrong noes (11.9%), with the clock named. And
+next to it that the tool as built refuses 36, because it also refuses a move that takes more than twice its
+length at 0.10 m/s. 8 of the 36 are that.
+
+The control: `static.py` with no number still gives 36 of 400 and 30 of 270. `pytest` 29 passed, `reproduce.py`
+39 of 39.
+
+**The goals of the study.** Their truth comes from the same rehearsal, so I looked. `data/pairs_medium.csv` keeps
+what ended the rehearsal of every pair.
+
+- Scored goals, 40. The 16 that can not be reached (8 traps, 8 outer) all end on the tilt or the bus, none on
+  the clock. So no scored truth hangs on the clock.
+- One scored edge goal (1408, set 3) ran out of time, but it arrives at every clock.
+- One practice pair is a trap only by the clock: 602, the practice trap of set 2. Its rehearsal runs out of time
+  5.3 cm short. With 4 times it still runs out of time, 4.2 cm short. With 8 times the tilt stops it 0.9 cm
+  short, and the tool counts 2 cm as reached. It is not scored. It also shows that "settles at 4" is for the
+  140 goals of `static.py` and not a law.
+- Running those two again today gives 5.32 and 0.23 cm short where the file has 5.40 and 0.47. Three other pairs
+  are off by 0.03 mm, 0.04 mm and less than a micrometre. Same class each time. I did not find the cause.
+  Either something in the move changed by a hair after the sets were drawn, or my re-run is not exactly what
+  `pairs.py` does.
+
+Not changed: the tool's clock stays at 2, the protocol and the goal sets stay as they are.
+
+Open:
+
+- The tool's clock. Leave it at 2 and say so in the paper, or set it to 4. At 4 the goal sets have to be drawn
+  again, the scripted runs redone and the numbers of D70 and D71 counted again. Team lead's call. I would leave
+  it: refusing a move that takes more than twice its time is a rule one can state.
+- Practice pair 602 of set 2. Swap it for a trap that hits a limit, or keep it. Before participant 1.
+- Run `pairs.py` from scratch once and see that the same sets come out. Before participant 1.
+- The table of D71 (other moves, servicers, limits) is at clock 2. Its rows with many time-outs will move the
+  most: 0.4 m, 3 deg, the small servicer. `python analysis/envelope/robust.py --clock 4` counts it again.
