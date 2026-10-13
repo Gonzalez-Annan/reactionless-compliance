@@ -11,7 +11,10 @@ Last, what the band display (D70) shows for the same goals after the same moves.
 where the arm is. It is wrong when a goal the arm can reach is past its outer edge, and when a goal the arm can
 not reach is inside its inner edge. The second kind costs a refused command, because every go is checked.
 Then the same band once the cage probed from where the move ended is in (livemap.sharpen, what the tool draws
-after 11 to 20 s), and what would happen if the outer edge were pulled in to that probed cage as well."""
+after 11 to 20 s), and what would happen if the outer edge were pulled in to that probed cage as well.
+python analysis/envelope/static.py 4 gives every rehearsal 4 times its length at V_GO instead of 2. The probes keep
+their own clock. Expected before the run: most of the 10 wrong goes that ran out of time now go, the 26 that hit
+a limit stay, and the 6 wrong greens of the band are gone."""
 import sys; sys.path.insert(0, "src")
 from collections import Counter
 import numpy as np, mujoco
@@ -37,6 +40,10 @@ def moved(det, size="medium", peak=None):
     return m, d, sid, Rb0, p0, base
 
 
+def clock(k):
+    T.SLACK = k                                               # per process: a rehearsal may take k times its length at V_GO, plus 1 s
+
+
 def one(job):
     edge, det, size, T.BASE_MAX = job                         # edge: the cage's edge along one direction, from the rest hand position. The tilt limit is set per process
     m, d, sid, Rb0, p0, base = moved(det, size)
@@ -55,7 +62,8 @@ if __name__ == "__main__":
     tips = np.load(T.OUT.parent / "decide4_medium.npz")["rays"][:, -1]
     U = np.random.default_rng(0).normal(size=(20, 3)); U /= np.linalg.norm(U, axis=1)[:, None]    # the 20 directions of start.py hard
     E = [u / T.depth(list(tips), p0, p0 + u) for u in U]      # depth 1 is the cage's edge
-    with Pool(10) as pl:
+    k = float(sys.argv[1]) if sys.argv[1:] else T.SLACK
+    with Pool(10, clock, (k,)) as pl:
         R = pl.map(one, [(e, det, "medium", T.BASE_MAX) for det in (None,) + DETS for e in E])
     R = [R[i:i + len(E)] for i in range(0, len(R), len(E))]   # [start][direction] -> (base tilt left, [what stopped each goal, "" if it arrived])
     A = FRACS + OUTER; nin = len(FRACS)
@@ -63,6 +71,7 @@ if __name__ == "__main__":
     no = [(k, j) for k in range(len(E)) for j in range(nin, len(A)) if R[0][k][1][j]]
     print("CLAIM UNDER TEST: the cage is static. Drawn once at rest, it is right wherever the hand has been.")
     print("The cage is the saved rest map. It is not redrawn anywhere in this test.")
+    print("A rehearsal may take %g times its length at %.2f m/s, plus 1 s." % (k, T.V_GO))
     print("%d goals fixed in the world: %d directions, each at %s of the way to the cage edge." % (len(E) * nin, len(E), FRACS))
     print("%d more just outside the cage, at %s of the way to its edge." % (len(E) * len(OUTER), OUTER))
     print("\nFrom rest: %d of %d goals GO." % (len(go), len(E) * nin))

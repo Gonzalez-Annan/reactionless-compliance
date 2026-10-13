@@ -70,6 +70,7 @@ TW_BASE, BASE_MAX = 2.0, 2.0            # hand first, base as level as the arm a
 FINE, CAM = 0.25, 60.0                  # L1 speed factor; camera turn deg/s
 KX_GO, REACH = 20.0, 1.2                # 1/s pull near the goal (full speed until 5 mm out); m a probe ray pulls
 STALL = 0.0003                          # m per 0.5 s: check() waits out the slow last stretch a probe ray gives up on
+SLACK = 2.0                             # a rehearsed or probed line may take this many times its length at V_GO, plus 1 s
 # 98 probe directions. Measured from rest, goals near the edge (D20): a 26-line cage agrees with the rehearsal
 # on 31 of 42 goals, 98 lines on 37 of 42, and only 1 of its 5 misses says "in" for a goal that is refused.
 DIRS = [np.array(u) for u in sorted({tuple(np.round(np.array(u) / np.linalg.norm(u), 6))
@@ -203,7 +204,7 @@ def ray(m, d, sid, Rb0, u, scheme, mode, reach=REACH, stall=0.002, marks=None, w
     d2 = copy.copy(d)
     p0 = best = d.site_xpos[sid].copy()
     last = 0.0
-    for i in range(int((2 * reach / V_GO + 1) / m.opt.timestep)):
+    for i in range(int((SLACK * reach / V_GO + 1) / m.opt.timestep)):
         if i % DECIM == 0:
             p, base = ctrl(m, d2, sid, Rb0, p0 + reach * u, scheme, mode)
             while marks is not None and len(marks) < len(LIMITS) and base > LIMITS[len(marks)]:
