@@ -1661,3 +1661,19 @@ Open:
 - Two pilots, the ethics paperwork, 20 people.
 - The small servicer cage on a longer clock, if the paper ever wants that row.
 - The Munich paper (IAC-10 B6.2.2) is still read as an abstract only.
+
+## D75 A figure for "Wrong both ways" (2026-10-14)
+
+On branch `p2-gap-figure`, off `p2-journal-d73`. Nothing on main.
+
+`analysis/envelope/static.py` now saves what stopped each goal to `data/static_medium_<clock>.npz` (rest and the
+five moves, 20 directions, 7 goals each). Nothing else in it changed. Run again at clock 4: the same 28 of 400 and
+32 of 270, deepest wrong go 19.2 cm, furthest wrong no 6.9 cm.
+
+`analysis/envelope/gapfig.py` draws `paper/figs/fig_gap` from that file, one panel per move, and stops if the counts
+are not 28 and 32. The draft has it as Fig. `fig:gap` in "Wrong both ways", with one new sentence: which way the map
+is wrong depends on the move. Down gives 0 wrong goes and 19 wrong noes, the move along +y gives 13 and 7.
+
+Builds at 21 pages, same warnings as before.
+
+Open: as D74.
