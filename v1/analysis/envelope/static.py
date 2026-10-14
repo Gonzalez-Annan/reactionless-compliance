@@ -66,6 +66,8 @@ if __name__ == "__main__":
     with Pool(10, clock, (k,)) as pl:
         R = pl.map(one, [(e, det, "medium", T.BASE_MAX) for det in (None,) + DETS for e in E])
     R = [R[i:i + len(E)] for i in range(0, len(R), len(E))]   # [start][direction] -> (base tilt left, [what stopped each goal, "" if it arrived])
+    np.savez("data/static_medium_%g.npz" % k, why=np.array([[ws for _, ws, _ in rows] for rows in R]),     # [rest + moves][direction][goal], "" = arrived. For gapfig.py
+             A=FRACS + OUTER, dets=DETS, edge=[np.linalg.norm(e) for e in E])
     A = FRACS + OUTER; nin = len(FRACS)
     go = [(k, j) for k in range(len(E)) for j in range(nin) if R[0][k][1][j] == ""]
     no = [(k, j) for k in range(len(E)) for j in range(nin, len(A)) if R[0][k][1][j]]
