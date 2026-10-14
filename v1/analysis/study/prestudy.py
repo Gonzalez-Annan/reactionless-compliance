@@ -1,0 +1,104 @@
+"""Scripted pre-study for the maps study. NOT participant data: a fixed rule plays the operator, so this only says
+whether the maps can differ at all on these goals before people are used. Run from the repo root:
+python analysis/study/prestudy.py            ids 1 2 3 4: the four orders, and every display on every goal set once
+python analysis/study/prestudy.py 1          one id
+python analysis/study/prestudy.py band       the band display (D70) alone, all four blocks -> data/scripted_band
+python analysis/study/prestudy.py band wait  the same with a rule that only sends from green (D71) -> data/scripted_band_wait
+-> data/scripted/maps_<id>.csv (never data/participants) and a table per display on the scored test goals.
+It runs teleop.maps_study as a participant would get it: training, then four blocks on the sets of data/pairs_medium.csv.
+The runs of the first design (15 goals a block, 7 scored, D43) are in data/scripted/first_design and are not read here.
+
+The rule: steer the dot to the ball. Go once when the dot is on it (live map: only when the map is current).
+Give the goal up when the dot has got no closer to the ball for 2 s (the cage holds it), when the go was
+refused (red dot), or when the ball is still there 40 s after a go (the fence brought the arm back).
+With `wait` the go is only made when the dot on the ball is green. If it is yellow the rule waits for the probed
+cage, and gives the goal up if the dot is still not green when that is in.
+A person would plan, hesitate and learn. The rule does none of that, so the times are a floor, not a forecast."""
+import sys; sys.path.insert(0, "src")
+import builtins, pathlib, time, types
+import numpy as np, pandas as pd
+import teleop as T
+
+STUCK, AFTER_GO = 200, 4000          # steps of 0.01 s
+
+
+def operator(wait=False):
+    n, at, last, sync = [0], [None, 0, None], [0.0, 0], [None]      # at: goal, step it appeared, step of the go
+    s = {"v": types.SimpleNamespace(cam=types.SimpleNamespace(azimuth=90.0, elevation=-45.0), close=lambda: None)}
+
+    def hook(m, d, pts):
+        n[0] += 1
+        if s.get("text") == "updating" or wait and s.get("text") == "looked up":      # the probing costs wall time, so the simulation waits for the clock here
+            sync[0] = sync[0] or (time.time(), d.time)
+            time.sleep(max(0, (d.time - sync[0][1]) - (time.time() - sync[0][0])))
+        else:
+            sync[0] = None
+        return True
+
+    def err():
+        return s["tgt"] - s["link"][1]
+
+    def axes():                                          # sx, sy, dz, cx, cy, go, snap, fine
+        if "tgt" not in s or "link" not in s:
+            return 0, 0, 0, 0, 0, False, False, False
+        if s["tgt"] is not at[0]:
+            at[:], last[:] = [s["tgt"], n[0], None], [np.inf, n[0]]
+        e = err()
+        if s.get("text") == "updating":                  # no fence yet, the dot gets to the ball and the new cage pulls it back. Stuck is counted from then
+            last[:] = [np.inf, n[0]]
+        elif np.linalg.norm(e) < last[0] - 1e-6:         # closer than it has been. On a fence this steering can shake the dot and get nowhere (pair 155)
+            last[:] = [np.linalg.norm(e), n[0]]
+        az, el = np.radians(90.0), np.radians(-45.0)     # the inverse of T.move at the stub camera
+        fwd = np.array([np.cos(el) * np.cos(az), np.cos(el) * np.sin(az), np.sin(el)])
+        right = np.array([np.sin(az), -np.cos(az), 0])
+        c = np.clip(np.array([e @ right, e @ np.cross(right, fwd), e @ fwd]) / 0.0015, -1, 1)
+        go = np.linalg.norm(e) < 1e-3 and at[2] is None and s.get("text") != "updating" and (not wait or list(s.get("rgba", [])) == T.GREEN)
+        if go:
+            at[2] = n[0]
+        return c[0], c[1], c[2], 0, 0, go, False, False
+
+    def park():
+        if "tgt" not in s or s["tgt"] is not at[0] or s.get("text") == "updating":
+            return False
+        if at[2] is None:
+            if wait and last[0] <= 1e-3:                 # on the ball and not sent, so it was not green. Given up once the probed cage is in and it still is not
+                return s.get("text") == "probed" and list(s.get("rgba", [])) != T.GREEN
+            return last[0] > 1e-3 and n[0] - last[1] > STUCK
+        return list(s.get("rgba", [])) == T.RED or n[0] - at[2] > AFTER_GO
+
+    axes.park = park
+    def fresh():                                         # a new block: nothing left over from the last one but the camera
+        v = s["v"]; s.clear(); s["v"] = v
+        return s, hook
+
+    return axes, fresh
+
+
+if __name__ == "__main__":
+    T.OUT = pathlib.Path("data/scripted")
+    band = "band" in sys.argv[1:]; wait = band and "wait" in sys.argv[1:]
+    if band:                     # not a study condition: every block shows it, so it meets all four goal sets, the 40 scored goals each display met
+        T.MAPS, T.OUT = ("band",) * 4, T.OUT.with_name("scripted_band_wait" if wait else "scripted_band")     # one level under data/, where the tool looks for its goal files
+    builtins.input = lambda q="": ""
+    T.ask = lambda q, n, lo, hi: [float("nan")] * n      # a rule has no workload and no trust
+    for pid in [1] if band else [int(a) for a in sys.argv[1:]] or [1, 2, 3, 4]:
+        axes, T.viewer_hook = operator(wait)
+        T.maps_study(axes, pid, "medium")
+    df = pd.concat(pd.read_csv(f) for f in sorted(T.OUT.glob("maps_*.csv")))
+    df = df[(df.leg == 2) & (df.use == "scored")]
+    df = df.assign(zone=df.get("zone", np.nan))         # runs from before D70 have no zone column
+    g = df.groupby("cue")
+    n = lambda f: g.apply(lambda x: int(f(x).sum()))
+    out = pd.DataFrame({"goals": g.size(), "s_per_goal": g.time_s.mean().round(1), "reached": g.reached.sum(),
+                        "wrong_go_goals": n(lambda x: x.trips > 0), "on_traps": n(lambda x: (x.trips > 0) & (x.cls == "trap")),
+                        "missed": n(lambda x: x.parked & x.true_go), "refused": g.refused.sum(), "gave_up": g.parked.sum(),
+                        "timeouts": g.timeout.sum(), "early_sends": g.early.sum(), "map_s_max": g.map_s.max().round(1),
+                        "worst_tilt_deg": g.peak_base_deg.max().round(2)} | ({"sent_from_green": n(lambda x: x.zone == 0), "refused_on_green": n(lambda x: (x.zone == 0) & (x.refused > 0)),
+                         "sent_from_band": n(lambda x: x.zone == 1), "refused_in_band": n(lambda x: (x.zone == 1) & (x.refused > 0))} if band else {})
+                       | ({"sent_before_probe": n(lambda x: (x.sends > 0) & (x.early > 0)), "sent_after_probe": n(lambda x: (x.sends > 0) & (x.early == 0)),
+                           "not_green_after_probe": n(lambda x: (x.sends == 0) & x.map_s.notna()), "reachable_of_those": n(lambda x: (x.sends == 0) & x.map_s.notna() & x.true_go)} if wait else {})
+                       ).reindex(list(dict.fromkeys(T.MAPS)))
+    print("SCRIPTED OPERATOR, not participants. Scored test goals, ids", *sorted(df.pid.unique()))
+    print(out.to_string())
+    t = df.groupby("cls").true_go.agg(["size", "sum"])      # the classes were sorted by rehearsal: did they hold where the rule's lead moves ended
+    print("could be reached when it opened, by class (of goals):", {k: f"{int(v['sum'])} of {int(v['size'])}" for k, v in t.iterrows()})
