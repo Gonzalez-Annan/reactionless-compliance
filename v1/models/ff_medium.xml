@@ -1,11 +1,30 @@
 <mujoco model="ff_medium">
 <option gravity="0 0 0" timestep="0.0005" integrator="RK4"/>
-<default><joint armature="0.5"/><geom contype="0" conaffinity="0" rgba=".7 .7 .8 1"/></default>
+<statistic center="-0.11716905622412099 0 0.38198729810778076" extent="2.4960254037844387" meansize="0.24067021036318237"/>
+<asset>
+<texture name="sky" type="skybox" builtin="gradient" rgb1=".03 .04 .09" rgb2="0 0 0" width="512" height="3072" mark="random" random=".0015" markrgb=".9 .9 1"/>
+<texture name="cells" type="2d" builtin="checker" rgb1=".1 .13 .3" rgb2=".07 .09 .22" mark="edge" markrgb=".7 .7 .75" width="64" height="64"/>
+<material name="foil" rgba=".88 .68 .22 1" specular=".5" shininess=".6"/>
+<material name="cells" texture="cells" texrepeat="6 3" specular=".8" shininess=".9"/>
+<material name="metal" rgba=".6 .62 .66 1" specular=".7" shininess=".6"/>
+<material name="white" rgba=".9 .9 .92 1" specular=".4"/>
+<material name="dark" rgba=".16 .16 .18 1"/>
+</asset>
+<default><joint armature="0.5"/><geom contype="0" conaffinity="0" material="white"/></default>
 <worldbody>
 <light pos="0 -3 3" dir="0 1 -1"/>
+<light name="sun" directional="true" pos="0 0 6" dir="-.5 .8 -1" diffuse=".6 .58 .52" specular=".4 .4 .4" castshadow="false"/>
 <body name="base"><freejoint name="root"/>
-<geom type="box" size="0.5 0.5 0.5" mass="300.0" rgba=".9 .75 .3 1"/>
-<geom type="cylinder" fromto="0 0 0 -1.1 0 0" size=".02" mass="0.001" rgba=".2 .6 1 1"/>
+<geom type="box" size="0.5 0.5 0.5" mass="300.0" material="foil"/>
+<geom type="cylinder" fromto="0 0 0 -1.1 0 0" size=".02" mass="0.001" material="metal"/>
+<geom mass="0" type="box" pos="0 0 0.504" size="0.45 0.45 .004" material="metal"/>
+<geom mass="0" type="cylinder" fromto="0 0 0.5 0 0 0.53" size=".075" material="dark"/>
+<geom mass="0" type="cylinder" fromto="0 0 0 1.1 0 0" size=".02" material="metal"/>
+<geom mass="0" type="cylinder" fromto="0 -0.5 -0.15 0 -0.58 -0.15" size=".025" material="metal"/>
+<geom mass="0" type="ellipsoid" pos="0 -0.6 -0.15" size="0.16 .03 0.16" material="white"/>
+<geom mass="0" type="cylinder" fromto="0 -0.6 -0.15 0 -0.725 -0.15" size=".008" material="metal"/>
+<geom mass="0" type="box" pos="1.65 0 0" size="0.55 0.325 .01" material="cells"/>
+<geom mass="0" type="box" pos="-1.65 0 0" size="0.55 0.325 .01" material="cells"/>
 <body name="l1" pos="0 0 0.5"><joint name="j1" axis="0 0 1"/><geom type="capsule" fromto="0 0 0 0 0 0.12" size=".04" mass="2.5"/>
 <body name="l2" pos="0 0 0.12"><joint name="j2" axis="0 1 0"/><geom type="capsule" fromto="0 0 0 0 0 0.225" size=".04" mass="2.5"/>
 <body name="l3" pos="0 0 0.225"><joint name="j3" axis="0 0 1"/><geom type="capsule" fromto="0 0 0 0 0 0.225" size=".04" mass="2.0"/>

@@ -63,6 +63,11 @@ near the edge is where a person needs it.
 
 ## What each display does about it
 
+This is a representation problem. What the arm can reach depends on where it is, so any picture of it is drawn
+from one state and something has to give: `rest` is complete but goes stale, `guaranteed` is always right but
+small, `live` is current but 11 to 20 s late, `gate` gives no picture and answers each command by rehearsing it.
+The study compares those four trades.
+
 Five ways to show the workspace are built. `python src/teleop.py --show NAME` opens any of them with no goals.
 
 | name | what is on the screen | wrong go | wrong no | price |
@@ -182,7 +187,7 @@ Five ways of resolving the redundancy of the arm, compared on hand tracking, bas
 drift and permitted contact speed. `paper/main.tex`.
 
 ```
-python models/make_models.py         # writes the three servicer models
+python models/make_models.py         # writes the three servicer models, dressed as a satellite (paint only, D77)
 python analysis/sweep.py             # ~10 min, writes data/sweep.csv
 python analysis/figures.py           # writes paper/figs/fig{1,2,3,5}_*.pdf
 python analysis/singularity_map.py   # ~1 min, the level-base mobility of 6000 poses (D16)
@@ -215,7 +220,9 @@ python analysis/sizing.py            # ~5 min, fig6: reach and wheel momentum ag
   session by hand yet.
 - Nothing is open on the goal sets. `pairs.py` run from nothing gives the same file to the byte, and the
   practice trap of set 2 stays (D73).
-- The gamepad path has never run (needs `pygame`). The study is keyboard only.
+- The pad (`--pad`, any pad Windows lists in joy.cpl, no install, `python src/pad.py --learn` once) has only run
+  on made-up readings (`tests/test_pad.py`). The protocol says keyboard. A switch to the pad is the team's call,
+  logged in `PROTOCOL_maps.md` before participant 1.
 - Checking the ISO/TS 15066 chest values in `safety.py` against the standard.
 - Checking every reference in the paper against `P2_Literature_Survey.xlsx`.
 - Demo video, slides, defence.

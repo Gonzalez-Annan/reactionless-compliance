@@ -73,8 +73,6 @@ def viewer_hook(show_ref=True):
                 mujoco.mjv_initGeom(v.user_scn.geoms[n], mujoco.mjtGeom.mjGEOM_SPHERE, [0.03, 0, 0], s["hand"][0],
                                     np.eye(3).flatten(), s["hand"][1])
                 n += 1
-                if hasattr(v, "set_texts"):
-                    v.set_texts((mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_TOPLEFT, s.get("label", "margin (1 = ready pose)"), s["text"]))
             if "link" in s:                        # white = hand to goal (teleop)
                 g = v.user_scn.geoms[n]
                 mujoco.mjv_initGeom(g, mujoco.mjtGeom.mjGEOM_SPHERE, [0.001, 0, 0], s["link"][1], np.eye(3).flatten(), [1, 1, 1, 0.9])
@@ -82,6 +80,11 @@ def viewer_hook(show_ref=True):
                     mujoco.mjv_connector(g, mujoco.mjtGeom.mjGEOM_LINE, 2, *s["link"])
                 n += 1
             v.user_scn.ngeom = n
+            if hasattr(v, "set_texts"):            # teleop: margin or map state top left, score top right, a message to read top centre
+                F, P = mujoco.mjtFont, mujoco.mjtGridPos
+                v.set_texts([x for x in ((F.mjFONT_NORMAL, P.mjGRID_TOPLEFT, s.get("label", "margin (1 = ready pose)"), s.get("text")) if "hand" in s else None,
+                                         (F.mjFONT_NORMAL, P.mjGRID_TOPRIGHT, *s["hud"]) if s.get("hud") else None,
+                                         (F.mjFONT_BIG, P.mjGRID_TOP, *s["say"]) if s.get("say") else None) if x])
         v.sync()
         time.sleep(max(0, s["t0"] + d.time + DECIM * m.opt.timestep - time.time()))
         return v.is_running()

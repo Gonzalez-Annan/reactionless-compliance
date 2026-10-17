@@ -4,7 +4,8 @@ For whoever sits next to the participant. The design is the Design section of `p
 changes are logged in `PROTOCOL_maps.md`. If this sheet says something else, those two are right and this sheet
 gets fixed.
 
-Windows only. Keyboard only. Simulation only.
+Windows only. Simulation only. Keyboard, or a gamepad with `--pad` (any pad Windows lists in joy.cpl, keys
+still work next to it).
 
 ## What a session tests
 
@@ -41,7 +42,7 @@ python -m venv .venv
 .venv\Scripts\python.exe -m pip install mujoco numpy scipy pandas matplotlib pytest
 ```
 
-4. Check the install, from `v1`. 28 tests, then 39 PASS lines:
+4. Check the install, from `v1`. 34 tests, then 39 PASS lines:
 
 ```
 ..\.venv\Scripts\python.exe -m pytest -q tests -p no:cacheprovider
@@ -51,8 +52,19 @@ python -m venv .venv
 ..\.venv\Scripts\python.exe reproduce.py
 ```
 
-5. Run the two pilots (next section). Write what they changed into `PROTOCOL_maps.md`, with the date.
-6. Freeze the code. Write the commit hash on the log sheet. Nothing in `src/` or `data/pairs_medium.csv` changes
+5. Keys or pad. `PROTOCOL_maps.md` says keys. A switch to the pad is decided and written there before
+   participant 1, then kept for all 20: a change halfway is a change of condition. For the pad: plug it in, check it moves in joy.cpl (Win+R, `joy.cpl`), then teach the
+   tool once on that laptop. It asks for each control in turn, a skipped one stays on the keys:
+
+```
+..\.venv\Scripts\python.exe src\pad.py --learn
+```
+
+   It then prints what the pad gives. Push every control once and check the right number moves. Ctrl+C to stop.
+   Nobody has run this with a real pad yet.
+
+6. Run the two pilots (next section). Write what they changed into `PROTOCOL_maps.md`, with the date.
+7. Freeze the code. Write the commit hash on the log sheet. Nothing in `src/` or `data/pairs_medium.csv` changes
    between participant 1 and participant 20.
 
 ## The two pilots
@@ -68,6 +80,8 @@ reads that folder.
 ..\.venv\Scripts\python.exe src\teleop.py --maps 2 --dry
 ```
 
+With the pad, add `--pad` to both, and to every session after.
+
 Run them exactly like a real session, consent talk and closing questions included, with a stopwatch from the
 moment the person sits down. Write down:
 
@@ -78,6 +92,7 @@ moment the person sits down. Write down:
 - whether they could give the six workload numbers without help.
 - how long the cage from where the arm is now took (the tool logs it as `map_s`), and whether the wait was
   clear to them.
+- whether the words on the briefing screens and the score top right could be read from where they sat.
 - anything that hung, flickered or crashed.
 
 Nobody has driven a session by hand yet. Expect the pilots to find things.
@@ -122,10 +137,10 @@ consent form only, never in the repo and never next to the id in any file.
 > spacecraft turns a little the other way. If it turns more than 2 degrees the arm is brought back to where it
 > was.
 >
-> A pink ball shows where the hand has to go. You move a dot with the keys on this card. Put the dot on the
+> A pink ball shows where the hand has to go. You move a dot with the keys (or the pad) on this card. Put the dot on the
 > pink ball and press Enter. The arm then goes there by itself. Then the next ball comes.
 >
-> Some balls can not be reached. If you think a ball is out of reach, press Right Ctrl and it is skipped.
+> Some balls can not be reached. If you think a ball is out of reach, press Right Ctrl (pad: Triangle) and it is skipped.
 >
 > What counts is your total time. Skipping a ball adds 30 seconds. A ball still open after 90 seconds is skipped
 > for you and also adds 30 seconds. A command that is brought back or refused costs only the time it took.
@@ -145,11 +160,13 @@ consent form only, never in the repo and never next to the id in any file.
 ..\.venv\Scripts\python.exe src\teleop.py --maps N
 ```
 
-It prints `saving to data\participants\maps_N.csv`. If it says the file is there already, stop and read "When
-something goes wrong".
+With the pad, add `--pad`. It prints `saving to data\participants\maps_N.csv` and waits. If it says the file is
+there already, stop and read "When something goes wrong". When the person is seated at the screen, press Enter.
+From here every briefing is on the screen and the person starts each round themselves with Enter (pad: Cross).
+The simulation stands still while a screen is up, so reading costs no score.
 
-**4. Training.** The terminal shows the words for this person's first display and the costs. The person reads
-them, you press Enter in the terminal. Four pairs, not scored. If no inner ball was reached or the outer ball
+**4. Training.** The screen shows the words for this person's first display and the costs. The person reads
+them and presses Enter. Four pairs, not scored. At the end the screen shows the score, Enter goes on. If no inner ball was reached or the outer ball
 was not given up, the tool runs the four pairs once more by itself. After that it goes on whatever happened.
 Nobody is dropped for doing badly.
 
@@ -158,15 +175,16 @@ about the task.
 
 **5. Four blocks.** For each block:
 
-1. The terminal shows `Block b/4`, the words for the display and the costs. The person reads them. You press
+1. The screen shows `Block b of 4`, the words for the display and the costs. The person reads them and presses
    Enter.
-2. 12 pairs: 2 for practice, then 10 that count. The person does not see which is which. You watch and stay
-   quiet.
-3. The window closes. The terminal asks for six workload numbers, 0 to 100. The person reads them off the
+2. 12 pairs: 2 for practice, then 10 that count. Top right: practice or pair, which one of how many, the time
+   on this goal, the score so far (practice not in it) and how the last goal ended. You watch and stay quiet.
+3. The screen shows the score of the block. The person presses Enter and the window closes.
+   The terminal asks for six workload numbers, 0 to 100. The person reads them off the
    workload card, you type them with spaces between, Enter.
 4. The terminal asks for trust, 1 to 7. Same way.
 5. The tool prints the block time and the minutes so far, and saves the file. A short break here is fine. The
-   next block starts when you press Enter.
+   next block's briefing waits on the screen until the person presses Enter.
 
 If the person asks whether a ball can be reached, or whether the cage is right: "I can't say. Do what you think
 is fastest."
@@ -238,15 +256,17 @@ participant 1.
 
 ## Key card
 
-| key | does |
-|---|---|
-| arrows | dot left, right, up, down on the screen |
-| PgUp / PgDn | dot away from you / toward you |
-| Home / End | turn the view, to judge depth |
-| Shift, held | slow, for the last bit |
-| Delete | dot back onto the hand |
-| Enter | send |
-| Right Ctrl | give this ball up |
+| key | pad (PS layout, as `pad.py --learn` asks) | does |
+|---|---|---|
+| arrows | left stick | dot left, right, up, down on the screen |
+| PgUp / PgDn | R2 / L2 | dot away from you / toward you |
+| Home / End | right stick | turn the view, to judge depth |
+| Shift, held | L1, held | slow, for the last bit |
+| Delete | Circle | dot back onto the hand |
+| Enter | Cross | send, and go on from a screen |
+| Right Ctrl | Triangle | give this ball up |
+
+A pad with fewer controls: whatever was skipped in `--learn` stays on the key. Print the column of the pad you use.
 
 ## Workload card
 

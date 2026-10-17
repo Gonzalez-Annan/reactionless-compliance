@@ -357,6 +357,11 @@ run from 0.41 to 2.36 m on a grid of joint angles. The same band from the masses
 and difference of the three barycentric lengths, is 0.41 to 2.36 m. % analysis/envelope/planar.py
 
 \section{What to show instead}
+What the arm can reach depends on its state, and a map is a picture of it taken at one state. So every display
+gives something up. The rest map gives up being right after the first move. A map that held from every start
+gives up reach. A map from the current state gives up time, it comes 11 to 20 s after the hand stops. A gate
+gives up the picture and answers one command at a time. The study compares these four trades, not four drawings.
+
 \subsection{A map that held from every start}
 Take, for each direction, the worst edge over all starts. After 40 starts the median direction keeps 0.74 of the
 rest edge and the worst keeps 0.35, which is 44\% of the rest reach by volume. The figure was the same at 20
@@ -475,7 +480,7 @@ fail. % D40
 Before a block the participant is told what the display is, in the same words for everyone. Rest map: it was
 drawn with the arm at rest and can be wrong once the arm has moved. Map that held: it held from every start we
 tried one move from rest and is smaller than what the arm can reach. Current-state map: it is drawn from where
-the arm is now and takes about 12 s, and until the marker turns green the screen still shows the rest map. No
+the arm is now and takes 11 to 20 s, and until the marker turns green the screen still shows the rest map. No
 map: every command is checked before it runs and refused if it would fail. Every session runs on the same PC
 with 10 processes for the current-state map, because its delay depends on the machine.
 
@@ -644,7 +649,7 @@ are in.
 \textbf{What would count against us.} If the rest map has no more wrong goes than the current-state map, H1
 fails, and the data say which half failed. Few traps sent on with the rest map: people held back from its edge,
 and the missed edge goals show what that cost. Many sent on before the current-state map was in: people did not
-wait, and a map that is 12 s late is then not used as a map. With 20 participants a failed H1 is weak evidence
+wait, and a map that is 11 to 20 s late is then not used as a map. With 20 participants a failed H1 is weak evidence
 that the maps do not differ unless one of these two is plain in the data (Table~\ref{tab:power}). If no map is
 not faster than the rest map, H2 fails. If no map is the fastest, has no wrong goes and is rated no more work,
 which the scripted run predicts for the time, then for one goal at a time a map is not worth showing and the
@@ -712,7 +717,7 @@ The band of Section~\ref{sec:band} is left out for the same reasons and two more
 probe comes in, so two runs of one session can show different bands. And the probe slows the rehearsal from 0.3 to
 0.5~s on a 0.2~m move, time the participant pays on every command. % D70, D73
 
-\todo{Before the first participant: (1) the gamepad has never been run, so the study is keyboard only; (2) nobody
+\todo{Before the first participant: (1) the pad path (\texttt{--pad}, read through Windows) has only run on made-up readings and the protocol says keyboard, so moving the study to a pad is a protocol change made before participant 1 or not at all; (2) nobody
 has driven the maps study by hand yet, only the scripted operator and a test with the driving stubbed out: the two
 pilot sessions come first; (3) when a probe is dropped the pool of processes is started again. On the machine the scripted runs were made
 on the next map then comes 2 to 3 s later, two tries. Not timed on the laptop the study will run on; (4) the scripted operator of the first design gave up all 4 reachable

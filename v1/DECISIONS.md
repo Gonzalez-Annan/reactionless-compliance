@@ -1677,3 +1677,58 @@ is wrong depends on the move. Down gives 0 wrong goes and 19 wrong noes, the mov
 Builds at 21 pages, same warnings as before.
 
 Open: as D74.
+
+## D76 The study as a game, and a pad (2026-10-18)
+
+On branch `p2-game`, off `p2-gap-figure`. Nothing on main.
+
+The four displays are four answers to one representation problem: what the arm can reach depends on its state,
+so a picture drawn at one state has to give something up. `rest` gives up being right after a move, `guaranteed`
+gives up reach, `live` gives up 11 to 20 s, `gate` gives up the picture. Said once in the README and at the top of
+"What to show instead" in the draft.
+
+The tool:
+
+- `src/pad.py` reads any pad Windows lists in joy.cpl through winmm, so nothing to install. `--learn` asks for
+  each control in turn and saves `data/pad_map.json`, so a one-stick PSP-style pad works too: what is skipped
+  stays on the keys. Without the file it guesses a PS4 pad. Pad and keyboard drive together. The old pygame path
+  is gone, and the rumble with it (winmm has none).
+- The maps study runs as a game. Each drive opens on a briefing screen (the words for the display and the costs),
+  shows top right practice or pair, n of N, time on this goal, score and how the last goal ended, and closes on a
+  score screen. The person starts every round with Enter or Cross. The terminal only asks the experimenter once,
+  when the person is seated, and for the ratings. Score is the sum of `time_s` without the practice pairs.
+- Simulated time stands still on a screen, so reading costs no score. `run_s` now includes the screens.
+- The words for `live` said about 12 s, now 11 to 20 s, as measured. The draft too.
+
+Checked: `tests/test_pad.py` on made-up pad readings. `tests/test_game.py` runs the maps study end to end on fewer
+goals with the scripted operator of `prestudy.py`: screens in order, no simulated time on them, the score shown
+equals the scored times, the columns of the file as before. A scripted run, not a person.
+
+Not checked: a real pad, and the text on a real viewer window (font size, where it sits). The protocol still says
+keyboard, a switch to the pad is the team's call before participant 1. Not changed: the study design, the goal
+sets, the clock, the CSV columns.
+
+The draft builds at 22 pages (the new paragraph).
+
+Open: as D74, plus a real pad and a look at the screens in the pilots.
+
+## D77 The bus looks like a satellite (2026-10-18)
+
+The bus is dressed as a satellite in space: gold foil, a grey deck under the arm, two solar wings on booms, a dish
+on the front face, a star sky and a sun. Paint only. All of it sits on the bus body with no mass and no contact,
+and the model keeps the bare model's framing (`<statistic>`), so the camera opens where it did. The old blue rod
+on -x is grey now, it is one of the booms. The arm is white.
+
+Why only on the bus: the self-clearance check takes every geom on the arm bodies, and the arm-to-bus distance
+reads geom 0 as the bus. A geom on the arm would change both, a world geom would take id 0. No Earth for that
+reason, and because at the default camera it would sit right behind the arm, under the map colours.
+
+Checked: `tests/test_models.py` builds the bare and the dressed model for all three buses. Same masses, inertias
+and framing, the same geoms where the code reads them, and 2000 steps on the same commands end on the same
+state, to the bit. Offscreen renders of the three buses, with the cage on the medium one. The sun casts no
+shadow, it gave acne on the large bus.
+
+Cost: the model compiles in about 28 ms, was 2 ms (the star sky). Once per trial.
+
+Not checked: the live viewer next to the screens, and whether the gold and the wings pull the eye from the map
+colours. Pilots.
