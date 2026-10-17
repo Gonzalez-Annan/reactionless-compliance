@@ -257,14 +257,15 @@ def guaranteed(rays, home, size):
 
 
 def depth(tips, p0, g):
-    """How far out g is: 0 at p0, 1 on the cage through tips (26 points), along the line from p0."""
-    for t in TRIS:
-        A = np.column_stack([tips[i] - p0 for i in t])
-        if abs(np.linalg.det(A)) > 1e-12:
-            c = np.linalg.solve(A, g - p0)      # g = p0 + c . (the three corners of this face)
-            if (c >= -1e-9).all():
-                return c.sum()
-    return np.inf
+    """How far out g is: 0 at p0, 1 on the cage through tips (26 points), along the line from p0.
+    All faces are solved at once: one by one they took most of the sim's time while the stick moves. Same answer to
+    the bit (tests/test_screen.py), the first face that holds g wins as before."""
+    A = (np.asarray(tips)[TRIS] - p0).transpose(0, 2, 1)       # face k: its three corners as columns
+    ok = np.abs(np.linalg.det(A)) > 1e-12
+    c = np.full((len(A), 3), -1.0)
+    c[ok] = np.linalg.solve(A[ok], np.broadcast_to(g - p0, (ok.sum(), 3))[..., None])[..., 0]   # g = p0 + c . corners
+    k = np.flatnonzero((c >= -1e-9).all(1))
+    return c[k[0]].sum() if len(k) else np.inf
 
 
 def cut(tips, o, n):
@@ -355,7 +356,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
     todo = [goal + t for t in targets] if targets is not None else []
     t0, sends, refused, path, gpeak, dwell = 0.0, 0, 0, 0.0, 0.0, 0.0
     start, tgo, kz = home, 0.0, 0
-    view, park, wasv, wasp, trips, cutat = getattr(axes, "view", bool), getattr(axes, "park", bool), False, False, 0, None
+    view, park, wasv, wasp, trips, cutat, cutt = getattr(axes, "view", bool), getattr(axes, "park", bool), False, False, 0, None, 0.0
     maps, gate = aid in MAPS + ("lookup", "band"), aid in (None, "gate", "band")
     stop = FENCE[1] if aid in (None, "stop") else float(maps and aid != "gate")  # depth the dot is held at, 0 = not held
     rest, centre, asked, job, lost, no, tg = bool(aid) and not maps, home, home, None, 0.0, False, None
@@ -464,9 +465,9 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                     s["far"] = s["ans"][1] if no else None      # refused: the blue ball is how far the hand would have got
             elif "ans" in s:
                 s["rgba"], s["far"] = ((YELLOW if kz else GREEN), None) if s["ans"][0] else (RED, s["ans"][1])   # yellow: reachable, but close to the edge
-            if "cage" in s and goal is not cutat and len(s["rays"]) == len(DIRS):
+            if "cage" in s and goal is not cutat and len(s["rays"]) == len(DIRS) and time.time() - cutt > 1 / 30:   # the screen draws 30 a second
                 # three rings per plane, on the three world planes through the dot: where the dot sits in each shell
-                s["cuts"], cutat = [(cut([r[i] for r in s["rays"]], goal, n), c) for n in np.eye(3) for i, c in enumerate(LINE)], goal
+                s["cuts"], cutat, cutt = [(cut([r[i] for r in s["rays"]], goal, n), c) for n in np.eye(3) for i, c in enumerate(LINE)], goal, time.time()
         while pend and pend[0][0] <= d.time:        # commands reach the robot `delay` seconds late
             x = pend.popleft()[1]
             if direct:

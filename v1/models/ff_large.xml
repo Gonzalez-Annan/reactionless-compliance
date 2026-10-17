@@ -4,8 +4,8 @@
 <asset>
 <texture name="sky" type="skybox" builtin="gradient" rgb1=".03 .04 .09" rgb2="0 0 0" width="512" height="3072" mark="random" random=".0015" markrgb=".9 .9 1"/>
 <texture name="cells" type="2d" builtin="checker" rgb1=".1 .13 .3" rgb2=".07 .09 .22" mark="edge" markrgb=".7 .7 .75" width="64" height="64"/>
-<material name="foil" rgba=".88 .68 .22 1" specular=".5" shininess=".6"/>
-<material name="cells" texture="cells" texrepeat="6 3" specular=".8" shininess=".9"/>
+<material name="foil" rgba=".5 .38 .16 1" specular=".4" shininess=".5"/>
+<material name="cells" texture="cells" texrepeat="8 2" specular=".8" shininess=".9"/>
 <material name="metal" rgba=".6 .62 .66 1" specular=".7" shininess=".6"/>
 <material name="white" rgba=".9 .9 .92 1" specular=".4"/>
 <material name="dark" rgba=".16 .16 .18 1"/>
@@ -17,14 +17,16 @@
 <body name="base"><freejoint name="root"/>
 <geom type="box" size="1.077217345015942 1.077217345015942 1.077217345015942" mass="3000.0" material="foil"/>
 <geom type="cylinder" fromto="0 0 0 -1.6772173450159418 0 0" size=".02" mass="0.001" material="metal"/>
-<geom mass="0" type="box" pos="0 0 1.081" size="0.9695 0.9695 .004" material="metal"/>
-<geom mass="0" type="cylinder" fromto="0 0 1.077 0 0 1.107" size=".075" material="dark"/>
+<geom mass="0" type="box" pos="0 0 1.081" size="0.9695 0.9695 .004" material="dark"/>
+<geom mass="0" type="cylinder" fromto="0 0 1.077 0 0 1.107" size=".075" material="metal"/>
 <geom mass="0" type="cylinder" fromto="0 0 0 1.677 0 0" size=".02" material="metal"/>
 <geom mass="0" type="cylinder" fromto="0 -1.077 -0.3232 0 -1.157 -0.3232" size=".025" material="metal"/>
 <geom mass="0" type="ellipsoid" pos="0 -1.177 -0.3232" size="0.3447 .03 0.3447" material="white"/>
+<geom mass="0" type="cylinder" fromto="0 -1.207 -0.3232 0 -1.208 -0.3232" size="0.2908" material="metal"/>
 <geom mass="0" type="cylinder" fromto="0 -1.177 -0.3232 0 -1.447 -0.3232" size=".008" material="metal"/>
-<geom mass="0" type="box" pos="2.862 0 0" size="1.185 0.7002 .01" material="cells"/>
-<geom mass="0" type="box" pos="-2.862 0 0" size="1.185 0.7002 .01" material="cells"/>
+<geom mass="0" type="sphere" pos="0 -1.447 -0.3232" size=".02" material="dark"/>
+<geom mass="0" type="box" pos="3.401 0 0" size="1.724 0.4309 .01" material="cells"/>
+<geom mass="0" type="box" pos="-3.401 0 0" size="1.724 0.4309 .01" material="cells"/>
 <body name="l1" pos="0 0 1.077217345015942"><joint name="j1" axis="0 0 1"/><geom type="capsule" fromto="0 0 0 0 0 0.12" size=".04" mass="2.5"/>
 <body name="l2" pos="0 0 0.12"><joint name="j2" axis="0 1 0"/><geom type="capsule" fromto="0 0 0 0 0 0.225" size=".04" mass="2.5"/>
 <body name="l3" pos="0 0 0.225"><joint name="j3" axis="0 0 1"/><geom type="capsule" fromto="0 0 0 0 0 0.225" size=".04" mass="2.0"/>

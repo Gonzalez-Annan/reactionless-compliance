@@ -42,7 +42,7 @@ python -m venv .venv
 .venv\Scripts\python.exe -m pip install mujoco numpy scipy pandas matplotlib pytest
 ```
 
-4. Check the install, from `v1`. 34 tests, then 39 PASS lines:
+4. Check the install, from `v1`. 37 tests, then 39 PASS lines:
 
 ```
 ..\.venv\Scripts\python.exe -m pytest -q tests -p no:cacheprovider

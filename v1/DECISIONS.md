@@ -1732,3 +1732,49 @@ Cost: the model compiles in about 28 ms, was 2 ms (the star sky). Once per trial
 
 Not checked: the live viewer next to the screens, and whether the gold and the wings pull the eye from the map
 colours. Pilots.
+
+## D78 Our own screen, and the satellite in proportion (2026-10-18)
+
+The MuJoCo viewer is out of the game. It brought its own menus and panels, our numbers had to sit in its overlay,
+and it looked bad. The screen is how the map gets to the operator, so it is part of the problem we are solving.
+Now the operator sees the arm, the cage, the goal and two cards: margin or map top left, score top right, and a
+card in the middle for the screens to read.
+
+How it works: MuJoCo renders offscreen at 1280x720, PIL draws the cards, a Tk window shows it (GDI blit on
+Windows). It runs on its own thread, like the viewer did. The sim posts a copy of the state at most 30 times a
+second and the thread draws the latest one.
+
+Speed, scripted operator, `maps_study`, 30 s, laptop on battery with the 10 probe processes running:
+
+| | screen | sim speed while playing |
+|---|---|---|
+| one thread | 5.4 fps | lost 6.7 s in 30 s |
+| screen on its own thread | 8.4 fps | 0.36x |
+| cage depth solved at once | 13.5 fps | 0.65x |
+| plane cuts at 30 a second | 13.4 fps | 0.83x |
+| cards kept between frames | | 0.93x |
+| nothing drawn | | 1.00x |
+
+The last three leave out the rehearsal holds. What made the gap:
+- `depth` solved the 192 cage faces one by one, every step the stick moved. Now all at once, 3.2 ms to 0.32 ms.
+  Same number to the bit, `tests/test_screen.py` checks it against the old loop. The paper analyses use it, so
+  none of their numbers move.
+- The cage took 85 ms a frame to lay out. Now 15 ms, and kept while its rays stay the same.
+- The cards were drawn fresh every frame. Their text changes about once a second, so they are kept.
+- What is left is the screen thread holding Python's lock. Next step if pilots need it: post only the joint
+  angles instead of a copy of the whole state.
+
+A step held longer than 0.25 s (the tool holds one up to 1.5 s while it rehearses) now slips the clock. Before,
+the arm ran fast afterwards to catch up. The hold itself still shows as a short freeze. Not fixed.
+
+The look. The bus keeps its size: it comes from its mass, and the arm-to-bus check reads it. So the camera does
+the work. Same angles, azimuth 90 and elevation -45, since the stick mapping and the scripted rule assume them.
+It now aims 0.2 m above the middle of the arm from 2.0 m, the same for every bus, so it opens on the arm and the
+cage with the bus low in the frame. Wings slimmer and longer, a new dish, and the foil darker so the white arm is
+the brightest thing on screen. Paint only, `tests/test_models.py` still ends on the same state to the bit.
+
+Checked: the full suite, the screen drawn without a window (kept cage = fresh cage, cards and the dimmed read
+screen), the pacing on a fake clock, the speed table above.
+
+Not checked: a real pad, the live window by eye, pilots. Battery about halves the speed, so the study laptop
+runs on AC.

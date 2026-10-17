@@ -205,7 +205,7 @@ python analysis/sizing.py            # ~5 min, fig6: reach and wheel momentum ag
 | `src/safety.py` | effective mass and v_max map |
 | `src/teleop.py` | the tool: set a goal dot in 3-D and send it, the cage, the displays, the study sessions |
 | `src/livemap.py` | the cage from where the arm is now: probed (`live`), looked up (`lookup`), and both (`band`) |
-| `src/view.py` | drawing, and replay of scripted trials in the MuJoCo viewer |
+| `src/view.py` | our game screen (D78), and replay of scripted trials on it |
 | `analysis/envelope/` | every measurement of the cage. `static.py` is the test above, `robust.py` repeats it on other set-ups, `learn.py` builds and scores the looked-up edges |
 | `analysis/study/` | the study: run sheet, protocol, goal sets, power, scripted rule, analysis |
 | `tests/` | the gates: momentum, J*, 3-D reactionless, joint limits, the fence, the displays, the session |
