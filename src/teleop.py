@@ -420,21 +420,29 @@ class Teleop:
             ("late ticks", str(self.overruns)),
             ("antenna error", f"{err:.2f} deg" + ("   OVER LIMIT" if over else f"   (limit {ANTENNA_LIMIT_DEG:.0f})")),
         ]
-        if not self.blind:   # P4: hand speed against the pose-dependent contact limit
-            from src.safety import hand_speed_margin
-            speed, vmax = hand_speed_margin(self.model, self.data)
-            rows.append(("hand speed", f"{speed:.3f} m/s   (contact limit {vmax:.2f})" + ("   OVER" if speed > vmax else "")))
         if self.task:
             rows.append(("task", self.task.status()))
         labels = "\n".join(r[0] for r in rows)
         values = "\n".join(r[1] for r in rows)
         mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_TOPLEFT,
                            self.viewport, labels, values, self.ctx)
+        if not self.blind:   # P4: hand speed against the pose-dependent contact limit
+            from src.safety import hand_speed_margin
+            speed, vmax = hand_speed_margin(self.model, self.data)
+            mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_TOPRIGHT,
+                               self.viewport, "hand speed\ncontact limit",
+                               f"{speed:.3f} m/s\n{vmax:.2f} m/s" + ("   OVER" if speed > vmax else ""), self.ctx)
         mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_BOTTOMLEFT,
                            self.viewport,
-                           "WASD / RF\nQ / E\nleft-drag\nShift\nG   P\nV\nBackspace   Esc\n\nPS4: L-stick / R2 L2\nR1 / L1\nR-stick\nSquare (hold)\nCircle   Options\nTriangle\nShare   Cross",
-                           "move x y / z\nroll\npitch / yaw\nfine mode\nsnap target   pause\nreachable workspace\nreset   quit\n\nmove x y / z\nroll\npitch / yaw\nfine mode\nsnap target   pause\nreachable workspace\nreset   start",
+                           "WASD / RF\nQ / E\nleft-drag\nShift\nG   P\nV\nBackspace   Esc",
+                           "move x y / z\nroll\npitch / yaw\nfine mode\nsnap target   pause\nreachable workspace\nreset   quit",
                            self.ctx)
+        if self.input.pad.js is not None:
+            mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_BOTTOMRIGHT,
+                               self.viewport,
+                               "PS4  L-stick / R2 L2\nR1 / L1\nR-stick\nSquare (hold)\nCircle   Options\nTriangle\nShare   Cross",
+                               "move x y / z\nroll\npitch / yaw\nfine mode\nsnap   pause\nworkspace\nreset   start",
+                               self.ctx)
         if self.waiting:
             mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_BIG, mujoco.mjtGridPos.mjGRID_TOP,
                                self.viewport, self.banner + "\n\npress SPACE to start", "", self.ctx)
