@@ -174,6 +174,12 @@ Default `--pad-layout game`, moves follow the camera like a third-person game:
 | Circle / Triangle | snap target / workspace |
 | Options / Share | pause / reset |
 
+Haptics (on by default, `--no-haptics` to switch off): the heavy motor buzzes when
+the arm touches the satellite body or itself (harder push, stronger buzz; red dots
+mark the contact), the light motor ramps up over the last 15° before a joint
+limit, and one sharp pulse fires when the antenna leaves the ±5° cone. The top
+right of the window shows the contact force and the joint nearest its limit.
+
 `--pad-layout southpaw` puts the camera on the left stick; `--pad-layout classic`
 is world axes with a fixed camera (left stick ±x/±y, R2/L2 z, R1/L1 roll, right
 stick pitch/yaw, Square fine). The same flag exists on `src.session`.

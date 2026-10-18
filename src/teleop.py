@@ -122,6 +122,34 @@ class KeyboardMouse:
         return u
 
 
+HAPTIC_FORCE_FULL = 10.0           # N of arm contact force that gives full heavy-motor rumble
+HAPTIC_JOINT_ZONE = np.radians(15)  # a joint this close to its limit starts the light motor
+
+
+def haptic_signals(model, data):
+    """What the pad should feel, from the current physics state. Added by P3.
+
+    Returns (low, high, contact_force, joint_margin, joint):
+      low   heavy motor 0..1 -- the arm touching the base or itself, scaled by the total
+            normal contact force (0.35 at first touch, 1 at HAPTIC_FORCE_FULL);
+      high  light motor 0..1 -- the joint nearest its limit, ramping from 0.25 at
+            HAPTIC_JOINT_ZONE away to 1 at the limit;
+      contact_force [N], joint_margin [rad] to the nearest limit, joint index 0..6.
+    """
+    force, f6 = 0.0, np.zeros(6)
+    for i in range(data.ncon):
+        mujoco.mj_contactForce(model, data, i, f6)
+        force += abs(f6[0])
+    q, lim = data.qpos[7:], model.jnt_range[1:]
+    margins = np.minimum(q - lim[:, 0], lim[:, 1] - q)
+    j = int(np.argmin(margins))
+    margin = float(margins[j])
+    low = 0.0 if data.ncon == 0 else min(1.0, 0.35 + 0.65 * force / HAPTIC_FORCE_FULL)
+    ramp = float(np.clip(1.0 - margin / HAPTIC_JOINT_ZONE, 0.0, 1.0))
+    high = 0.0 if ramp == 0.0 else 0.25 + 0.75 * ramp
+    return low, high, force, margin, j
+
+
 class Gamepad:
     """PS4 (DualShock 4) pad -> normalised world twist in [-1, 1]^6 (+ camera rates). Added by P3.
 
@@ -241,12 +269,41 @@ class Gamepad:
         zoom = self.ZOOM_RATE ** (self._btn("up") - self._btn("down"))
         return -cx * self.CAM_RATE, cy * self.CAM_RATE, zoom
 
-    def rumble(self, strength=0.6, ms=150):
-        if self.js is not None:
+    PULSE_MS = 250
+
+    def _rumble(self, low, high, ms):
+        try:
+            self.js.rumble(low, high, ms)
+        except pygame.error:
+            pass
+
+    def feel(self, low, high, now_ms=None):
+        """Continuous haptics, called at the render rate: heavy motor = contact, light = joint limit.
+        Each call lasts a little longer than a frame, so the buzz is smooth and stops by itself."""
+        if self.js is None:
+            return
+        now_ms = pygame.time.get_ticks() if now_ms is None else now_ms
+        if now_ms < getattr(self, "_pulse_until", 0):     # an event pulse is playing
+            return
+        if low > 0 or high > 0:
+            self._rumble(low, high, 120)
+            self._buzzing = True
+        elif getattr(self, "_buzzing", False):
             try:
-                self.js.rumble(strength, strength, ms)
+                self.js.stop_rumble()
             except pygame.error:
                 pass
+            self._buzzing = False
+
+    def pulse(self, strength=0.9, now_ms=None):
+        """One sharp both-motor pulse for an event (antenna leaving the cone); wins over feel()."""
+        if self.js is None:
+            return
+        now_ms = pygame.time.get_ticks() if now_ms is None else now_ms
+        self._pulse_until = now_ms + self.PULSE_MS
+        self._rumble(strength, strength, self.PULSE_MS)
+
+    rumble = pulse   # old name
 
 
 class CombinedInput:
@@ -297,11 +354,14 @@ def add_sphere(scene, pos, radius, rgba):
 
 class Teleop:
     def __init__(self, model_name, mode, controller_name, log_path=None, headless=False,
-                 task_loops=None, banner=None, blind=False, meta=None, pad_layout="game"):
+                 task_loops=None, banner=None, blind=False, meta=None, pad_layout="game",
+                 haptics=True):
         """task_loops: run the closed-loop ORU task with this many loops; the
         trial ends when it is done. banner: wait for Space before starting,
         showing this text. blind: hide the controller name (participants).
-        pad_layout: "game", "southpaw" or "classic" (see Gamepad)."""
+        pad_layout: "game", "southpaw" or "classic" (see Gamepad).
+        haptics: rumble on arm contact and near joint limits (see haptic_signals)."""
+        self.haptics = haptics
         self.model_name = f"ff_{model_name}"
         self.model = mujoco.MjModel.from_xml_path(str(MODELS_DIR / f"{self.model_name}.xml"))
         self.data = mujoco.MjData(self.model)
@@ -365,6 +425,7 @@ class Teleop:
         mujoco.mj_forward(self.model, self.data)
         self.antenna_z0 = site_pose(self.model, self.data, "antenna")[1][:, 2].copy()
         self.snap_target()
+        self.haptic = haptic_signals(self.model, self.data)
         self.overruns = 0
         self.paused = False
         self.show_workspace = False
@@ -407,6 +468,7 @@ class Teleop:
         ee_pos, ee_R = site_pose(m, d, "end_effector")
         if self.task:
             self.task.update(ee_pos, Rotation.from_matrix(ee_R), dt)
+        self.haptic = haptic_signals(m, d)
 
         if self.logger:
             self.logger.write(
@@ -418,6 +480,9 @@ class Teleop:
                 task_waypoint=self.task.index if self.task else -1,
                 task_loop=self.task.loop if self.task else -1,
                 cam=self.camera_state(),   # az, el, dist: how much the operator turned the view
+                haptic=self.haptic[:2] if self.haptics else (0.0, 0.0),   # heavy (contact), light (joint limit)
+                contact_force=self.haptic[2],
+                joint_margin_deg=np.degrees(self.haptic[3]),
             )
 
     def draw(self):
@@ -456,6 +521,10 @@ class Teleop:
                 for i, c in enumerate(([1, 0.4, 0.4, 1], [0.4, 1, 0.4, 1], [0.4, 0.4, 1, 1])):
                     add_line(scn, p, p + 0.1 * R[:, i], c, width=4)
 
+        # contacts: a red dot where the arm touches the base or itself
+        for i in range(self.data.ncon):
+            add_sphere(scn, self.data.contact[i].pos, 0.02, [1.0, 0.1, 0.1, 0.9])
+
         # ghost target: sphere + its axes (6-D mode)
         add_sphere(scn, self.target_pos, 0.03, [0.3, 0.7, 1.0, 0.8])
         if self.mode == "6d":
@@ -468,8 +537,10 @@ class Teleop:
         mujoco.mjr_render(self.viewport, scn, self.ctx)
 
         over = err > ANTENNA_LIMIT_DEG
-        if over and not self.over_limit:   # buzz once each time the antenna leaves the cone
-            self.input.pad.rumble()
+        if self.haptics:
+            if over and not self.over_limit:   # sharp pulse each time the antenna leaves the cone
+                self.input.pad.pulse()
+            self.input.pad.feel(*self.haptic[:2])
         self.over_limit = over
         rows = [("model", self.model_name), ("mode", self.mode)]
         if not self.blind:
@@ -485,12 +556,17 @@ class Teleop:
         values = "\n".join(r[1] for r in rows)
         mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_TOPLEFT,
                            self.viewport, labels, values, self.ctx)
+        _, _, force, margin, j = self.haptic
+        labels, values = ["arm contact", "nearest limit"], [
+            f"{force:.1f} N   TOUCHING" if self.data.ncon else "none",
+            f"j{j + 1}  {np.degrees(margin):.0f} deg" + ("   CLOSE" if margin < HAPTIC_JOINT_ZONE else "")]
         if not self.blind:   # P4: hand speed against the pose-dependent contact limit
             from src.safety import hand_speed_margin
             speed, vmax = hand_speed_margin(self.model, self.data)
-            mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_TOPRIGHT,
-                               self.viewport, "hand speed\ncontact limit",
-                               f"{speed:.3f} m/s\n{vmax:.2f} m/s" + ("   OVER" if speed > vmax else ""), self.ctx)
+            labels += ["hand speed", "contact limit"]
+            values += [f"{speed:.3f} m/s", f"{vmax:.2f} m/s" + ("   OVER" if speed > vmax else "")]
+        mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_TOPRIGHT,
+                           self.viewport, "\n".join(labels), "\n".join(values), self.ctx)
         mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_BOTTOMLEFT,
                            self.viewport,
                            "WASD / RF\nQ / E\nleft-drag\nShift\nG   P\nV\nBackspace   Esc",
@@ -586,6 +662,7 @@ def main():
     ap.add_argument("--log", help="CSV path, e.g. data/pilot/test.csv")
     ap.add_argument("--duration", type=float, help="stop after this many simulated seconds")
     ap.add_argument("--task", action="store_true", help="run the closed-loop ORU task (2 loops)")
+    ap.add_argument("--no-haptics", action="store_true", help="no rumble on contact / joint limits")
     ap.add_argument("--pad-layout", choices=Gamepad.LAYOUTS, default="game",
                     help="game: camera on the right stick, moves follow the view; southpaw: sticks swapped; "
                          "classic: world axes, fixed camera")
@@ -593,7 +670,7 @@ def main():
     Teleop(args.model, args.mode, args.controller, args.log,
            task_loops=2 if args.task else None,
            banner=f"{args.mode.upper()} task" if args.task else None,
-           pad_layout=args.pad_layout).run(args.duration)
+           pad_layout=args.pad_layout, haptics=not args.no_haptics).run(args.duration)
 
 
 if __name__ == "__main__":

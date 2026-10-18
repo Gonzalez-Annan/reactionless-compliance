@@ -22,10 +22,20 @@ class FakePad:
     def get_instance_id(self):
         return 7
 
+    def rumble(self, low, high, ms):
+        self.calls.append((round(low, 3), round(high, 3), ms))
+        return True
+
+    def stop_rumble(self):
+        self.calls.append("stop")
+
+    calls = None
+
 
 def pad(layout="classic", **kw):
     g = Gamepad.__new__(Gamepad)          # skip pygame.joystick, no hardware here
     g.layout, g.js, g.trigger_seen = layout, FakePad(**kw), [False, False]
+    g.js.calls = []
     return g
 
 
@@ -116,3 +126,60 @@ def test_southpaw_swaps_the_sticks():
     sp = pad("southpaw", axes=[0, 0, 0, UP, 0, 0])      # right stick up -> move
     assert np.allclose(sp.read(0)[:3], [1, 0, 0])
     assert pad("southpaw", axes=[1, 0, 0, 0, 0, 0]).camera()[0] < 0   # left stick -> camera
+
+
+# --- haptics -------------------------------------------------------------------------
+
+def test_feel_buzzes_then_stops_once():
+    g = pad("game")
+    g.feel(0.5, 0.0, now_ms=0)
+    g.feel(0.0, 0.3, now_ms=30)
+    g.feel(0.0, 0.0, now_ms=60)
+    g.feel(0.0, 0.0, now_ms=90)                       # already quiet: no second stop
+    assert g.js.calls == [(0.5, 0.0, 120), (0.0, 0.3, 120), "stop"]
+
+
+def test_event_pulse_wins_over_continuous_feel():
+    g = pad("game")
+    g.pulse(now_ms=1000)
+    g.feel(0.4, 0.4, now_ms=1100)                     # inside the 250 ms pulse: ignored
+    g.feel(0.4, 0.4, now_ms=1300)
+    assert g.js.calls == [(0.9, 0.9, 250), (0.4, 0.4, 120)]
+
+
+def test_no_pad_haptics_is_a_no_op():
+    g = Gamepad.__new__(Gamepad)
+    g.js = None
+    g.feel(1, 1)
+    g.pulse()
+
+
+def test_haptic_signals_quiet_at_home_and_ramp_at_a_limit():
+    import mujoco
+    from src.teleop import HAPTIC_JOINT_ZONE, haptic_signals
+    from tests.test_momentum import load
+    m, d = load("medium")
+    assert haptic_signals(m, d)[:2] == (0.0, 0.0)     # home: no contact, >15 deg from every limit
+    highs = []
+    for frac in (0.9, 0.5, 0.0):                      # j2 moving toward its upper limit
+        d.qpos[8] = m.jnt_range[2, 1] - frac * HAPTIC_JOINT_ZONE
+        mujoco.mj_forward(m, d)
+        low, high, _, margin, j = haptic_signals(m, d)
+        highs.append(high)
+    assert j == 1 and margin == pytest.approx(0, abs=1e-9)
+    assert 0 < highs[0] < highs[1] < highs[2] == 1.0
+
+
+def test_haptic_signals_feel_the_arm_hit_the_base():
+    import mujoco
+    from src.teleop import haptic_signals
+    from tests.test_momentum import load
+    m, d = load("medium")
+    best = (0.0, 0.0)
+    for k in range(int(1.5 / m.opt.timestep)):        # full speed: hits the base after ~0.9 s
+        d.ctrl[:] = 1.0
+        mujoco.mj_step(m, d)
+        if k % 40 == 0 and d.ncon:
+            low, _, force, _, _ = haptic_signals(m, d)
+            best = max(best, (low, force))
+    assert best[0] >= 0.35 and best[1] > 0
