@@ -159,18 +159,24 @@ python -m src.teleop --log data/pilot/test.csv        # also record a CSV
 | V | show / hide the reachable workspace (cyan cubes; moves with the base) |
 | P / Backspace / Esc | pause / reset / quit |
 
-PS4 pad (plug in before or after starting; works alongside the keyboard):
+PS4 pad (plug in before or after starting; works alongside the keyboard).
+Default `--pad-layout game`, moves follow the camera like a third-person game:
 
 | PS4 | Command |
 |-----|---------|
-| left stick | target ±x (up/down), ±y (left/right) |
-| R2 / L2 | target +z / −z |
-| R1 / L1 | roll + / − |
-| right stick | pitch / yaw |
-| Square (hold) | fine mode |
+| left stick | move the target across the screen (up = away from you) |
+| R2 / L2 | target up / down |
+| right stick | orbit the camera |
+| hold R1 | rotate mode: left stick tilts / turns the tool, R2 / L2 roll |
+| hold L1 (or Square) | fine mode |
+| D-pad up / down, R3 | zoom, reset the camera |
 | Cross | start the trial (= SPACE) |
 | Circle / Triangle | snap target / workspace |
 | Options / Share | pause / reset |
+
+`--pad-layout southpaw` puts the camera on the left stick; `--pad-layout classic`
+is world axes with a fixed camera (left stick ±x/±y, R2/L2 z, R1/L1 roll, right
+stick pitch/yaw, Square fine). The same flag exists on `src.session`.
 
 Close DS4Windows / Steam first, or the pad shows up as an Xbox pad with other
 button numbers. The pad buzzes when the antenna leaves the ±5° cone.
