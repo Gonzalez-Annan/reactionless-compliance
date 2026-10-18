@@ -122,6 +122,100 @@ class KeyboardMouse:
         return u
 
 
+class Gamepad:
+    """PS4 (DualShock 4) pad -> normalised twist in [-1, 1]^6, mirroring the keyboard. Added by P3.
+
+    SDL2 numbering for "PS4 Controller" on Windows, checked on a real pad (2026-10-14):
+    axes 0 LX, 1 LY, 2 RX, 3 RY, 4 L2, 5 R2 (triggers rest at -1); buttons 0 Cross,
+    1 Circle, 2 Square, 3 Triangle, 4 Share, 6 Options, 9 L1, 10 R1. If DS4Windows or
+    Steam Input is running the pad shows up as an Xbox pad and these numbers are wrong.
+
+        left stick up/down     +x / -x      (W / S)
+        left stick left/right  +y / -y      (A / D)
+        R2 / L2                +z / -z      (R / F)
+        R1 / L1                roll + / -   (Q / E)
+        right stick            pitch / yaw  (mouse drag)
+        Square (hold)          fine mode    (Shift)
+        Cross                  start trial  (Space)
+        Circle                 snap target  (G)
+        Triangle               workspace    (V)
+        Options                pause        (P)
+        Share                  reset        (Backspace)
+    """
+    DEAD = 0.12
+    AX_LX, AX_LY, AX_RX, AX_RY, AX_L2, AX_R2 = 0, 1, 2, 3, 4, 5
+    BTN = dict(cross=0, circle=1, square=2, triangle=3, share=4, options=6, l1=9, r1=10)
+    EVENTS = {0: pygame.K_SPACE, 1: pygame.K_g, 3: pygame.K_v, 6: pygame.K_p, 4: pygame.K_BACKSPACE}
+
+    def __init__(self):
+        pygame.joystick.init()
+        self.js = None
+        self.trigger_seen = [False, False]
+        if pygame.joystick.get_count():
+            self.attach(0)
+
+    def attach(self, index):
+        self.js = pygame.joystick.Joystick(index)
+        self.trigger_seen = [False, False]
+        print(f"gamepad: {self.js.get_name()} ({self.js.get_numaxes()} axes, {self.js.get_numbuttons()} buttons)")
+
+    def handle(self, event):
+        """Hot-plug, and turn pad button presses into the matching key code (or None)."""
+        if event.type == pygame.JOYDEVICEADDED and self.js is None:
+            self.attach(event.device_index)
+        elif event.type == pygame.JOYDEVICEREMOVED and self.js is not None \
+                and event.instance_id == self.js.get_instance_id():
+            print("gamepad: disconnected")
+            self.js = None
+        elif event.type == pygame.JOYBUTTONDOWN and self.js is not None \
+                and event.instance_id == self.js.get_instance_id():
+            return self.EVENTS.get(event.button)
+        return None
+
+    def _axis(self, i):
+        a = self.js.get_axis(i)
+        return 0.0 if abs(a) < self.DEAD else float(np.sign(a) * (abs(a) - self.DEAD) / (1 - self.DEAD))
+
+    def _trigger(self, k, i):
+        # SDL reports 0 for a trigger until it is first touched; treat that as released
+        a = self.js.get_axis(i)
+        self.trigger_seen[k] |= a != 0.0
+        return (a + 1) / 2 if self.trigger_seen[k] else 0.0
+
+    def read(self):
+        if self.js is None:
+            return np.zeros(6)
+        b = lambda name: float(self.js.get_button(self.BTN[name]))
+        u = np.array([
+            -self._axis(self.AX_LY),
+            -self._axis(self.AX_LX),
+            self._trigger(1, self.AX_R2) - self._trigger(0, self.AX_L2),
+            b("r1") - b("l1"),
+            self._axis(self.AX_RY),       # stick down = pitch +, like dragging the mouse down
+            -self._axis(self.AX_RX),      # stick left = yaw +
+        ])
+        if b("square"):
+            u *= FINE_SCALE
+        return np.clip(u, -1, 1)
+
+    def rumble(self, strength=0.6, ms=150):
+        if self.js is not None:
+            try:
+                self.js.rumble(strength, strength, ms)
+            except pygame.error:
+                pass
+
+
+class CombinedInput:
+    """Keyboard/mouse and gamepad together; both can be used at any time."""
+
+    def __init__(self):
+        self.keyboard, self.pad = KeyboardMouse(), Gamepad()
+
+    def read(self):
+        return np.clip(self.keyboard.read() + self.pad.read(), -1, 1)
+
+
 def limit_qdot(model, qdot):
     """Scale qdot uniformly so every joint is inside its ctrlrange."""
     hi = model.actuator_ctrlrange[:, 1]
@@ -204,7 +298,8 @@ class Teleop:
             self.cam.distance = 3.0
             self.cam.azimuth = 135
             self.cam.elevation = -25
-            self.input = KeyboardMouse()
+            self.input = CombinedInput()
+            self.over_limit = False
             pygame.mouse.get_rel()  # discard the first, large, relative motion
 
     def reset(self):
@@ -238,7 +333,11 @@ class Teleop:
     def control_tick(self, xdot):
         """One control period: controller -> ctrl -> n_sub physics steps -> log."""
         m, d = self.model, self.data
-        qdot = limit_qdot(m, np.asarray(self.controller(m, d, xdot, self.mode), float))
+        if getattr(self.controller, "accepts_target", False):   # P3 schemes servo onto the blue sphere
+            raw = self.controller(m, d, xdot, self.mode, target=(self.target_pos, self.target_rot))
+        else:
+            raw = self.controller(m, d, xdot, self.mode)
+        qdot = limit_qdot(m, np.asarray(raw, float))
         d.ctrl[:] = qdot
         for _ in range(self.n_sub):
             mujoco.mj_step(m, d)
@@ -310,6 +409,9 @@ class Teleop:
         mujoco.mjr_render(self.viewport, scn, self.ctx)
 
         over = err > ANTENNA_LIMIT_DEG
+        if over and not self.over_limit:   # buzz once each time the antenna leaves the cone
+            self.input.pad.rumble()
+        self.over_limit = over
         rows = [("model", self.model_name), ("mode", self.mode)]
         if not self.blind:
             rows.append(("controller", self.controller_name))
@@ -318,6 +420,10 @@ class Teleop:
             ("late ticks", str(self.overruns)),
             ("antenna error", f"{err:.2f} deg" + ("   OVER LIMIT" if over else f"   (limit {ANTENNA_LIMIT_DEG:.0f})")),
         ]
+        if not self.blind:   # P4: hand speed against the pose-dependent contact limit
+            from src.safety import hand_speed_margin
+            speed, vmax = hand_speed_margin(self.model, self.data)
+            rows.append(("hand speed", f"{speed:.3f} m/s   (contact limit {vmax:.2f})" + ("   OVER" if speed > vmax else "")))
         if self.task:
             rows.append(("task", self.task.status()))
         labels = "\n".join(r[0] for r in rows)
@@ -326,8 +432,8 @@ class Teleop:
                            self.viewport, labels, values, self.ctx)
         mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_BOTTOMLEFT,
                            self.viewport,
-                           "WASD / RF\nQ / E\nleft-drag\nShift\nG   P\nV\nBackspace   Esc",
-                           "move x y / z\nroll\npitch / yaw\nfine mode\nsnap target   pause\nreachable workspace\nreset   quit",
+                           "WASD / RF\nQ / E\nleft-drag\nShift\nG   P\nV\nBackspace   Esc\n\nPS4: L-stick / R2 L2\nR1 / L1\nR-stick\nSquare (hold)\nCircle   Options\nTriangle\nShare   Cross",
+                           "move x y / z\nroll\npitch / yaw\nfine mode\nsnap target   pause\nreachable workspace\nreset   quit\n\nmove x y / z\nroll\npitch / yaw\nfine mode\nsnap target   pause\nreachable workspace\nreset   start",
                            self.ctx)
         if self.waiting:
             mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_BIG, mujoco.mjtGridPos.mjGRID_TOP,
@@ -339,6 +445,9 @@ class Teleop:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
+            pad_key = self.input.pad.handle(event)
+            if pad_key is not None:   # a pad button acts as its keyboard twin
+                event = pygame.event.Event(pygame.KEYDOWN, key=pad_key)
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return False

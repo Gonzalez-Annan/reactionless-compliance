@@ -159,14 +159,47 @@ python -m src.teleop --log data/pilot/test.csv        # also record a CSV
 | V | show / hide the reachable workspace (cyan cubes; moves with the base) |
 | P / Backspace / Esc | pause / reset / quit |
 
+PS4 pad (plug in before or after starting; works alongside the keyboard):
+
+| PS4 | Command |
+|-----|---------|
+| left stick | target ±x (up/down), ±y (left/right) |
+| R2 / L2 | target +z / −z |
+| R1 / L1 | roll + / − |
+| right stick | pitch / yaw |
+| Square (hold) | fine mode |
+| Cross | start the trial (= SPACE) |
+| Circle / Triangle | snap target / workspace |
+| Options / Share | pause / reset |
+
+Close DS4Windows / Steam first, or the pad shows up as an Xbox pad with other
+button numbers. The pad buzzes when the antenna leaves the ±5° cone.
+
 `--controller demo` makes the arm chase the blue sphere with a crude
 fixed-base rule, so you can see the base turn as the arm moves (try
 `--model small`). It is a demo, **not** one of the five benchmark schemes.
 
 The blue sphere is the commanded target. The green line is the antenna
 direction at the start and the yellow line is now (red past ±5°). With the
-default `--controller hold` the arm stays still and only the target moves. A PlayStation gamepad will be added
-as a second input device.
+default `--controller hold` the arm stays still and only the target moves.
+
+## P3 schemes and P4 safety (14 Oct)
+
+```bash
+python -m src.teleop --controller impedance_rns --mode 6d     # fly a scheme with the pad
+python -m src.teleop --controller dls --model small --task    # the ORU task, small servicer
+python -m src.schemes --gate --procs 8                        # Week 7 gate: 5 schemes x 2 modes x 3 sizes
+python -m src.schemes --sweep --out data/sweep_beta.csv       # 6-D beta-sweep (Fig. 1 / 2 raw data)
+python -m src.safety --model medium --map --out data/vmax_medium.png   # v_max heatmap (Fig. 5)
+```
+
+Schemes: `dls`, `grad_proj`, `impedance`, `rns`, `impedance_rns` (plan 1-5), each
+for 3-D and 6-D. All five servo onto the blue sphere with the same gain, and all
+five share one joint-limit geofence. Gains and the reasons for them are in
+DECISIONS.md (14 Oct). `src/dynamics.py` is P2's v1 code ported to these models.
+The momentum gate in `tests/test_momentum.py` now runs and passes on all three
+servicers. The HUD shows the hand speed against the contact limit v_max(q).
+P4: check the ISO/TS 15066 body values in `src/safety.py` before citing them.
 
 ## Running a participant session
 
