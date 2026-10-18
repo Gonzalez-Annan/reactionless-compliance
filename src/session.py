@@ -62,7 +62,7 @@ def condition_order(pid):
     return [(mode, SCHEMES[i]) for mode, row in zip(modes, rows) for i in row]
 
 
-def run_session(pid, dry_run=False, start_at=1):
+def run_session(pid, dry_run=False, start_at=1, pad_layout="game", haptics=True):
     from src.teleop import Teleop  # imports pygame/OpenGL only when actually running
 
     order = condition_order(pid)
@@ -84,7 +84,9 @@ def run_session(pid, dry_run=False, start_at=1):
         tele = Teleop(
             MODEL, mode, controller, log_path=log, task_loops=LOOPS, blind=True,
             banner=f"Trial {i} of {len(order)}  -  {mode.upper()} task",
-            meta={"participant": pid, "condition": i, "scheme": scheme, "dry_run": dry_run},
+            meta={"participant": pid, "condition": i, "scheme": scheme, "dry_run": dry_run,
+                  "pad_layout": pad_layout, "haptics": haptics},
+            pad_layout=pad_layout, haptics=haptics,
         )
         tele.run()
         if not tele.task.done:
@@ -101,12 +103,15 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help='use "demo" for every scheme (pipeline test)')
     ap.add_argument("--start-at", type=int, default=1, help="first condition to run (resume)")
     ap.add_argument("--show-order", action="store_true", help="print the condition order and exit")
+    ap.add_argument("--pad-layout", choices=["game", "southpaw", "classic"], default="game",
+                    help="PS4 mapping (src.teleop.Gamepad); P5: fix one for the whole study")
+    ap.add_argument("--no-haptics", action="store_true", help="no rumble on contact / joint limits")
     args = ap.parse_args()
     if args.show_order:
         for i, (mode, scheme) in enumerate(condition_order(args.participant), 1):
             print(f"{i:2d}  {mode}  {scheme}")
         return 0
-    return run_session(args.participant, args.dry_run, args.start_at)
+    return run_session(args.participant, args.dry_run, args.start_at, args.pad_layout, not args.no_haptics)
 
 
 if __name__ == "__main__":
