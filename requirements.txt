@@ -1,4 +1,4 @@
-mujoco>=3.1.0
+mujoco>=3.3.0  # MjSpec (src/safety.py impact model)
 numpy
 scipy
 pandas

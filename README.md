@@ -195,23 +195,41 @@ The blue sphere is the commanded target. The green line is the antenna
 direction at the start and the yellow line is now (red past ±5°). With the
 default `--controller hold` the arm stays still and only the target moves.
 
-## P3 schemes and P4 safety (14 Oct)
+## P3 schemes, P4 safety, P5 analysis (14 Oct)
 
 ```bash
 python -m src.teleop --controller impedance_rns --mode 6d     # fly a scheme with the pad
 python -m src.teleop --controller dls --model small --task    # the ORU task, small servicer
-python -m src.schemes --gate --procs 8                        # Week 7 gate: 5 schemes x 2 modes x 3 sizes
-python -m src.schemes --sweep --out data/sweep_beta.csv       # 6-D beta-sweep (Fig. 1 / 2 raw data)
-python -m src.safety --model medium --map --out data/vmax_medium.png   # v_max heatmap (Fig. 5)
+
+# scripted experiments (all cores, ~8 min); per-tick logs -> data/scripted/logs/ (git-ignored)
+python -m src.experiments all     # tune -> data/results/tuning.csv, gate -> gate.csv, beta-sweep -> sweep.csv
+
+# safety (P4)
+python -m src.safety --impact --out data/safety/impact.csv            # simulated impacts, calibrates the arm mass
+python -m src.safety --montecarlo --out data/safety/montecarlo.csv    # pose x speed x payload x restraint x size
+python -m src.safety --model medium --map --out data/safety/vmax_medium.csv          # Fig. 5 (add --rigid for the top row)
+python -m src.verify                                                  # docs/SAFETY.md: hazard table + verification matrix
+
+# analysis (P5)
+python -m analysis.figures --synthetic    # Figs. 1-5 + S1 -> figures/ (Fig. 4 from fake ratings until real ones exist)
+python -m analysis.metrics data/participants   # per-trial metrics, Friedman / Kendall W, Wilcoxon-Holm
 ```
 
 Schemes: `dls`, `grad_proj`, `impedance`, `rns`, `impedance_rns` (plan 1-5), each
-for 3-D and 6-D. All five servo onto the blue sphere with the same gain, and all
-five share one joint-limit geofence. Gains and the reasons for them are in
-DECISIONS.md (14 Oct). `src/dynamics.py` is P2's v1 code ported to these models.
-The momentum gate in `tests/test_momentum.py` now runs and passes on all three
-servicers. The HUD shows the hand speed against the contact limit v_max(q).
-P4: check the ISO/TS 15066 body values in `src/safety.py` before citing them.
+for 3-D and 6-D, tuned per scheme (`TUNED` in src/schemes.py). All five servo onto
+the blue sphere with the same gain and share one joint-limit geofence.
+`src/dynamics.py` is P2's v1 code ported to these models; the momentum gate in
+`tests/test_momentum.py` passes on all three servicers.
+
+Safety: ISO/TS 15066 Annex A body model, free and clamped contact, arm mass at
+impact calibrated by simulated impacts (the ±5 Nm servos give way, so the base
+mass does not reach the person). A runtime limiter keeps the hand at ≤ 0.85 ×
+v_max(q) (`--no-speed-limit` to switch off). The full safety case, with every
+pass/fail computed from the data, is in [docs/SAFETY.md](docs/SAFETY.md).
+
+Questionnaires: copy `data/questionnaire_template.csv` to
+`data/participants/<ID>/questionnaire.csv` after each session (predictability
+1-7, raw NASA-TLX 0-100); `analysis.figures` then draws the real Fig. 4.
 
 ## Running a participant session
 

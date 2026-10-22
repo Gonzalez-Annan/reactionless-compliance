@@ -5,3 +5,6 @@ __pycache__/
 data/participants/*
 !data/participants/.gitkeep
 *.mp4
+
+# scripted per-tick logs (~3 MB each); rebuilt by python -m src.experiments all
+data/scripted/logs/
