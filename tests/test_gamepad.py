@@ -176,8 +176,8 @@ def test_haptic_signals_feel_the_arm_hit_the_base():
     from tests.test_momentum import load
     m, d = load("medium")
     best = (0.0, 0.0)
-    for k in range(int(1.5 / m.opt.timestep)):        # full speed: hits the base after ~0.9 s
-        d.ctrl[:] = 1.0
+    for k in range(int(2.0 / m.opt.timestep)):        # full speed backwards: link4 hits the base after ~1.4 s
+        d.ctrl[:] = -1.0
         mujoco.mj_step(m, d)
         if k % 40 == 0 and d.ncon:
             low, _, force, _, _ = haptic_signals(m, d)
