@@ -1,5 +1,5 @@
 <mujoco model="ff_medium">
-  <!-- Medium-class servicer: representative arm/base mass ratio (6.6 kg arm / 150 kg base).
+  <!-- Medium-class servicer: representative arm/base mass ratio (6.5 kg Kinova Gen3 arm / 150 kg base).
        Only the base differs between servicers; the arm is in common/. -->
   <include file="common/arm_defs.xml"/>
 

@@ -1,5 +1,5 @@
 <mujoco model="ff_small">
-  <!-- CubeSat-class servicer: high arm/base mass ratio (6.6 kg arm / 20 kg base).
+  <!-- CubeSat-class servicer: high arm/base mass ratio (6.5 kg Kinova Gen3 arm / 20 kg base).
        Only the base differs between servicers; the arm is in common/. -->
   <include file="common/arm_defs.xml"/>
 

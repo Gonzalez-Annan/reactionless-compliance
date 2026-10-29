@@ -2,34 +2,55 @@
   <!-- 7-DOF arm kinematic chain, shared by all three servicers.
        Included inside each servicer's "mount" body, which sits on the base face.
        Edit the arm here only; the servicer files differ only in their base. -->
-  <body name="link1" pos="0 0 0">
-    <joint name="j1" axis="0 0 1"/>
-    <geom type="capsule" fromto="0 0 0 0.18 0 0" size="0.035" mass="1.2"/>
+  <!-- Geometry and masses from the Kinova Gen3 7-DOF arm (MuJoCo Menagerie
+       kinova_gen3/gen3.xml): joint spacing 0.156 / 0.128 / 0.210 / 0.210 / 0.208 /
+       0.106 / 0.106 / 0.0615 m (902 mm reach from joint 2), link masses 1.377 /
+       1.164 / 1.164 / 0.930 / 0.678 / 0.678 / 0.500 kg (6.49 kg moving), pitch
+       limits +/-128.9 / 147.8 / 120.3 deg. The mm-size side offsets of the real
+       links are dropped so the chain stays straight along +x at q = 0.
+       Roll joints are continuous on the real arm; they keep the +/-170 deg default. -->
 
-    <body name="link2" pos="0.18 0 0">
-      <joint name="j2" axis="0 1 0" class="pitch"/>
-      <geom type="capsule" fromto="0 0 0 0.18 0 0" size="0.035" mass="1.2"/>
+  <!-- Fixed Gen3 base (actuator 1 housing), bolted to the base face. Its 1.697 kg
+       is part of the servicer, not the moving arm. -->
+  <geom name="arm_pedestal" type="cylinder" fromto="0 0 0 0.156 0 0" size="0.05" mass="1.697"
+        rgba="0.25 0.25 0.3 1"/>
 
-      <body name="link3" pos="0.18 0 0">
+  <body name="link1" pos="0.156 0 0">
+    <joint name="j1" axis="1 0 0"/>
+    <geom type="capsule" fromto="0 0 0 0.128 0 0" size="0.045" mass="1.377"/>
+    <!-- joint housings: visual only (no mass, no contact), so the dynamics and
+         the contact set are those of the link capsules -->
+    <geom class="housing" type="cylinder" fromto="0.128 -0.055 0 0.128 0.055 0" size="0.055"/>
+
+    <body name="link2" pos="0.128 0 0">
+      <joint name="j2" axis="0 1 0" class="pitch" range="-128.9 128.9"/>
+      <geom type="capsule" fromto="0 0 0 0.21 0 0" size="0.045" mass="1.164"/>
+      <geom class="housing" type="cylinder" fromto="0.17 0 0 0.25 0 0" size="0.05"/>
+
+      <body name="link3" pos="0.21 0 0">
         <joint name="j3" axis="1 0 0"/>
-        <geom type="capsule" fromto="0 0 0 0.15 0 0" size="0.03" mass="1.0"/>
+        <geom type="capsule" fromto="0 0 0 0.21 0 0" size="0.045" mass="1.164"/>
+        <geom class="housing" type="cylinder" fromto="0.21 -0.05 0 0.21 0.05 0" size="0.05"/>
 
-        <body name="link4" pos="0.15 0 0">
-          <joint name="j4" axis="0 1 0" class="pitch"/>
-          <geom type="capsule" fromto="0 0 0 0.15 0 0" size="0.03" mass="1.0"/>
+        <body name="link4" pos="0.21 0 0">
+          <joint name="j4" axis="0 1 0" class="pitch" range="-147.8 147.8"/>
+          <geom type="capsule" fromto="0 0 0 0.208 0 0" size="0.04" mass="0.93"/>
+          <geom class="housing" type="cylinder" fromto="0.17 0 0 0.24 0 0" size="0.042"/>
 
-          <body name="link5" pos="0.15 0 0">
+          <body name="link5" pos="0.208 0 0">
             <joint name="j5" axis="1 0 0"/>
-            <geom type="capsule" fromto="0 0 0 0.12 0 0" size="0.025" mass="0.8"/>
+            <geom type="capsule" fromto="0 0 0 0.106 0 0" size="0.035" mass="0.678"/>
+            <geom class="housing" type="cylinder" fromto="0.106 -0.042 0 0.106 0.042 0" size="0.042"/>
 
-            <body name="link6" pos="0.12 0 0">
-              <joint name="j6" axis="0 1 0" class="pitch"/>
-              <geom type="capsule" fromto="0 0 0 0.1 0 0" size="0.025" mass="0.8"/>
+            <body name="link6" pos="0.106 0 0">
+              <joint name="j6" axis="0 1 0" class="pitch" range="-120.3 120.3"/>
+              <geom type="capsule" fromto="0 0 0 0.106 0 0" size="0.035" mass="0.678"/>
+              <geom class="housing" type="cylinder" fromto="0.08 0 0 0.13 0 0" size="0.04"/>
 
-              <body name="link7" pos="0.1 0 0">
+              <body name="link7" pos="0.106 0 0">
                 <joint name="j7" axis="1 0 0"/>
-                <geom type="capsule" fromto="0 0 0 0.08 0 0" size="0.02" mass="0.6"/>
-                <site name="end_effector" pos="0.08 0 0" size="0.015"/>
+                <geom type="capsule" fromto="0 0 0 0.0615 0 0" size="0.035" mass="0.5"/>
+                <site name="end_effector" pos="0.0615 0 0" size="0.015"/>
               </body>
             </body>
           </body>

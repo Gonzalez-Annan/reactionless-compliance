@@ -12,8 +12,9 @@
   </visual>
 
   <default>
-    <!-- Joint limits (degrees), generic 7-DOF values: roll/yaw joints +/-170,
-         pitch joints +/-120 (class "pitch", used by j2, j4, j6). -->
+    <!-- Joint limits (degrees): roll joints +/-170 (continuous on the Kinova Gen3,
+         kept limited here); pitch joints (class "pitch": j2, j4, j6) default +/-120,
+         each overridden in arm_body.xml with the Gen3 value. -->
     <joint type="hinge" damping="0.2" armature="0.01" limited="true" range="-170 170" solreflimit="0.1 1"/>
     <default class="pitch">
       <joint range="-120 120"/>
@@ -21,6 +22,10 @@
     <!-- Collisions on: the arm cannot pass through the base or itself.
          Contact forces are internal, so total momentum is still conserved. -->
     <geom contype="1" conaffinity="1" solref="0.1 1" rgba="0.7 0.75 0.8 1"/>
+    <!-- Joint housings in arm_body.xml: drawn only, no mass and no contact. -->
+    <default class="housing">
+      <geom contype="0" conaffinity="0" mass="0" rgba="0.25 0.25 0.3 1"/>
+    </default>
     <!-- Velocity servos: the schemes output qdot, ctrl is the commanded qdot [rad/s].
          Torque saturates at forcerange, as a real joint drive would. -->
     <velocity kv="20" ctrlrange="-1 1" forcelimited="true" forcerange="-5 5"/>

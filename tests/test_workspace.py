@@ -16,7 +16,7 @@ def load(name):
 def test_reach_is_bounded_by_arm_length():
     pts = reachable_points(load("ff_medium"), n_samples=3000)
     shoulder = np.array([0.4, 0, 0])  # mount on the medium base's +x face
-    arm_length = 0.18 + 0.18 + 0.15 + 0.15 + 0.12 + 0.10 + 0.08
+    arm_length = 0.156 + 0.128 + 0.21 + 0.21 + 0.208 + 0.106 + 0.106 + 0.0615  # Kinova Gen3 joint spacing
     assert np.linalg.norm(pts - shoulder, axis=1).max() <= arm_length + 1e-6
 
 

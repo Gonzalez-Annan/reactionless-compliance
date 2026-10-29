@@ -42,13 +42,13 @@ reactionless-compliance/
 
 ## Models
 
-All three servicers share the same 7-DOF arm (6.6 kg) and differ only in
-the base, giving arm/base mass ratios of 0.33 / 0.044 / 0.0044.
+All three servicers share the same 7-DOF arm (Kinova Gen3 geometry, 6.5 kg moving) and differ only in
+the base, giving arm/base mass ratios of 0.30 / 0.043 / 0.0043 (the 1.7 kg Gen3 base counts with the servicer).
 
 | Name | Value |
 |------|-------|
 | Base | free joint, gravity 0 |
-| Joint limits | ±170° (j1, j3, j5, j7), ±120° (pitch joints j2, j4, j6) |
+| Joint limits | ±170° (roll joints j1, j3, j5, j7), Gen3 pitch limits ±128.9° / ±147.8° / ±120.3° (j2, j4, j6) |
 | Collisions | on: the arm cannot pass through the base or itself |
 | Start pose | keyframe `home` (elbow and wrist bent, away from the straight-arm singularity) |
 | Arm mount | shoulder on the base +x face (`mount` body) |
