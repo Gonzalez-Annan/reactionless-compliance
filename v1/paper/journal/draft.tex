@@ -199,7 +199,8 @@ rehearsed from rest, and again after each of five first moves of 0.3~m (up, down
 tilt that move left. From rest the map is close to right: all 80 goals inside it go, and 54 of the 60 outside it
 are refused. After one move it is wrong both ways. It allows 28 of 400 goals the arm can no longer reach (7.0\%),
 26 stopped by the tilt and 2 by the bus, the deepest 19.2~cm inside its edge. It refuses 32 of 270 that the arm can
-now reach (11.9\%), the furthest 6.9~cm outside its edge. The move straight up leaves no tilt behind at all and
+now reach (11.9\%), the furthest 6.9~cm outside its edge (Fig.~\ref{fig:gap}). Which way it is wrong depends on the move: down gives
+no wrong go and 19 wrong noes, the move along $+y$ gives 13 and 7. The move straight up leaves no tilt behind at all and
 still gives 9 wrong goes, so it is where the arm is and not only the tilt it has spent. % D70, D72, analysis/envelope/static.py 4
 
 The rehearsal is the truth here, and it has a clock. The tool gives a line twice its length at 0.10~m/s plus 1~s,
@@ -209,6 +210,14 @@ At four and at eight times the counts are the same, 28 and 32, with no rehearsal
 numbers we quote. The tool keeps twice: a move that takes more than twice its time is refused, a rule one can
 state. The scored goals of the study do not hang on it: every one that cannot be reached ends on the tilt or the bus.
 % D72, D73
+
+\begin{figure}[t]\centering
+\includegraphics[width=\linewidth]{../figs/fig_gap.pdf}
+\caption{The rest map after one 0.3~m move, on 20 directions. A cross is a goal inside the map that the arm can no
+longer reach, a circle a goal outside it that the arm now reaches, a dot a goal the map still gets right. The dotted
+line is the map's edge. The 6 goals outside the map that the arm reaches from rest are left out. Rehearsal given four
+times its length. Scripted runs.}\label{fig:gap}
+\end{figure}
 
 The sweep of 40 starts one move out, on the 98 lines of the map, shows the same two ways: the edge from the start is
 nearer than the map by more than 5\% on 14.1\% of pairs and further by more than 5\% on 7.9\%. % D70, wide98_medium.npz
