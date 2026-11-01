@@ -39,6 +39,8 @@ def operator(wait=False):
         return s["tgt"] - s["link"][1]
 
     def axes():                                          # sx, sy, dz, cx, cy, go, snap, fine
+        if s.get("say"):                                 # a briefing or score screen: press and let go of Enter
+            return 0, 0, 0, 0, 0, n[0] % 2 == 0, False, False
         if "tgt" not in s or "link" not in s:
             return 0, 0, 0, 0, 0, False, False, False
         if s["tgt"] is not at[0]:

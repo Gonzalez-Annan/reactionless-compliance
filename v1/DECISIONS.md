@@ -1677,3 +1677,104 @@ is wrong depends on the move. Down gives 0 wrong goes and 19 wrong noes, the mov
 Builds at 21 pages, same warnings as before.
 
 Open: as D74.
+
+## D76 The study as a game, and a pad (2026-10-18)
+
+On branch `p2-game`, off `p2-gap-figure`. Nothing on main.
+
+The four displays are four answers to one representation problem: what the arm can reach depends on its state,
+so a picture drawn at one state has to give something up. `rest` gives up being right after a move, `guaranteed`
+gives up reach, `live` gives up 11 to 20 s, `gate` gives up the picture. Said once in the README and at the top of
+"What to show instead" in the draft.
+
+The tool:
+
+- `src/pad.py` reads any pad Windows lists in joy.cpl through winmm, so nothing to install. `--learn` asks for
+  each control in turn and saves `data/pad_map.json`, so a one-stick PSP-style pad works too: what is skipped
+  stays on the keys. Without the file it guesses a PS4 pad. Pad and keyboard drive together. The old pygame path
+  is gone, and the rumble with it (winmm has none).
+- The maps study runs as a game. Each drive opens on a briefing screen (the words for the display and the costs),
+  shows top right practice or pair, n of N, time on this goal, score and how the last goal ended, and closes on a
+  score screen. The person starts every round with Enter or Cross. The terminal only asks the experimenter once,
+  when the person is seated, and for the ratings. Score is the sum of `time_s` without the practice pairs.
+- Simulated time stands still on a screen, so reading costs no score. `run_s` now includes the screens.
+- The words for `live` said about 12 s, now 11 to 20 s, as measured. The draft too.
+
+Checked: `tests/test_pad.py` on made-up pad readings. `tests/test_game.py` runs the maps study end to end on fewer
+goals with the scripted operator of `prestudy.py`: screens in order, no simulated time on them, the score shown
+equals the scored times, the columns of the file as before. A scripted run, not a person.
+
+Not checked: a real pad, and the text on a real viewer window (font size, where it sits). The protocol still says
+keyboard, a switch to the pad is the team's call before participant 1. Not changed: the study design, the goal
+sets, the clock, the CSV columns.
+
+The draft builds at 22 pages (the new paragraph).
+
+Open: as D74, plus a real pad and a look at the screens in the pilots.
+
+## D77 The bus looks like a satellite (2026-10-18)
+
+The bus is dressed as a satellite in space: gold foil, a grey deck under the arm, two solar wings on booms, a dish
+on the front face, a star sky and a sun. Paint only. All of it sits on the bus body with no mass and no contact,
+and the model keeps the bare model's framing (`<statistic>`), so the camera opens where it did. The old blue rod
+on -x is grey now, it is one of the booms. The arm is white.
+
+Why only on the bus: the self-clearance check takes every geom on the arm bodies, and the arm-to-bus distance
+reads geom 0 as the bus. A geom on the arm would change both, a world geom would take id 0. No Earth for that
+reason, and because at the default camera it would sit right behind the arm, under the map colours.
+
+Checked: `tests/test_models.py` builds the bare and the dressed model for all three buses. Same masses, inertias
+and framing, the same geoms where the code reads them, and 2000 steps on the same commands end on the same
+state, to the bit. Offscreen renders of the three buses, with the cage on the medium one. The sun casts no
+shadow, it gave acne on the large bus.
+
+Cost: the model compiles in about 28 ms, was 2 ms (the star sky). Once per trial.
+
+Not checked: the live viewer next to the screens, and whether the gold and the wings pull the eye from the map
+colours. Pilots.
+
+## D78 Our own screen, and the satellite in proportion (2026-10-18)
+
+The MuJoCo viewer is out of the game. It brought its own menus and panels, our numbers had to sit in its overlay,
+and it looked bad. The screen is how the map gets to the operator, so it is part of the problem we are solving.
+Now the operator sees the arm, the cage, the goal and two cards: margin or map top left, score top right, and a
+card in the middle for the screens to read.
+
+How it works: MuJoCo renders offscreen at 1280x720, PIL draws the cards, a Tk window shows it (GDI blit on
+Windows). It runs on its own thread, like the viewer did. The sim posts a copy of the state at most 30 times a
+second and the thread draws the latest one.
+
+Speed, scripted operator, `maps_study`, 30 s, laptop on battery with the 10 probe processes running:
+
+| | screen | sim speed while playing |
+|---|---|---|
+| one thread | 5.4 fps | lost 6.7 s in 30 s |
+| screen on its own thread | 8.4 fps | 0.36x |
+| cage depth solved at once | 13.5 fps | 0.65x |
+| plane cuts at 30 a second | 13.4 fps | 0.83x |
+| cards kept between frames | | 0.93x |
+| nothing drawn | | 1.00x |
+
+The last three leave out the rehearsal holds. What made the gap:
+- `depth` solved the 192 cage faces one by one, every step the stick moved. Now all at once, 3.2 ms to 0.32 ms.
+  Same number to the bit, `tests/test_screen.py` checks it against the old loop. The paper analyses use it, so
+  none of their numbers move.
+- The cage took 85 ms a frame to lay out. Now 15 ms, and kept while its rays stay the same.
+- The cards were drawn fresh every frame. Their text changes about once a second, so they are kept.
+- What is left is the screen thread holding Python's lock. Next step if pilots need it: post only the joint
+  angles instead of a copy of the whole state.
+
+A step held longer than 0.25 s (the tool holds one up to 1.5 s while it rehearses) now slips the clock. Before,
+the arm ran fast afterwards to catch up. The hold itself still shows as a short freeze. Not fixed.
+
+The look. The bus keeps its size: it comes from its mass, and the arm-to-bus check reads it. So the camera does
+the work. Same angles, azimuth 90 and elevation -45, since the stick mapping and the scripted rule assume them.
+It now aims 0.2 m above the middle of the arm from 2.0 m, the same for every bus, so it opens on the arm and the
+cage with the bus low in the frame. Wings slimmer and longer, a new dish, and the foil darker so the white arm is
+the brightest thing on screen. Paint only, `tests/test_models.py` still ends on the same state to the bit.
+
+Checked: the full suite, the screen drawn without a window (kept cage = fresh cage, cards and the dimmed read
+screen), the pacing on a fake clock, the speed table above.
+
+Not checked: a real pad, the live window by eye, pilots. Battery about halves the speed, so the study laptop
+runs on AC.

@@ -7,7 +7,7 @@ import builtins, collections, numpy as np, teleop as T
 def run(monkeypatch, pid, ok=True):
     """-> the rows of one participant and the targets of each free_drive call. ok: the stub reaches and gives up everything."""
     got = []
-    monkeypatch.setattr(T, "free_drive", lambda axes, size, sc, mode, targets, aid: got.append(targets) or
+    monkeypatch.setattr(T, "free_drive", lambda axes, size, sc, mode, targets, aid, **k: got.append(targets) or
                         [{"time_s": 1.0, "reached": ok, "parked": ok} for _ in targets])
     monkeypatch.setattr(builtins, "input", lambda q="": "50 40 30 20 10 0" if "six" in q else "5" if "trust" in q else "")
     monkeypatch.setattr(T.pd.DataFrame, "to_csv", lambda *a, **k: None)

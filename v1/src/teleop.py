@@ -1,4 +1,4 @@
-"""Drive the hand yourself: keyboard now, gamepad (PlayStation or any pygame joystick) with --pad. [P5]
+"""Drive the hand yourself: keyboard, or with --pad any gamepad Windows sees (src/pad.py) plus the keyboard. [P5]
 
     python src/teleop.py                           # set-and-go, keyboard, medium servicer, Imp.+RNS, position task
     python src/teleop.py --size large --scheme 4
@@ -8,7 +8,7 @@
     python src/teleop.py --feedback 1              # feedback study, participant 1: 3 blocks (no cue / colour / hard stop), scored in seconds
     python src/teleop.py --maps 1                  # maps study, participant 1: 4 blocks (cage from rest / cage that held / cage from where the arm is / no cage)
     python src/teleop.py --maps 1 --dry            # the same session as a pilot: saved to data/pilot, not participant data
-    python src/teleop.py --pad ...                 # same, with a gamepad (needs: uv pip install pygame)
+    python src/teleop.py --pad ...                 # same, with a gamepad too. First time on a machine: python src/pad.py --learn
 
 Set-and-go (default): move the dot anywhere in 3-D, press Enter (pad: Cross). If the hand can get there with
 the base staying within 2 degrees of level it goes; if not, the dot is red and nothing moves.
@@ -18,7 +18,8 @@ The cage is a guide (right for about 9 goals in 10 near its edge, D20); the dot 
     green = the hand can get there in one straight move with the base within 2 degrees
     red   = it cannot; the blue ball on the line marks how far it would get
     yellow = still checking
-Controls are designed for a PS4 pad; the keyboard mirrors it. Moves are relative to the camera:
+Controls are laid out for a PS4 pad; the keyboard mirrors it, and pad.py --learn puts any job on any control of
+another pad (a one-stick pad can leave the camera to the keyboard). Moves are relative to the camera:
 "right" is right on your screen, whichever way you have turned the view.
 
     PS4                      keyboard            does
@@ -34,8 +35,10 @@ The slices are where the three shells cross the three world planes through the d
 The white line joins the hand to the dot. In --session the same sticks drive hand velocity in world axes.
 Close the viewer window to end a run.
 
-The keyboard path was checked without a human at the keys; the gamepad path is UNTESTED
-(pygame is not installed here and no pad was attached). Pilot both before a real participant.
+In the studies the run is a game: the briefing is on screen and Cross or Enter starts it, the score (the scored
+goals' time, lower is better) is top right, and a block ends on its score.
+The keyboard path was checked without a human at the keys; the pad path only with made-up pad readings
+(tests/test_pad.py), no pad was plugged in. Pilot both before a real participant.
 """
 import argparse
 import copy
@@ -45,6 +48,7 @@ import itertools
 import multiprocessing
 import os
 import random
+import textwrap
 import threading
 import time
 from pathlib import Path
@@ -61,7 +65,7 @@ from schemes import MARGIN
 import view
 from view import viewer_hook
 
-V_MAX, W_MAX, DEAD = 0.08, 0.4, 0.1     # m/s, rad/s, stick deadband: tune in the pilot
+V_MAX, W_MAX = 0.08, 0.4                # m/s, rad/s
 G_MAX, V_GO, TOL = 0.15, 0.10, 0.005    # dot speed m/s, hand speed m/s, "arrived" m
 TW_BASE, BASE_MAX = 2.0, 2.0            # hand first, base as level as the arm allows; deg of base drift that rejects a goal
 # Measured, medium servicer from rest (D15): with the base held exactly level the hand has ONE good direction
@@ -113,16 +117,15 @@ keyboard.view, keyboard.park = (lambda: down("insert")), (lambda: down("rctrl"))
 
 
 def gamepad():
-    import pygame
-    pygame.init()
-    js = pygame.joystick.Joystick(0)
+    """The pad (src/pad.py, read through Windows) and the keyboard together: either one drives. No rumble."""
+    import pad
+    now, last = pad.reader(), [None]
 
-    def axes():   # pygame 2 / SDL2 DualShock 4 numbering: UNTESTED, print js.get_axis/get_button and fix here if off
-        pygame.event.pump()
-        a = [0 if abs(x) < DEAD else x for x in (js.get_axis(i) for i in range(6))]
-        return a[0], -a[1], (a[5] - a[4]) / 2, a[2], a[3], js.get_button(0), js.get_button(1), js.get_button(9)
-    axes.buzz = lambda x: js.rumble(x, x, 100)      # 0..1, UNTESTED like the numbering; pygame >= 2.0.2
-    axes.view, axes.park = (lambda: js.get_button(2)), (lambda: js.get_button(3))     # Square, Triangle: UNTESTED
+    def axes():
+        p, k = now(), keyboard()
+        last[0] = p
+        return tuple(max(-1, min(1, a + b)) for a, b in zip(p[:5], k[:5])) + tuple(bool(a or b) for a, b in zip(p[5:8], k[5:]))
+    axes.view, axes.park = (lambda: last[0][8] or keyboard.view()), (lambda: last[0][9] or keyboard.park())
     return axes
 
 
@@ -254,14 +257,15 @@ def guaranteed(rays, home, size):
 
 
 def depth(tips, p0, g):
-    """How far out g is: 0 at p0, 1 on the cage through tips (26 points), along the line from p0."""
-    for t in TRIS:
-        A = np.column_stack([tips[i] - p0 for i in t])
-        if abs(np.linalg.det(A)) > 1e-12:
-            c = np.linalg.solve(A, g - p0)      # g = p0 + c . (the three corners of this face)
-            if (c >= -1e-9).all():
-                return c.sum()
-    return np.inf
+    """How far out g is: 0 at p0, 1 on the cage through tips (26 points), along the line from p0.
+    All faces are solved at once: one by one they took most of the sim's time while the stick moves. Same answer to
+    the bit (tests/test_screen.py), the first face that holds g wins as before."""
+    A = (np.asarray(tips)[TRIS] - p0).transpose(0, 2, 1)       # face k: its three corners as columns
+    ok = np.abs(np.linalg.det(A)) > 1e-12
+    c = np.full((len(A), 3), -1.0)
+    c[ok] = np.linalg.solve(A[ok], np.broadcast_to(g - p0, (ok.sum(), 3))[..., None])[..., 0]   # g = p0 + c . corners
+    k = np.flatnonzero((c >= -1e-9).all(1))
+    return c[k[0]].sum() if len(k) else np.inf
 
 
 def cut(tips, o, n):
@@ -318,7 +322,7 @@ T_REST = 13.1                           # the same limit for the feedback study,
 NEAR, DWELL, T_OUT = 0.02, 0.5, 90.0    # a pilot goal is reached after DWELL s within NEAR m; given up after T_OUT s
 
 
-def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, aid=None):
+def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, aid=None, intro=None, practice=0):
     """delay: seconds before a command reaches the robot (the round trip, lumped on the uplink).
     direct: rate control, the stick drives the hand at up to V_GO while held; no dot, envelope or rehearsal.
     targets: pilot goals to touch in turn. -> one row per goal.
@@ -339,6 +343,9 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
     The cage is also probed from where the hand stopped, as in "live". When it is in, the inner edge moves out to it
     (livemap.sharpen) and the hand ball turns green. The outer edge stays: pulled in, it hid goals the arm can reach
     (static.py). Nobody has to wait for the probe. "early" counts the sends made before it was in.
+    intro: (title, briefing). The run is played as a game: the briefing stays on screen until Cross or Enter, the
+    score (time_s summed over the goals after the first `practice`) is top right, and the run ends on a score screen.
+    Simulated time stands still on both screens, so they cost no goal any time.
     ponytail: with a delay the rehearsal is of the state at the key press, not at arrival of the command."""
     m, d, sid, Rb0 = setup(size)
     s, hook = viewer_hook()
@@ -348,8 +355,8 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
     pend, vel, rows = collections.deque(), np.zeros(3), []
     todo = [goal + t for t in targets] if targets is not None else []
     t0, sends, refused, path, gpeak, dwell = 0.0, 0, 0, 0.0, 0.0, 0.0
-    start, tgo, kz, buzz = home, 0.0, 0, getattr(axes, "buzz", lambda x: None)
-    view, park, wasv, wasp, trips, cutat = getattr(axes, "view", bool), getattr(axes, "park", bool), False, False, 0, None
+    start, tgo, kz = home, 0.0, 0
+    view, park, wasv, wasp, trips, cutat, cutt = getattr(axes, "view", bool), getattr(axes, "park", bool), False, False, 0, None, 0.0
     maps, gate = aid in MAPS + ("lookup", "band"), aid in (None, "gate", "band")
     stop = FENCE[1] if aid in (None, "stop") else float(maps and aid != "gate")  # depth the dot is held at, 0 = not held
     rest, centre, asked, job, lost, no, tg = bool(aid) and not maps, home, home, None, 0.0, False, None
@@ -377,6 +384,23 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
             pl, s["label"] = multiprocessing.Pool(PROCS, livemap.init), "map"
         if not aid:
             threading.Thread(target=preview, args=(m, sid, Rb0, scheme, mode, s), daemon=True).start()
+
+    def screen(head, body):                           # a screen to read: the simulation waits for a fresh Cross or Enter
+        s["say"], g0 = (head, "\n".join(textwrap.fill(x, 90) for x in body.split("\n"))), True
+        while hook(m, d, (goal,)) is not False:
+            g = axes()[5]
+            if g and not g0:
+                break
+            g0 = g
+            time.sleep(0.02)
+        s["say"] = None
+        s["t0"] = time.time() - d.time              # the viewer must not fast-forward over the time spent reading
+
+    per, word = (2, "pair") if maps else (1, "goal")
+    score = lambda: sum(x["time_s"] for x in rows[practice:])
+    if intro:
+        screen(*intro)
+        was = True                                  # the press that closed the briefing is not a send
     while True:
         sx, sy, dz, cx, cy, go, snap, fine = axes()
         cam = s["v"].cam if "v" in s else None      # the viewer opens on the first hook call
@@ -418,8 +442,6 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                 if stop and k > stop:               # hard fence on the dot: it slides along the outer zone, never past it
                     goal, k = centre + (goal - centre) * stop / k, stop
                 kz = int(depth([r[0] for r in s["rays"]], centre, goal) > 1 + 1e-6) if aid == "band" else zone(k)   # band: 0 inside the inner edge, 1 between the two
-                if stop:
-                    buzz(float(np.clip((k - FENCE[0]) / (FENCE[1] - FENCE[0]), 0, 1)))   # the pad shakes harder toward the fence
             if snap or sx or sy or dz:
                 s["ask"] = (goal.copy(), copy.copy(d))      # the copy is made here: the worker must not read live data
             if go and not was:
@@ -443,9 +465,9 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                     s["far"] = s["ans"][1] if no else None      # refused: the blue ball is how far the hand would have got
             elif "ans" in s:
                 s["rgba"], s["far"] = ((YELLOW if kz else GREEN), None) if s["ans"][0] else (RED, s["ans"][1])   # yellow: reachable, but close to the edge
-            if "cage" in s and goal is not cutat and len(s["rays"]) == len(DIRS):
+            if "cage" in s and goal is not cutat and len(s["rays"]) == len(DIRS) and time.time() - cutt > 1 / 30:   # the screen draws 30 a second
                 # three rings per plane, on the three world planes through the dot: where the dot sits in each shell
-                s["cuts"], cutat = [(cut([r[i] for r in s["rays"]], goal, n), c) for n in np.eye(3) for i, c in enumerate(LINE)], goal
+                s["cuts"], cutat, cutt = [(cut([r[i] for r in s["rays"]], goal, n), c) for n in np.eye(3) for i, c in enumerate(LINE)], goal, time.time()
         while pend and pend[0][0] <= d.time:        # commands reach the robot `delay` seconds late
             x = pend.popleft()[1]
             if direct:
@@ -488,6 +510,7 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                 rows.append({"goal": len(rows) + 1, "reached": dwell >= DWELL, "time_s": d.time - t0 + REPARK_S * (gone or out) + lost,
                              "sends": sends, "refused": refused, "path_m": path, "peak_base_deg": gpeak, "parked": gone or out,
                              "trips": trips} | ({"true_go": tg, "timeout": out, "early": early, "map_s": mt or np.nan, "zone": zs} if maps else {}))
+                s["last"] = f"{'reached' if dwell >= DWELL else 'given up' if gone else 'out of time'}, {rows[-1]['time_s']:.0f} s"
                 todo.pop(0)
                 t0, sends, refused, path, gpeak, dwell, trips, lost, tg = d.time, 0, 0, 0.0, 0.0, 0.0, 0, 0.0, None
                 early, mt, zs = 0, 0.0, None
@@ -505,10 +528,17 @@ def free_drive(axes, size, scheme, mode, delay=0.0, direct=False, targets=None, 
                     p = goal = target = start = home
                     t0, tgo, kz, s["t0"] = 0.0, 0.0, 0, time.time()
                     pend.clear()
+        if intro:
+            nr, pr = len(rows), len(rows) < practice
+            n, of = (nr // per + 1, practice // per) if pr else ((nr - practice) // per + 1, (nr + len(todo) - practice) // per)
+            s["hud"] = ("\n".join((intro[0], "practice" if pr else word, "this goal", "score", "last")),
+                        "\n".join(("", f"{n} of {of}", f"{d.time - t0 + lost:.0f} s", f"{score():.0f} s", s.get("last", "-"))))
         if hook(m, d, (goal,)) is False:
             break
         for _ in range(DECIM):
             mujoco.mj_step(m, d)
+    if intro and not todo:
+        screen(f"{intro[0]} done", f"Score {score():.0f} s, lower is better. Cross or Enter to go on.")
     s["v"].close()
     if aid in ("live", "band"):
         pl.terminate()
@@ -661,7 +691,7 @@ def feedback(axes, pid, size):
 WORDS = {   # maps study: what the participant is told about each display, the same words for everyone
     "rest": "The cage was drawn with the arm at rest. Once the arm has moved it can be wrong.",
     "guaranteed": "The cage held from every start one move away from rest. It is smaller than what the arm can reach.",
-    "live": "The cage is drawn from where the arm is now. That takes about 12 s. Until the marker on the hand turns green "
+    "live": "The cage is drawn from where the arm is now. That takes 11 to 20 s. Until the marker on the hand turns green "
             "you are still looking at the cage from rest.",
     "gate": "There is no cage. Every command is checked before it runs and refused if it would fail.",
     "band": "Inside the green a command is expected to go through. In the orange, between the green and the blue lines, it is not known until you send. "
@@ -678,16 +708,20 @@ def maps_study(axes, pid, size):
     lot in a new order per participant. Before the first block: 4 training pairs under that block's display (use
     "train", block 0), once more if an inner goal was not reached or the outer one not given up.
     Giving a goal up adds REPARK_S, and so does running out of time on it. After each block the participant rates
-    workload (raw NASA-TLX) and trust in what was shown. Keyboard only: the gamepad path has never been run.
+    workload (raw NASA-TLX) and trust in what was shown. Each drive is played as a game (free_drive intro): briefing
+    on screen, score top right, score screen at the end. The pad path has only been run on made-up readings.
     Two columns are on the wall clock, the rest is simulated time: run_s, how long the drive the row came from took
-    (window, maps and driving, 12 pairs in a block), and clock_s, session start to the end of that block's ratings."""
+    (window, maps, briefing and score screens and driving, 12 pairs in a block), and clock_s, session start to the
+    end of that block's ratings."""
     pr, rows, t0 = pd.read_csv(OUT.parent / f"pairs_{size}.csv"), [], time.time()
-    cost = (f"Right Ctrl gives a goal up as out of reach. That adds {REPARK_S:g} s, and so does a goal still open after {T_OUT:g} s. "
+    cost = (f"Right Ctrl (pad: Triangle) gives a goal up as out of reach. That adds {REPARK_S:g} s, and so does a goal still open after {T_OUT:g} s. "
             "A command that is brought back adds nothing but the time it took. Fastest total wins.")
+    input(f"Participant {pid}. Seat them at the screen, then Enter. The briefings are on screen from here.")
 
-    def run(b, c, q):   # one free_drive call over the pairs in q, two rows a pair
+    def run(b, c, q, intro):   # one free_drive call over the pairs in q, two rows a pair
         t = time.time()
-        r = free_drive(axes, size, 5, "3d", targets=q[["lx", "ly", "lz", "tx", "ty", "tz"]].to_numpy().reshape(-1, 3), aid=MAPS[c])
+        r = free_drive(axes, size, 5, "3d", targets=q[["lx", "ly", "lz", "tx", "ty", "tz"]].to_numpy().reshape(-1, 3), aid=MAPS[c],
+                       intro=intro, practice=2 * int((q.use == "block").sum()))
         w = time.time() - t
         return [x | {"pid": pid, "block": b, "cue": MAPS[c], "set": p.set, "pair": p.cand, "cls": p.cls, "use": p.use,
                      "leg": n % 2 + 1, "depth": p.depth if n % 2 else np.nan, "run_s": w}
@@ -695,15 +729,14 @@ def maps_study(axes, pid, size):
 
     for b, c in enumerate([(pid + x) % 4 for x in (0, 1, 3, 2)], 1):    # 4 orders: every display once in every place and once right after every other
         for go in range(2 * (b == 1)):
-            input(f"Training, {WORDS[MAPS[c]]}\nPut the dot on the pink ball and press Enter to send. {cost} Enter to start.")
-            t = run(0, c, pr[pr.use == "train"].sample(frac=1, random_state=pid + go))
+            t = run(0, c, pr[pr.use == "train"].sample(frac=1, random_state=pid + go),
+                    ("Training", f"{WORDS[MAPS[c]]}\nPut the dot on the pink ball and press Enter (pad: Cross) to send. {cost}\nEnter or Cross to start."))
             rows += t
             if any(x["reached"] for x in t if x["leg"] == 2 and x["cls"] == "inner") and all(x["parked"] for x in t if x["leg"] == 2 and x["cls"] == "outer"):
                 break
         k = (c + pid + pid // 2) % 4    # the set of this display: one on with every participant and one more every two (D68)
         q = pd.concat([pr[(pr.set == k) & (pr.use == u)].sample(frac=1, random_state=pid * 10 + c) for u in ("block", "scored")])
-        input(f"Block {b}/4. {WORDS[MAPS[c]]}\n{cost} The first two pairs are practice. Enter to start.")
-        r = run(b, c, q)
+        r = run(b, c, q, (f"Block {b} of 4", f"{WORDS[MAPS[c]]}\n{cost} The first two pairs are practice.\nEnter or Cross to start."))
         w = ask("Workload, 0 (low) to 100 (high), six numbers: " + ", ".join(TLX) + ": ", 6, 0, 100)
         ex = {"tlx": sum(w) / 6, "tlx6": " ".join(f"{x:g}" for x in w), "procs": PROCS,
               "trust": ask("How much did you trust what the screen showed, 1 (not at all) to 7 (fully): ", 1, 1, 7)[0]}
