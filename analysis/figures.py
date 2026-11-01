@@ -242,7 +242,13 @@ def figS1_safety():
 def main():
     ap = argparse.ArgumentParser(description="Render every figure that has data")
     ap.add_argument("--synthetic", action="store_true", help="Fig. 4 from fake ratings if no real ones")
+    ap.add_argument("--paper", action="store_true", help="no figure titles (the paper captions them) -> figures/paper/")
     a = ap.parse_args()
+    if a.paper:
+        global OUT
+        OUT = ROOT / "figures" / "paper"
+        import matplotlib.figure
+        matplotlib.figure.Figure.suptitle = lambda *args, **kw: None
     import sys
     sys.path.insert(0, str(ROOT))
     from analysis.metrics import collect, questionnaires, synthetic_questionnaires
