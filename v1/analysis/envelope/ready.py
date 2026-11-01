@@ -19,7 +19,7 @@ AX = [np.array(u, float) / np.linalg.norm(u) for u in
 
 def selfclear(m, d):
     """Least distance between arm links that are not neighbours, m. ponytail: capsule geoms only, as modelled."""
-    g = [i for i in range(m.ngeom) if m.geom_bodyid[i] >= 2]
+    g = [i for i in range(m.ngeom) if m.geom_bodyid[i] >= 2 and m.body_rootid[m.geom_bodyid[i]] == 1]   # the robot only
     return min(mujoco.mj_geomDistance(m, d, a, b, 1.0, None) for a in g for b in g
                if m.geom_bodyid[b] - m.geom_bodyid[a] >= 3)      # links two apart share a short wrist segment and always touch
 

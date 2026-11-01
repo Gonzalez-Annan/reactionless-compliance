@@ -175,8 +175,9 @@ CLEAR = 0.02                            # m the arm must keep from the bus. pony
 
 def clear(m, d):
     """Least distance from the arm to the bus, m (negative: inside it). Call after mj_forward.
-    Link 1 is bolted to the bus and left out; geom 0 is the bus box."""
-    return min(mujoco.mj_geomDistance(m, d, 0, g, 1.0, None) for g in range(m.ngeom) if m.geom_bodyid[g] > 2)
+    Link 1 is bolted to the bus and left out; geom 0 is the bus box. Only geoms on the robot (the Earth is not)."""
+    return min(mujoco.mj_geomDistance(m, d, 0, g, 1.0, None) for g in range(m.ngeom)
+               if m.geom_bodyid[g] > 2 and m.body_rootid[m.geom_bodyid[g]] == 1)
 
 
 def reachable(m, d, sid, Rb0, target, scheme, mode):

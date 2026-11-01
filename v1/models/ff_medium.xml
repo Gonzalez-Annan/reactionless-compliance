@@ -1,32 +1,38 @@
 <mujoco model="ff_medium">
 <option gravity="0 0 0" timestep="0.0005" integrator="RK4"/>
-<statistic center="-0.11716905622412099 0 0.38198729810778076" extent="2.4960254037844387" meansize="0.24067021036318237"/>
+<statistic center="-0.11716905622412099 0 0.38198729810778076" extent="2.4960254037844387" meansize="0.24067021036318237" meanmass="39.062624999999997" meaninertia="86.429497407843115"/>
+<visual><map shadowscale="1"/></visual>
 <asset>
 <texture name="sky" type="skybox" builtin="gradient" rgb1=".03 .04 .09" rgb2="0 0 0" width="512" height="3072" mark="random" random=".0015" markrgb=".9 .9 1"/>
 <texture name="cells" type="2d" builtin="checker" rgb1=".1 .13 .3" rgb2=".07 .09 .22" mark="edge" markrgb=".7 .7 .75" width="64" height="64"/>
 <material name="foil" rgba=".5 .38 .16 1" specular=".4" shininess=".5"/>
-<material name="cells" texture="cells" texrepeat="8 2" specular=".8" shininess=".9"/>
+<material name="cells" texture="cells" texrepeat="6 3" specular=".8" shininess=".9"/>
 <material name="metal" rgba=".6 .62 .66 1" specular=".7" shininess=".6"/>
 <material name="white" rgba=".9 .9 .92 1" specular=".4"/>
 <material name="dark" rgba=".16 .16 .18 1"/>
+<material name="earth" rgba=".08 .28 .66 1" specular=".3" shininess=".4"/>
+<material name="land" rgba=".26 .42 .2 1" specular="0"/>
+<material name="sand" rgba=".78 .6 .34 1" specular="0"/>
+<material name="cloud" rgba=".95 .96 1 .7" specular="0"/>
+<material name="air" rgba=".55 .75 1 .22"/>
+<material name="sun" rgba="1 .96 .85 1" emission="1"/>
 </asset>
 <default><joint armature="0.5"/><geom contype="0" conaffinity="0" material="white"/></default>
 <worldbody>
 <light pos="0 -3 3" dir="0 1 -1"/>
-<light name="sun" directional="true" pos="0 0 6" dir="-.5 .8 -1" diffuse=".6 .58 .52" specular=".4 .4 .4" castshadow="false"/>
+<light name="sun" directional="true" pos="0 0 6" dir="-0.3637 0.5819 -0.7274" diffuse=".6 .58 .52" specular=".4 .4 .4" castshadow="false"/>
 <body name="base"><freejoint name="root"/>
 <geom type="box" size="0.5 0.5 0.5" mass="300.0" material="foil"/>
 <geom type="cylinder" fromto="0 0 0 -1.1 0 0" size=".02" mass="0.001" material="metal"/>
 <geom mass="0" type="box" pos="0 0 0.504" size="0.45 0.45 .004" material="dark"/>
 <geom mass="0" type="cylinder" fromto="0 0 0.5 0 0 0.53" size=".075" material="metal"/>
-<geom mass="0" type="cylinder" fromto="0 0 0 1.1 0 0" size=".02" material="metal"/>
-<geom mass="0" type="cylinder" fromto="0 -0.5 -0.15 0 -0.58 -0.15" size=".025" material="metal"/>
-<geom mass="0" type="ellipsoid" pos="0 -0.6 -0.15" size="0.16 .03 0.16" material="white"/>
-<geom mass="0" type="cylinder" fromto="0 -0.63 -0.15 0 -0.631 -0.15" size="0.135" material="metal"/>
-<geom mass="0" type="cylinder" fromto="0 -0.6 -0.15 0 -0.725 -0.15" size=".008" material="metal"/>
-<geom mass="0" type="sphere" pos="0 -0.725 -0.15" size=".02" material="dark"/>
-<geom mass="0" type="box" pos="1.9 0 0" size="0.8 0.2 .01" material="cells"/>
-<geom mass="0" type="box" pos="-1.9 0 0" size="0.8 0.2 .01" material="cells"/>
+<geom mass="0" type="cylinder" fromto="-1.1 0 0 -1.184 -0.02045 0.02556" size=".015" material="metal"/>
+<geom mass="0" type="box" pos="-1.733 -0.1545 0.1931" size="0.6 0.3 .008" xyaxes="-0.9315 -0.2272 0.284 0 -0.7809 -0.6247" material="cells"/>
+<geom mass="0" type="cylinder" fromto="0.5 0 -0.125 0.5565 0.05444 -0.2158" size=".02" material="metal"/>
+<geom mass="0" type="ellipsoid" pos="0.5706 0.06805 -0.2385" size="0.15 0.15 0.03" zaxis="0.4708 0.4537 -0.7567" material="white"/>
+<geom mass="0" type="cylinder" fromto="0.5833 0.0803 -0.2589 0.584 0.08098 -0.2601" size="0.1275" material="metal"/>
+<geom mass="0" type="cylinder" fromto="0.584 0.08098 -0.2601 0.6342 0.1293 -0.3407" size=".006" material="metal"/>
+<geom mass="0" type="sphere" pos="0.6342 0.1293 -0.3407" size="0.012" material="dark"/>
 <body name="l1" pos="0 0 0.5"><joint name="j1" axis="0 0 1"/><geom type="capsule" fromto="0 0 0 0 0 0.12" size=".04" mass="2.5"/>
 <body name="l2" pos="0 0 0.12"><joint name="j2" axis="0 1 0"/><geom type="capsule" fromto="0 0 0 0 0 0.225" size=".04" mass="2.5"/>
 <body name="l3" pos="0 0 0.225"><joint name="j3" axis="0 0 1"/><geom type="capsule" fromto="0 0 0 0 0 0.225" size=".04" mass="2.0"/>
@@ -36,6 +42,19 @@
 <body name="l7" pos="0 0 0.06"><joint name="j7" axis="0 0 1"/><geom type="capsule" fromto="0 0 0 0 0 0.06" size=".04" mass="1.0"/>
 <site name="ee" pos="0 0 0.06" size=".02" rgba="1 0 0 1"/></body></body></body></body></body></body></body>
 </body>
+<body name="sky">
+<geom mass="0" type="sphere" pos="11.77 11.34 -18.92" size="3.782" material="earth"/>
+<geom mass="0" type="ellipsoid" pos="10.42 9.33 -16.44" size="1.134 0.605 0.3403" xyaxes="0.6496 0.3775 0.66 -0.6532 0.7213 0.2303" material="land"/>
+<geom mass="0" type="ellipsoid" pos="9.667 9.076 -17.03" size="0.8319 0.5294 0.183" xyaxes="0.7728 -0.6249 0.1109 0.2561 0.4669 0.8464" material="sand"/>
+<geom mass="0" type="ellipsoid" pos="11.13 9.65 -15.68" size="0.605 0.3782 0.09681" xyaxes="0.9116 0.2616 0.317 -0.373 0.8506 0.3707" material="land"/>
+<geom mass="0" type="ellipsoid" pos="8.869 10.52 -17.05" size="0.9832 0.4538 0.2556" xyaxes="0.5669 -0.4871 0.6643 0.1028 0.842 0.5296" material="land"/>
+<geom mass="0" type="ellipsoid" pos="8.973 11.18 -16.45" size="0.5294 0.3782 0.07412" xyaxes="0.1664 -0.9783 0.1238 0.6404 0.2027 0.7408" material="land"/>
+<geom mass="0" type="ellipsoid" pos="10.66 11.19 -15.35" size="0.4916 0.2647 0.06391" xyaxes="0.4485 -0.8881 0.1009 0.8431 0.4578 0.2822" material="land"/>
+<geom mass="0" type="ellipsoid" pos="11.42 8.926 -16.18" size="0.7563 0.1891 0.1513" xyaxes="0.9834 -0.1782 -0.03274 0.1546 0.7311 0.6645" material="cloud"/>
+<geom mass="0" type="ellipsoid" pos="8.86 9.64 -17.55" size="0.8319 0.1891 0.183" xyaxes="0.4837 -0.8733 -0.0579 0.3547 0.1351 0.9252" material="cloud"/>
+<geom mass="0" type="ellipsoid" pos="10.1 10.48 -15.73" size="0.6807 0.1513 0.1225" xyaxes="0.6702 -0.7258 0.1551 0.5886 0.6471 0.4845" material="cloud"/>
+<geom mass="0" type="sphere" pos="11.77 11.34 -18.92" size="3.895" material="air"/>
+<geom mass="0" type="sphere" pos="16.37 -26.19 32.73" size=".7" material="sun"/></body>
 </worldbody>
 <actuator><velocity joint="j1" kv="150"/><velocity joint="j2" kv="150"/><velocity joint="j3" kv="150"/><velocity joint="j4" kv="150"/><velocity joint="j5" kv="150"/><velocity joint="j6" kv="150"/><velocity joint="j7" kv="150"/></actuator>
 </mujoco>
