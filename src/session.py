@@ -95,7 +95,7 @@ def run_session(pid, dry_run=False, start_at=1, pad_layout="game", haptics=True)
         print("    done. Give the questionnaire now; the next trial waits for SPACE.")
     print(f"{pid}: session complete. Back up {out} now.")
     return 0
-
+    
 
 def main():
     ap = argparse.ArgumentParser(description="Run one participant's session")
