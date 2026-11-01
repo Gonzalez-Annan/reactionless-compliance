@@ -1,7 +1,9 @@
-mujoco>=3.1.0
+mujoco>=3.3.0  # MjSpec (src/safety.py impact model)
 numpy
 scipy
 pandas
 matplotlib
 pygame-ce  # maintained pygame fork; pygame 2.6 text rendering breaks on Python 3.14
 pytest
+imageio
+imageio-ffmpeg  # analysis/render.py demo video

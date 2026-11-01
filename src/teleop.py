@@ -355,13 +355,20 @@ def add_sphere(scene, pos, radius, rgba):
 class Teleop:
     def __init__(self, model_name, mode, controller_name, log_path=None, headless=False,
                  task_loops=None, banner=None, blind=False, meta=None, pad_layout="game",
-                 haptics=True):
+                 haptics=True, speed_limit=True):
         """task_loops: run the closed-loop ORU task with this many loops; the
         trial ends when it is done. banner: wait for Space before starting,
         showing this text. blind: hide the controller name (participants).
         pad_layout: "game", "southpaw" or "classic" (see Gamepad).
         haptics: rumble on arm contact and near joint limits (see haptic_signals)."""
         self.haptics = haptics
+        # P4 safety function: hand speed <= 0.85 x the pose-dependent contact limit (src.safety)
+        if speed_limit:
+            from src.safety import SpeedGovernor
+            self.governor = SpeedGovernor()
+        else:
+            self.governor = None
+        self.speed_scale = 1.0
         self.model_name = f"ff_{model_name}"
         self.model = mujoco.MjModel.from_xml_path(str(MODELS_DIR / f"{self.model_name}.xml"))
         self.data = mujoco.MjData(self.model)
@@ -457,6 +464,8 @@ class Teleop:
         else:
             raw = self.controller(m, d, xdot, self.mode)
         qdot = limit_qdot(m, np.asarray(raw, float))
+        if self.governor is not None:
+            qdot, self.speed_scale = self.governor(m, d, qdot)
         d.ctrl[:] = qdot
         for _ in range(self.n_sub):
             mujoco.mj_step(m, d)
@@ -483,6 +492,8 @@ class Teleop:
                 haptic=self.haptic[:2] if self.haptics else (0.0, 0.0),   # heavy (contact), light (joint limit)
                 contact_force=self.haptic[2],
                 joint_margin_deg=np.degrees(self.haptic[3]),
+                speed_scale=self.speed_scale,   # < 1: the contact-speed limiter slowed the hand
+                v_max_design=self.governor.last_vmax if self.governor else np.nan,   # R2 evidence
             )
 
     def draw(self):
@@ -562,9 +573,10 @@ class Teleop:
             f"j{j + 1}  {np.degrees(margin):.0f} deg" + ("   CLOSE" if margin < HAPTIC_JOINT_ZONE else "")]
         if not self.blind:   # P4: hand speed against the pose-dependent contact limit
             from src.safety import hand_speed_margin
-            speed, vmax = hand_speed_margin(self.model, self.data)
+            speed, vmax, _ = hand_speed_margin(self.model, self.data)
             labels += ["hand speed", "contact limit"]
-            values += [f"{speed:.3f} m/s", f"{vmax:.2f} m/s" + ("   OVER" if speed > vmax else "")]
+            values += [f"{speed:.3f} m/s" + ("   LIMITED" if self.speed_scale < 1 else ""),
+                       f"{vmax:.2f} m/s" + ("   OVER" if speed > vmax else "")]
         mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_TOPRIGHT,
                            self.viewport, "\n".join(labels), "\n".join(values), self.ctx)
         mujoco.mjr_overlay(mujoco.mjtFont.mjFONT_NORMAL, mujoco.mjtGridPos.mjGRID_BOTTOMLEFT,
@@ -663,6 +675,7 @@ def main():
     ap.add_argument("--duration", type=float, help="stop after this many simulated seconds")
     ap.add_argument("--task", action="store_true", help="run the closed-loop ORU task (2 loops)")
     ap.add_argument("--no-haptics", action="store_true", help="no rumble on contact / joint limits")
+    ap.add_argument("--no-speed-limit", action="store_true", help="switch off the contact-speed limiter (P4)")
     ap.add_argument("--pad-layout", choices=Gamepad.LAYOUTS, default="game",
                     help="game: camera on the right stick, moves follow the view; southpaw: sticks swapped; "
                          "classic: world axes, fixed camera")
@@ -670,7 +683,8 @@ def main():
     Teleop(args.model, args.mode, args.controller, args.log,
            task_loops=2 if args.task else None,
            banner=f"{args.mode.upper()} task" if args.task else None,
-           pad_layout=args.pad_layout, haptics=not args.no_haptics).run(args.duration)
+           pad_layout=args.pad_layout, haptics=not args.no_haptics,
+           speed_limit=not args.no_speed_limit).run(args.duration)
 
 
 if __name__ == "__main__":
