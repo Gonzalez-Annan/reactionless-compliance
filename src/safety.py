@@ -263,7 +263,8 @@ def montecarlo(sizes=("small", "medium", "large"), payloads=(0.0, 2.5, 5.0), n=3
                            m_eff_locked=m_eff(model, d, u, True), m_eff_free=m_eff(model, d, u, False),
                            v_hw=v_hw, v_sampled=float(rng.uniform(0, v_hw)), v_cap=v_cap,
                            sigma_min=float(np.linalg.svd(k.Jstar[:3], compute_uv=False)[-1]))
-                row["m_design"] = row["m_eff_free"] + SERVO_MASS
+                row["m_design"] = m_design(model, d, u)
+                row["axial"] = axial_alignment(model, d, u)
                 for r in RESTRAINTS:
                     row[f"v_max_{r}"], row[f"region_{r}"] = v_max_design(row["m_design"], r)
                     row[f"v_max_{r}_locked"] = v_max_design(row["m_eff_locked"], r)[0]
@@ -307,9 +308,29 @@ def summarize(rows):
 SERVO_MASS = 6.0   # kg, from data/safety/impact.csv (DECISIONS 2026-10-14)
 
 
+AXIAL_POWER = 2.0  # how fast the rigid mass takes over as the push lines up with the arm (impact fit)
+AXIAL_SCALE = 0.02 # share of the rigid-joint mass reached when the push is exactly along the arm (impact fit:
+                   # 0 already passes the direct force check, worst 0.96 of the ISO limit; 0.02 gives 0.90)
+
+
+def axial_alignment(model, data, u, site=EE_SITE):
+    """|cos| between the contact direction u and the shoulder (j2) -> tool line. Near 1 the push
+    runs along the arm: the joints have no lever arm, cannot give way, and the impact is carried
+    structurally into the spacecraft."""
+    a = data.site_xpos[model.site(site).id] - data.xpos[model.body("link2").id]
+    u = np.asarray(u, float)
+    return float(abs(a @ u) / (np.linalg.norm(a) * np.linalg.norm(u)))
+
+
 def m_design(model, data, u=None, site=EE_SITE):
-    """Effective mass [kg] for the safety limit: back-drivable arm + the servo-transmitted mass."""
-    return m_eff(model, data, u, locked=False, site=site) + SERVO_MASS
+    """Effective mass [kg] for the safety limit. Across the arm the servos give way: limp arm +
+    SERVO_MASS. Along the arm they cannot: blend toward the rigid-joint mass with weight
+    axial^AXIAL_POWER (fitted on data/safety/impact.csv, Kinova Gen3 geometry)."""
+    if u is None:
+        u = data.site_xmat[model.site(site).id].reshape(3, 3)[:, 0]
+    soft = m_eff(model, data, u, locked=False, site=site) + SERVO_MASS
+    w = AXIAL_SCALE * axial_alignment(model, data, u, site) ** AXIAL_POWER
+    return soft + w * max(0.0, m_eff(model, data, u, locked=True, site=site) - soft)
 
 
 def impact_limit(region, restraint):
@@ -338,7 +359,10 @@ def impact_model(size, region, restraint, qpos=None, u=None, payload=0.0, gap=0.
     u = np.asarray(u, float) / np.linalg.norm(u)
     b = BODY[region]
     quat = Rotation.align_vectors([u], [[1.0, 0, 0]])[0].as_quat(scalar_first=True)
-    hb = spec.worldbody.add_body(name="human", pos=tip + (0.02 + gap + 0.005) * u, quat=quat)
+    b7 = m0.site_bodyid[sid]                     # tool link: start the plate clear of its capsule
+    r_tool = max(float(m0.geom_size[g, 0]) for g in range(m0.ngeom)
+                 if m0.geom_bodyid[g] == b7 and m0.geom_contype[g])
+    hb = spec.worldbody.add_body(name="human", pos=tip + (r_tool + gap + 0.005) * u, quat=quat)
     extra = 1
     if restraint == "free":
         hb.add_joint(name="human_x", type=mujoco.mjtJoint.mjJNT_SLIDE, axis=[1, 0, 0],
@@ -418,9 +442,16 @@ def _impact_one(args):
         r = impact_test(size, region, restraint, d.qpos.copy(), u, payload=payload)
         if r is None:
             continue
+        q = d.qpos.copy()
         mujoco.mj_forward(model, d)
+        md = m_design(model, d, u)
+        v_gov = GOVERNOR_MARGIN * float(v_max_iso(md, region, restraint))
+        # direct check: hit again at the speed the limiter allows, compare the real peak force
+        g = impact_test(size, region, restraint, q, u, v=v_gov, payload=payload)
         return dict(size=size, region=region, restraint=restraint, payload_kg=payload, seed=seed,
-                    m_eff_free=m_eff(model, d, u, False), m_eff_locked=m_eff(model, d, u, True), **r)
+                    m_eff_free=m_eff(model, d, u, False), m_eff_locked=m_eff(model, d, u, True),
+                    axial=axial_alignment(model, d, u), m_design=md, v_gov=v_gov,
+                    F_at_gov=g["F_peak"] if g else np.nan, F_limit=impact_limit(region, restraint), **r)
     return None
 
 

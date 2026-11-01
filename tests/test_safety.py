@@ -35,11 +35,24 @@ def test_m_eff_bounds(size):
         assert 0 < free <= locked + 1e-9 <= total + 1e-6
 
 
-def test_rigid_bound_grows_with_the_base_but_design_mass_does_not():
-    rigid = [m_eff(*load(s)) for s in ("small", "medium", "large")]
-    design = [m_design(*load(s)) for s in ("small", "medium", "large")]
+def test_rigid_bound_grows_with_the_base_but_design_mass_barely_does():
+    """Across the arm the servos give way: the design mass ignores the base. Along the arm a
+    small share (AXIAL_SCALE) of the rigid mass is added, so it grows, but far less."""
+    from src.safety import axial_alignment
+    rigid, perp, along = [], [], []
+    for s in ("small", "medium", "large"):
+        m, d = load(s)
+        a = d.site_xpos[m.site("end_effector").id] - d.xpos[m.body("link2").id]
+        a /= np.linalg.norm(a)
+        n = np.cross(a, [0, 0, 1.0])
+        n /= np.linalg.norm(n)
+        assert axial_alignment(m, d, n) < 1e-9
+        rigid.append(m_eff(m, d, a))
+        perp.append(m_design(m, d, n))
+        along.append(m_design(m, d, a))
     assert rigid[0] < rigid[1] < rigid[2]
-    assert max(design) / min(design) < 1.05
+    assert max(perp) / min(perp) < 1.05
+    assert along[2] < 0.1 * rigid[2]
 
 
 def test_formulas():
@@ -66,13 +79,14 @@ def test_payload_raises_effective_mass_and_undoes():
 
 def test_pose_dependence_comes_from_joint_stiffness():
     """Fig. 5: with rigid joints v_max varies strongly over the workspace (the plan's
-    expectation); with the real back-drivable servos it is almost flat."""
+    expectation); with the real back-drivable servos it varies far less and is higher."""
     m, _ = load("medium")
     _, _, rigid = vmax_map(m, n=9, locked=True, direction="tool")
     _, _, servo = vmax_map(m, n=9, direction="tool")
-    assert np.nanmax(rigid) > 2 * np.nanmin(rigid)
-    assert np.nanmax(servo) < 1.15 * np.nanmin(servo)
-    assert np.nanmin(servo) > np.nanmax(rigid)
+    spread = lambda v: np.nanmax(v) / np.nanmin(v)
+    assert spread(rigid) > 2.5
+    assert spread(servo) < 1.25
+    assert np.nanmin(servo) > np.nanmax(rigid) * 0.9
 
 
 def test_governor_scales_fast_commands_and_keeps_slow_ones():

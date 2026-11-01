@@ -213,6 +213,7 @@ python -m src.verify                                                  # docs/SAF
 # analysis (P5)
 python -m analysis.figures --synthetic    # Figs. 1-5 + S1 -> figures/ (Fig. 4 from fake ratings until real ones exist)
 python -m analysis.metrics data/participants   # per-trial metrics, Friedman / Kendall W, Wilcoxon-Holm
+python -m analysis.render all             # renders + demo video (scheme 1 vs 5, 6-D, small servicer) -> figures/
 ```
 
 Schemes: `dls`, `grad_proj`, `impedance`, `rns`, `impedance_rns` (plan 1-5), each

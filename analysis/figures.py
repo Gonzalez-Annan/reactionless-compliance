@@ -31,7 +31,7 @@ LABEL = {"dls": "1 DLS", "grad_proj": "2 Grad. proj.", "impedance": "3 Impedance
 COLOR = dict(zip(SCHEMES, ["#4c72b0", "#dd8452", "#55a868", "#c44e52", "#8172b3"]))
 MARKER = dict(zip(SCHEMES, ["o", "s", "^", "D", "v"]))
 SIZES = ["small", "medium", "large"]
-RATIO = {"small": 6.6 / 20, "medium": 6.6 / 150, "large": 6.6 / 1500}   # arm / base mass
+RATIO = {"small": 6.49 / 21.7, "medium": 6.49 / 151.7, "large": 6.49 / 1501.7}   # Gen3 moving arm / servicer (incl. 1.7 kg arm base)
 LIMIT = 5.0
 
 plt.rcParams.update({"font.size": 7, "axes.titlesize": 7, "axes.labelsize": 7, "legend.fontsize": 6,
@@ -83,13 +83,15 @@ def fig1_tradeoff(sweep, human=None):
                 ax.plot(x.peak_antenna_deg, x.rms_pos_err_mm, MARKER[s], mfc="none", ms=3, color=COLOR[s], alpha=0.6)
         if g.peak_antenna_deg.max() > LIMIT * 0.6:
             _limit_line(ax)
-        ax.set_xscale("log")
-        _plain_log(ax)
+        xs = g.peak_antenna_deg
+        if xs.max() / max(xs.min(), 1e-9) > 4:     # log only when drift spans a wide range
+            ax.set_xscale("log")
+            _plain_log(ax)
         ax.set_title(f"ff_{size} (arm/base {RATIO[size]:.3g})")
         ax.set_xlabel("peak base attitude drift [deg]")
         ax.grid(alpha=0.3, which="both")
     axs[0].set_ylabel("rms hand error [mm]")
-    axs[0].legend(loc="upper right", frameon=False)
+    axs[2].legend(loc="upper right", frameon=False)
     fig.suptitle("Fig. 1  6-D task: task accuracy vs base drift (scripted 2-loop ORU task; x = task not finished)",
                  fontsize=7, y=1.02)
     return save(fig, "fig1_tradeoff")
@@ -224,17 +226,15 @@ def figS1_safety():
     ax.grid(alpha=0.3, axis="y")
     ax = axs[1]
     for (reg, res), g in imp.groupby(["region", "restraint"]):
-        ax.scatter(g.v_max_sim, GOVERNOR_MARGIN * g.v_max_design, s=6, label=f"{reg}/{res}")
-        ax.scatter(g.v_max_sim, g.v_max_locked, s=4, marker="x", color="grey")
-    lim = [imp.v_max_sim.min() * 0.5, imp.v_max_sim.max() * 1.5]
-    ax.plot(lim, lim, "k-", lw=0.6)
-    ax.set_xscale("log")
-    ax.set_yscale("log")
-    ax.set_xlabel("v_max from simulated impact [m/s]")
-    ax.set_ylabel("limiter speed (colour) / rigid-joint v_max (×)")
-    ax.set_title("Impact validation: below the line = conservative")
-    ax.legend(frameon=False, fontsize=5)
-    ax.grid(alpha=0.3, which="both")
+        ax.scatter(g.axial, g.F_at_gov / g.F_limit, s=6, label=f"{reg.replace('_', ' ')}/{res}")
+    ax.axhline(1.0, color="r", ls="--", lw=0.8)
+    ax.text(0.72, 1.025, "ISO/TS 15066 limit", color="r", fontsize=5)
+    ax.set_xlabel("|cos| between push and arm axis")
+    ax.set_ylabel("peak force at limiter speed / ISO limit")
+    ax.set_ylim(0, 1.3)
+    ax.set_title(f"Impacts re-run at the limiter speed (n = {int(imp.F_at_gov.notna().sum())})")
+    ax.legend(frameon=False, fontsize=5, loc="upper left", ncol=3)
+    ax.grid(alpha=0.3)
     fig.suptitle("Fig. S1  Contact safety: sampled limits and the simulated-impact check", fontsize=7, y=1.02)
     return save(fig, "figS1_safety")
 

@@ -172,11 +172,11 @@ class Scheme:
 # Per-scheme gains from the tuning grid (python -m src.experiments tune -> data/results/tuning.csv).
 # Rule fixed before the runs: per scheme, its own knob; among values that finish the task in both
 # modes, the lowest summed rms hand error, ties (within 10 %) to the lower peak base drift.
-# Medium servicer, 2 loops, 3-D + 6-D. Defaults above are the pre-tuning (v1 D5) values.
+# Medium servicer, 2 loops, 3-D + 6-D, Kinova Gen3 arm. Defaults above are the pre-tuning (v1 D5) values.
 TUNED = {
-    "dls": {"lam": 0.01},
+    "dls": {"lam": 0.01},              # 0.005-0.05 within 2 % rms error: DLS is insensitive here
     "grad_proj": {"kg": 1.0},
-    "impedance": {"kp": 4.0},
+    "impedance": {"kp": 2.0},          # 4.0 on the generic arm; 2.0 on the Kinova Gen3 (1 Nov rerun)
     "rns": {"ka": 1.0},
     "impedance_rns": {"kp": 1.0},
 }

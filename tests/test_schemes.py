@@ -50,15 +50,16 @@ def test_task_tracked(name):
 
 @pytest.mark.parametrize("name", ["rns", "impedance_rns"])
 def test_3d_tracks_the_task_and_is_near_reactionless(name):
-    """Hand exact; base rate at least 20x below DLS's for the same motion (measured ~25x at
-    this pose, where W's weakest direction has sigma ~1e-3). Not exactly 0 by design: the
-    damping softens the reactionless rows near rank loss (see _solve)."""
+    """Hand exact; base rate at least 10x below DLS's for the same motion (measured 25x on the
+    generic arm, 17x on the Kinova Gen3 geometry for Imp.+RNS at this pose). Not exactly 0 by
+    design: the damping softens the reactionless rows near rank loss (see _solve). The
+    full-loop drift is checked by the gate (R4 in docs/SAFETY.md)."""
     m, d = state()
     k = kin(m, d)
     qd = make_scheme(name, ka=0.0, geofence=False)(m, d, XD, "3d")
     qd_dls = make_scheme("dls", geofence=False)(m, d, XD, "3d")
     assert np.allclose(k.Jstar[:3] @ qd, XD[:3], atol=1e-5)
-    assert np.linalg.norm(k.W @ qd) < np.linalg.norm(k.W @ qd_dls) / 20
+    assert np.linalg.norm(k.W @ qd) < np.linalg.norm(k.W @ qd_dls) / 10
 
 
 def test_6d_beta_trades_task_for_base():
