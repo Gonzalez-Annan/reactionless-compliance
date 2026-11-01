@@ -17,7 +17,8 @@ That the reach of such an arm depends on the path is known since the early 1990s
 move and checks it before it is executed was proposed in 1992. Reachable sets under a limit on base attitude have
 been built for a 3 joint arm. What we did not find measured is how far a map drawn for the operator can be trusted
 under an attitude budget, and we found no study with people. We measure it in simulation for a 7 joint arm under
-five controllers. One move away from rest, a map pulled in to 0.8 of its length holds from all of 10 starts under
+five controllers. A map drawn once is right for the first move only: after a single 0.3~m move from rest it allows
+28 of 400 goals the arm can no longer reach and refuses 32 of 270 that it now can. One move away from rest, a map pulled in to 0.8 of its length holds from all of 10 starts under
 the two controllers that ignore the base, and from none of 10 under the three reactionless ones, which reach further
 (median 0.45 to 0.46 m against 0.37 to 0.39 m). Over sessions of 40 moves no controller keeps it: the whole map
 still holds in 0 to 4 of 10 sessions, and three sessions end stuck, all under controllers with no pull back to a
@@ -44,7 +45,12 @@ In practice the attitude has a budget: an antenna has to stay pointed, a camera 
 question an operator actually has is not ``can the arm reach that'' but ``can the arm reach that with the base
 still inside its budget''. The answer is a region, and the natural aid is to draw it.
 
-We do not claim that this region moves. That follows from path dependence and is thirty years old. We also do not
+Our statement is this. Where the hand can safely go next depends on what the arm has already done. A map drawn once
+is right for the first move only. After that it is wrong near its edge, and wrong both ways. It allows goals the
+arm can no longer reach, which costs a failed command, and it refuses goals the arm now can reach, which costs reach
+the operator is never offered.
+
+We do not claim as new that this region moves. That follows from path dependence and is thirty years old. We also do not
 claim the idea of checking a move before making it: Papadopoulos~\cite{papadopoulos1992} proposed a planner that
 previews the motion and asks the operator to approve it. What is missing is the size of the problem and what to do
 about it for the person at the controls. How wrong is a drawn map, under which controller, after how many moves,
@@ -53,9 +59,11 @@ and is a map worth showing at all next to a check of the command itself? Our con
 \item The reach of a free-floating arm under a budget on base tilt, with joint limits and collision with the bus
 in it, measured for a 7 joint arm under five controllers. A tilt limit during teleoperation is not new:
 Sato et al.~\cite{sato1993} kept one in 1993 by slowing the arm, on a satellite with attitude control. With
-nothing holding the base, the limit turns into an edge of the reach, and that edge is what we measure.
+nothing holding the base, the limit turns into an edge of the reach, and that edge is what we measure. We count
+how wrong a drawn map is both ways, and over the mass of the servicer, the length of the move and the tilt limit.
 \item A measured comparison of what can be shown: the map from rest, the same map pulled in, a map recomputed from
-the current state, a map looked up from stored states, and the rehearsal alone. One move from rest and over
+the current state, a map looked up from stored states, a band between two looked-up edges that says where it
+does not know, and the rehearsal alone. One move from rest and over
 sessions of 12 and 40 moves.
 \item A finding we did not expect: the map fails first under the controllers built to keep the base still. They
 reach further, and their failed moves end with joints on their limits, which we counted and did not explain.
@@ -178,6 +186,81 @@ nor tilt left says which one.
 at 1, a tail collapses. Right: the edge that holds from every start used so far, against the number of starts.
 Scripted runs.}\label{fig:wide}
 \end{figure}
+
+\subsection{Wrong both ways}\label{sec:both}
+The search above finds where the edge went. An operator asks something simpler about one goal: go or no. A map
+drawn once can get that wrong in two ways. A \emph{wrong go} is a goal the map allows and the arm can no longer
+reach. Sent, it is a command that fails. A \emph{wrong no} is a goal the map refuses and the arm can now reach. It
+is reach the operator is never offered.
+
+We counted both on fixed goals. The map is the rest map, drawn once and never again. Along 20 random directions
+there are 80 goals at 0.6, 0.8, 0.9 and 1.0 of the way to its edge and 60 more at 1.05, 1.1 and 1.2. Each goal is
+rehearsed from rest, and again after each of five first moves of 0.3~m (up, down and three sideways), with whatever
+tilt that move left. From rest the map is close to right: all 80 goals inside it go, and 54 of the 60 outside it
+are refused. After one move it is wrong both ways. It allows 28 of 400 goals the arm can no longer reach (7.0\%),
+26 stopped by the tilt and 2 by the bus, the deepest 19.2~cm inside its edge. It refuses 32 of 270 that the arm can
+now reach (11.9\%), the furthest 6.9~cm outside its edge (Fig.~\ref{fig:gap}). Which way it is wrong depends on the move: down gives
+no wrong go and 19 wrong noes, the move along $+y$ gives 13 and 7. The move straight up leaves no tilt behind at all and
+still gives 9 wrong goes, so it is where the arm is and not only the tilt it has spent. % D70, D72, analysis/envelope/static.py 4
+
+The rehearsal is the truth here, and it has a clock. The tool gives a line twice its length at 0.10~m/s plus 1~s,
+and a hand near the tilt limit is slow. With that clock 36 of the 400 are refused, 10 of them because the rehearsal
+ran out of time. Given four times as long, 8 of those 10 arrive and 2 creep on until the base passes the budget.
+At four and at eight times the counts are the same, 28 and 32, with no rehearsal out of time, and those are the
+numbers we quote. The tool keeps twice: a move that takes more than twice its time is refused, a rule one can
+state. The scored goals of the study do not hang on it: every one that cannot be reached ends on the tilt or the bus.
+% D72, D73
+
+\begin{figure}[t]\centering
+\includegraphics[width=\linewidth]{../figs/fig_gap.pdf}
+\caption{The rest map after one 0.3~m move, on 20 directions. A cross is a goal inside the map that the arm can no
+longer reach, a circle a goal outside it that the arm now reaches, a dot a goal the map still gets right. The dotted
+line is the map's edge. The 6 goals outside the map that the arm reaches from rest are left out. Rehearsal given four
+times its length. Scripted runs.}\label{fig:gap}
+\end{figure}
+
+The sweep of 40 starts one move out, on the 98 lines of the map, shows the same two ways: the edge from the start is
+nearer than the map by more than 5\% on 14.1\% of pairs and further by more than 5\% on 7.9\%. % D70, wide98_medium.npz
+
+\textbf{Other set-ups.} We changed one thing at a time: the length of the first move, the mass of the servicer and
+the tilt limit. For each servicer and limit the rest map is drawn again on 98 lines, with the same goals and checks
+as above. A first move is left out when the hand does not arrive or the base passes the limit on the way. Three
+expectations were written into the script before its first run: the gap grows with the move, it is close to
+nothing on the large servicer, and it is bigger under a 1 degree limit than under 3 (Table~\ref{tab:setups}).
+% D71, D72, analysis/envelope/robust.py --clock 4
+
+On the four moves that arrive at every length, wrong noes grow all the way: 15, 25, 32 and 39 of 216 at 0.1, 0.2,
+0.3 and 0.4~m. Wrong goes do not: 3, 19, 19 and 21 of 320, a jump between 0.1 and 0.2~m and then level. On the
+large servicer the base tilts 0.07 degrees at most and there are no wrong goes, 3 wrong noes, and none at all at
+0.1~m. On the four moves both limits allow, wrong goes are 18, 15 and 11 of 320 under 1, 2 and 3 degrees, and wrong
+noes 29 and 25 of 216 and 16 of 212. So the second and third expectations hold, and the first holds for wrong noes
+only. Counted with the tool's own clock the first and third had looked half wrong, because time-outs grew with the
+move and with the limit: 22 of the 40 wrong goes at 0.4~m and 28 of the 35 under 3 degrees ran out of time.
+
+The 30~kg servicer is left out. It can make only three of the five moves, and only at 0.1~m. Its rest map is
+already wrong from rest: with the rehearsal given eight times as long, 33 of the 60 goals outside it are reached
+from rest, so the clock cuts its own probe short, and one wrong go still runs out of time. Settling it means
+drawing that map again on a longer clock. % D72, D74
+
+\begin{table}[t]\centering
+\caption{The gap test with one thing changed at a time, the rehearsal given four times its length. Wrong go: the
+rest map allows the goal and the arm cannot reach it after the first move. Wrong no: the rest map refuses it and the
+arm can. Medium servicer 300~kg, large 3000~kg. Scripted runs.}\label{tab:setups}
+\begin{tabular}{lrrr}
+\toprule
+set-up & first moves & wrong go & wrong no \\
+\midrule
+medium, 2 deg, 0.3 m & 5 & 28 of 400 & 32 of 270 \\
+move 0.1 m & 5 & 3 of 400 & 15 of 270 \\
+move 0.2 m & 5 & 26 of 400 & 25 of 270 \\
+move 0.4 m & 4 & 21 of 320 & 39 of 216 \\
+large servicer & 5 & 0 of 395 & 3 of 270 \\
+large, move 0.1 m & 5 & 0 of 395 & 0 of 270 \\
+limit 1 deg & 4 & 18 of 320 & 29 of 216 \\
+limit 3 deg & 5 & 14 of 400 & 22 of 265 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Two explanations that failed}
 \emph{Leftover tilt.} The tilt is counted from rest, so a move that leaves tilt behind has less budget for the
@@ -329,6 +412,30 @@ stored ones and not outside them. Whether a setting keeps the 1\% it was picked 
 100 random splits the lookup averaged 0.85\% and the fixed map 0.75\%, each above 1\% in about three of ten. With
 200 stored states in place of 600 the lookup kept 0.56. A fixed map that holds from every stored state keeps 0.09 of
 the reach, once the states with no reach at all are set aside. % D53, D54, D55, learn.py safe
+
+\subsection{A band}\label{sec:band}
+One edge cannot close both gaps of Section~\ref{sec:both}. Pulled in, it hides goals the arm can reach. Let out, it
+shows goals it cannot. So the band draws two edges and says where it does not know. Both are looked up from the 10
+nearest stored states, as above. The inner edge is 0.9 of the shortest stored reach along a line and the outer
+edge 1.1 of the longest. Inside the inner edge is go, past the outer edge is no, and between them is not known, where
+the rehearsal answers. The dot cannot be taken past the outer edge. When the probe of the current state comes in it
+moves the inner edge out to what it found. The outer edge stays where it was looked up.
+
+On the 199 held-out states the outer edge is passed by more than 5~cm on 0.4\% of lines, and at all on 2.0\%. The
+inner edge is 5~cm too far on 1.4\%. The band is 0.285~m wide on a reach of 0.40~m: 0.67 of the reach is inside the
+inner edge and 0.33 is in the band. The two factors were picked from 48 settings on the same 199 states, so these
+numbers are not held out. % D70, analysis/envelope/band.py
+On the 700 checks of the gap test, as looked up, 90 of the 420 reachable goals fall inside the inner edge and 330 in
+the band, and of the 280 that are not reachable 2 fall inside, 244 in the band and 34 outside. With the probe in,
+331 of the 420 are inside, 0 of the 280, 246 in the band and 34 outside. The band never shows a reachable goal as
+out of reach. % D70, analysis/envelope/static.py 4
+
+Whether it helps is another matter. A scripted rule given the 40 scored goals of one id reached 24 and was refused
+16 times with no map, at 18.7~s a goal. Sending at once with the band, it reached 24, was refused 11 times and took
+19.3~s. Waiting for the inner edge to cover the goal, it reached 22, was never refused, missed 2 and took 24.9~s, so
+each refusal saved cost 20 to 28~s. With the goals handed out, waiting for a better picture loses. A picture can
+only pay where a refused command costs more than its time, or where the operator chooses the goal. Neither was
+tested. % D70, D71
 
 \subsection{No map}
 Draw nothing. Rehearse every command and refuse the ones that would break the budget. This is as right as the
@@ -601,6 +708,9 @@ display, compared on one edge and one inner pair fewer in every block. The looke
 tool and a result of the simulation: against the full simulation it keeps 0.67 of the reach and promises 0.05 m
 too much on 1.4\% of pairs, in 43 of 199 states, and only near its stored states. % D55, D63
 No participant sees it.
+The band of Section~\ref{sec:band} is left out for the same reasons and two more. Its picture depends on when the
+probe comes in, so two runs of one session can show different bands. And the probe slows the rehearsal from 0.3 to
+0.5~s on a 0.2~m move, time the participant pays on every command. % D70, D73
 
 \todo{Before the first participant: (1) the gamepad has never been run, so the study is keyboard only; (2) nobody
 has driven the maps study by hand yet, only the scripted operator and a test with the driving stubbed out: the two
@@ -633,8 +743,10 @@ Simulation only. One arm, one bus mass, one budget. The controller comparison an
 or 10 sessions per controller. No recovery move was tried on a stuck session. The map that held is tested on one-move starts. The delay of
 the current-state map is the delay on one laptop. The reach is probed on 98 lines from one point, so the map is a
 set of lines and not a volume with a proof behind it. The damping in the controller's solve was never tuned and
-moves where some lines end. The looked-up map holds near its stored states and not outside them. No contact, no
-flexible parts, no sensor noise.
+moves where some lines end. The looked-up map holds near its stored states and not outside them. The gap test is 140
+goals on 20 directions and five first moves of one length, from one rest pose, and the counts we quote give the
+rehearsal four times the tool's time. The 30~kg servicer is left out of it. The band's two factors were picked on
+the states it is scored on. No contact, no flexible parts, no sensor noise.
 
 \begin{thebibliography}{99}
 \bibitem{umetani1989} Y. Umetani and K. Yoshida, ``Resolved motion rate control of space manipulators with generalized Jacobian matrix,'' \emph{IEEE Trans. Robot. Autom.}, vol. 5, no. 3, pp. 303--314, Jun. 1989, doi:10.1109/70.34766.

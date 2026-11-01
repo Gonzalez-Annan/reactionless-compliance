@@ -1625,3 +1625,55 @@ Open:
 - Two pilots, the ethics paperwork, 20 people. Nothing is left open on the goal sets.
 - The small servicer row at clock 8, if the paper wants that row.
 - The Munich paper (IAC-10 B6.2.2) is still read as an abstract only.
+
+## D74 The small servicer at clock 8, and the journal draft brought up to D73 (2026-10-14)
+
+On branch `p2-journal-d73`, off main at `f2ddfd6`. Nothing on main.
+
+The small servicer row (open in D73), run with `robust.py --clock 8 6`, rehearsals at eight times their length:
+
+- Two of the five 0.1 m moves still do not arrive (base up to 1.02 and 1.30 deg). Three are left.
+- From rest 73 of 80 goals inside go, and only 27 of 60 outside are refused. At clock 2 it was 49, at clock 4 34.
+- Wrong go 2 of 219 (one stall, one time-out), wrong no 10 of 81.
+
+So the cage of the small servicer is cut short by the clock it is drawn with: 33 of the 60 goals outside it are
+reached from rest once the rehearsal has time. Its row can only be settled by drawing that cage again on a longer
+clock, which changes the cage and not only the count. Not done. The row stays out of the paper, with the reason
+given there.
+
+`paper/journal/draft.tex` now carries D70 to D73:
+
+- The statement in the abstract and the intro, and in contribution 1. "We do not claim that this region moves"
+  became "We do not claim as new that this region moves", since the statement is about what that motion does to
+  a drawn map.
+- A new subsection "Wrong both ways": the two kinds of wrong, the gap test at clock 4 (28 of 400, 32 of 270), why
+  clock 4 and not the tool's 2, the 98-line sweep (14.1% and 7.9%), and the set-ups as Table `tab:setups`, with
+  the three expectations written before the run and which of them held.
+- A new subsection "A band": the two edges, its scores on the 199 states (picked on them, said so), the 700 checks,
+  and the scripted rule that waits and loses.
+- "Four conditions, not five" now says why the band is out too (D73).
+- Limits: the gap test's size, the clock it is quoted at, the small servicer, the band's setting.
+
+Not changed: the CA3 paper, the study design, the tool, the goal sets.
+
+Open:
+
+- Two pilots, the ethics paperwork, 20 people.
+- The small servicer cage on a longer clock, if the paper ever wants that row.
+- The Munich paper (IAC-10 B6.2.2) is still read as an abstract only.
+
+## D75 A figure for "Wrong both ways" (2026-10-14)
+
+On branch `p2-gap-figure`, off `p2-journal-d73`. Nothing on main.
+
+`analysis/envelope/static.py` now saves what stopped each goal to `data/static_medium_<clock>.npz` (rest and the
+five moves, 20 directions, 7 goals each). Nothing else in it changed. Run again at clock 4: the same 28 of 400 and
+32 of 270, deepest wrong go 19.2 cm, furthest wrong no 6.9 cm.
+
+`analysis/envelope/gapfig.py` draws `paper/figs/fig_gap` from that file, one panel per move, and stops if the counts
+are not 28 and 32. The draft has it as Fig. `fig:gap` in "Wrong both ways", with one new sentence: which way the map
+is wrong depends on the move. Down gives 0 wrong goes and 19 wrong noes, the move along +y gives 13 and 7.
+
+Builds at 21 pages, same warnings as before.
+
+Open: as D74.
