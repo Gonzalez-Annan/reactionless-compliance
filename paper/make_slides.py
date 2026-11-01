@@ -23,6 +23,9 @@ RED, GREEN, WHITE = RGBColor(0xE5, 0x48, 0x4D), RGBColor(0x4C, 0xC3, 0x8A), RGBC
 FONT = "Segoe UI"
 ROLE = {"P1": "P1 · Sim & integration", "P2": "P2 · Dynamics", "P3": "P3 · Control",
         "P4": "P4 · Safety", "P5": "P5 · Experiment", "ALL": "Team"}
+NAME = {"P1": "Annan Gilberto Gonzalez Garnes", "P2": "Uma Surya Harshith Sourav Gosula", "P3": "Suhas Suren",
+        "P4": "Honglin Wang", "P5": "Zuzanna Maria Kapcia", "ALL": "All five members"}
+EMAIL = {"P1": "ANNANGIL001", "P2": "UMASURYA001", "P3": "suhas003", "P4": "HONGLIN003", "P5": "ZUZANNAM001"}
 
 prs = Presentation()
 prs.slide_width, prs.slide_height = Inches(13.333), Inches(7.5)
@@ -76,6 +79,7 @@ def header(slide, title, who, sub=None):
     r = tf.paragraphs[0].add_run()
     r.text = ROLE[who]
     r.font.name, r.font.size, r.font.bold, r.font.color.rgb = FONT, Pt(13), True, AMBER
+    text(slide, Inches(9.6), Inches(0.98), Inches(3.25), Inches(0.4), NAME[who], size=11, color=MUTED, align=PP_ALIGN.RIGHT)
 
 
 def pic(slide, path, x, y, w=None, h=None):
@@ -104,6 +108,8 @@ def stat(slide, x, y, w, big, small, color=AMBER):
 
 
 def notes(slide, s):
+    for k, v in NAME.items():          # "[P3, 45 s]" -> "[P3 Suhas Suren, 45 s]"
+        s = s.replace(f"[{k},", f"[{k} {v},")
     slide.notes_slide.notes_text_frame.text = s
 
 
@@ -125,7 +131,12 @@ def new():
 
 # 1 -- title -----------------------------------------------------------------------------
 s = new()
-pic_fit(s, FIG / "render_lineup.png", Inches(0), Inches(3.3), W, Inches(4.0))
+pic_fit(s, FIG / "render_lineup.png", Inches(0), Inches(3.3), Inches(8.6), Inches(4.0))
+for i, k in enumerate(("P1", "P2", "P3", "P4", "P5")):
+    y = Inches(3.55 + i * 0.68)
+    text(s, Inches(8.8), y, Inches(4.2), Inches(0.35), NAME[k], size=15, bold=True, color=WHITE)
+    text(s, Inches(8.8), y + Inches(0.3), Inches(4.2), Inches(0.3),
+         f"{ROLE[k]}  ·  {EMAIL[k]}@e.ntu.edu.sg", size=10, color=MUTED)
 rect(s, Inches(0.5), Inches(0.9), Inches(0.12), Inches(1.9), AMBER)
 text(s, Inches(0.8), Inches(0.7), Inches(12), Inches(1.4), "Reactionless Compliance", size=50, bold=True, color=WHITE)
 text(s, Inches(0.8), Inches(1.65), Inches(12), Inches(1.2),
@@ -133,8 +144,9 @@ text(s, Inches(0.8), Inches(1.65), Inches(12), Inches(1.2),
      "for teleoperated free-floating space manipulators", size=20, color=LIGHT)
 text(s, Inches(0.8), Inches(2.6), Inches(12), Inches(0.5),
      "MA6223 CA3 · MSc Robotics and Intelligent Systems · Nanyang Technological University", size=14, color=MUTED)
-notes(s, "[All, 15 s] Hello, we are group <number>. Each of us will present our own part: P1 the simulation and "
-         "integration, P2 the dynamics, P3 the controllers, P4 contact safety and P5 the experiment and results. "
+notes(s, "[All, 15 s] Hello, we are group <number>. Each of us will present our own part: Annan the simulation and "
+         "integration, Harshith the dynamics, Suhas the controllers, Honglin contact safety and Zuzanna the experiment "
+         "and results. "
          "The picture shows our three simulated servicers, from a 20 kg CubeSat-class base to a 1500 kg one, "
          "all carrying the same 7-joint Kinova Gen3 arm.")
 
