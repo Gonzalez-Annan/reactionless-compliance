@@ -9,20 +9,26 @@ at the Earth; gravity is off and momentum starts at zero, so that changes no num
 the name our v1 code uses.
 
   orbit.mp4   opening: the camera goes round the 150 kg servicer at rest
-  spin.mp4    slide 1: 20 kg bus, only joint 1 turns, 90 deg in 5 s, the rest held
-  sizes.mp4   slide 1: the same turn on the 20, 150 and 1500 kg buses
-  map.mp4     slide 3: 150 kg bus, our controller takes the hand straight out from rest, the line coloured by tilt,
-              until the bus passes 2 deg or the arm runs out of reach (the deck's first run, gains not tuned)
-  gap.mp4     slide 4: 150 kg bus, our controller takes the hand 0.3 m out and back to the same spot; the hand
-              comes back, the joints do not
+  spin.mp4    slide 1 (dynamics): 20 kg bus, only joint 1 turns, 90 deg in 5 s, the rest held; the tilt passes the
+              2 deg budget
+  sizes.mp4   slide 1, its table: the same turn on the 20, 150 and 1500 kg buses
+  map.mp4     slide 3 (map): side and top views, straight lines grow from the hand at rest, coloured by the bus tilt
+              in 0.25 deg steps, a solid end where the bus passed 2 deg, dashed where the arm ran out of reach
+  gap.mp4     slide 4 (gap): top view. The map from rest, the first move (the hand 0.3 m sideways), then the rest map
+              turns dashed, the reach from the new state is drawn solid, orange where the map says go and the hand
+              can't get there now, blue where it says no and the hand now can
+Map and gap use our controller (v1 scheme 5, 3-D, our constants, not tuned for the Gen3: the deck's first run) on the
+150 kg servicer, a line every 2.5 deg, as the deck's map run did.
 """
 import copy
 import functools
 import io
+import os
 import re
 import shutil
 import subprocess
 import sys
+from multiprocessing import Pool
 from pathlib import Path
 
 import mujoco
@@ -291,9 +297,117 @@ def ours(m):
     """Point our controller (v1/src/teleop.py: scheme 5, 3-D, our constants) at this Gen3 model, as the deck's map run
     did: the Gen3's own joint limits and rest pose, the arm-to-bus check on the arm only. -> hand site, bus at rest."""
     T.Q_LIM, T.Q_REST = m.jnt_range[1:].copy(), m.key("home").qpos[7:].copy()
+    T.DECIM = TICK                                   # T.ray steps one physics step at a time
     arm = [g for g in range(m.ngeom) if m.geom_bodyid[g] > m.body("link1").id and m.body_rootid[m.geom_bodyid[g]] == 1]
     T.clear = lambda m, d: min(mujoco.mj_geomDistance(m, d, 0, g, 1.0, None) for g in arm)
     return m.site("ee").id, Rot.from_quat(Q0[[1, 2, 3, 0]])
+
+
+LEV = np.round(np.arange(.25, 2.01, .25), 2)         # the map's tilt steps, deg (the colour key)
+TH = np.radians(np.arange(0, 360, 2.5))              # a line every 2.5 deg, as in the deck
+PLANES = (lambda th: R0 @ (np.cos(th), 0, np.sin(th)),   # side: the arm's own plane (bus x-z)
+          lambda th: R0 @ (np.cos(th), np.sin(th), 0))   # top: level with the hand (bus x-y)
+MOVE = .3 * R0[:, 1]                                 # the deck's first move: the hand 0.3 m sideways
+TOP_EL = np.degrees(np.arcsin(-EARTH[2]))            # the top view looks down the antenna axis, from the antenna side
+
+
+def move(m, d, sid, Rb0):
+    """The deck's first move: 6 s of our controller toward the hand 0.3 m sideways. Yields the state every tick."""
+    d, goal = copy.copy(d), d.site_xpos[sid] + MOVE
+    while d.time < 6 - 1e-9:
+        T.ctrl(m, d, sid, Rb0, goal, 5, "3d")
+        mujoco.mj_step(m, d, nstep=TICK)
+        yield d
+
+
+_cell = None
+
+
+def _line(job):
+    """One map line, in a worker: (plane, angle, after the move?) -> the hand at each tilt step, why the line ended,
+    its end, where it started."""
+    global _cell
+    if _cell is None:
+        m = load("medium", look=False)
+        sid, Rb0 = ours(m)
+        T.LIMITS = tuple(LEV)
+        d = start(m)
+        for dm in move(m, d, sid, Rb0):
+            pass
+        mujoco.mj_forward(m, dm)
+        _cell = m, sid, Rb0, d, dm
+    m, sid, Rb0, d, dm = _cell
+    plane, th, after = job
+    s = dm if after else d
+    mk, why = [], []
+    best = T.ray(m, s, sid, Rb0, PLANES[plane](th), 5, "3d", marks=mk, why=why)
+    return np.array((mk + [best] * len(LEV))[:len(LEV)]), (why + ["reach"])[0], best, s.site_xpos[sid].copy()
+
+
+def lines():
+    """The map lines on the 150 kg servicer: side and top from rest, and top again after the first move with the tilt
+    still counted from rest. About a minute on 10 processes. -> {name: (marks, why, end, start)}"""
+    jobs = [(0, th, False) for th in TH] + [(1, th, False) for th in TH] + [(1, th, True) for th in TH]
+    with Pool(max(1, min(10, (os.cpu_count() or 4) - 2))) as pool:
+        res = pool.map(_line, jobs, chunksize=4)
+    n, out = len(TH), {}
+    for k, name in enumerate(("side", "top", "moved")):
+        r = res[k * n:(k + 1) * n]
+        out[name] = tuple(np.array([x[i] for x in r]) for i in range(3)) + (r[0][3],)
+    return out
+
+
+def fan(scn, o, plane, mk, why, end, upto=None):
+    """Map lines from o, straight along each direction, coloured by the tilt step the hand had reached there; a dark
+    cap where the bus passed 2 deg, the last 6 cm dashed where the arm ran out of reach. upto: lines drawn, its
+    fraction how far the next one has grown."""
+    upto = len(TH) if upto is None else upto
+    for i in range(min(len(TH), int(np.ceil(upto)))):
+        u = PLANES[plane](TH[i])
+        L = max(0., (end[i] - o) @ u)
+        b = np.minimum(np.r_[0, np.maximum.accumulate(np.clip((mk[i] - o) @ u, 0, None))], L)
+        g = L * min(1., upto - i)
+        cut = g if why[i] == "tilt" or g < L else L - .06
+        for j in range(len(LEV)):
+            if b[j] < min(b[j + 1], cut):
+                mark(scn, CAPSULE, o + b[j] * u, .004, RAMP[j], o + min(b[j + 1], cut) * u)
+        if g >= L and why[i] == "tilt":
+            mark(scn, SPHERE, o + L * u, .009, RAMP[-1])
+        elif g >= L:
+            for s in (L - .05, L - .02):
+                if s > 0:
+                    c = RAMP[min(len(LEV) - 1, int(np.searchsorted(b, s, "right")) - 1)]
+                    mark(scn, CAPSULE, o + s * u, .004, c, o + (s + .015) * u)
+
+
+def edge(scn, o, plane, end, rgba, dashed=False):
+    """The map's outline: the ends of its lines joined up, solid or dashed."""
+    us = [PLANES[plane](th) for th in TH]
+    p = [o + max(0., (e - o) @ u) * u for e, u in zip(end, us)]
+    for i in range(len(p)):
+        if not dashed or i % 2 == 0:
+            mark(scn, CAPSULE, p[i], .004, rgba, p[(i + 1) % len(p)])
+
+
+def inside(g, o, end, plane=1):
+    """Which goals g (n x 3, in the plane) the map whose lines start at o says go to: closer than its edge, the edge
+    interpolated between the two nearest lines."""
+    u0, u1 = PLANES[plane](0), PLANES[plane](np.pi / 2)
+    v = g - o
+    r = np.array([max(0., (e - o) @ PLANES[plane](th)) for e, th in zip(end, TH)])
+    th = np.arctan2(v @ u1, v @ u0) % (2 * np.pi)
+    return np.hypot(v @ u0, v @ u1) < np.interp(th, np.r_[TH, 2 * np.pi], np.r_[r, r[0]])
+
+
+def key(img, x=24, y=H - 40):
+    """The colour key: bus tilt in the deck's eight 0.25 deg steps."""
+    im = Image.fromarray(img)
+    dr = ImageDraw.Draw(im)
+    dr.text((x, y - 30), "bus tilt, °", font=_font(22), fill=WHITE)
+    for j, c in enumerate(RAMP):
+        dr.rectangle([x + 46 * j, y, x + 46 * j + 42, y + 14], fill=tuple(int(255 * v) for v in c[:3]))
+        dr.text((x + 46 * j + 4, y + 16), f"{LEV[j]:g}", font=_font(16), fill=WHITE)
+    return np.asarray(im)
 
 
 def videos(out):
@@ -354,80 +468,77 @@ def videos(out):
         p[2].close()
     print("sizes:", ", ".join(f"{kg} kg {tilt(d):.2f} deg" for m, d, r, cam, law, kg in panels))
 
-    # slide 3: straight out from rest under our controller, 12 directions in the level plane through the hand (the
-    # deck's top map), each line coloured by the tilt when the hand got there, 3x speed
+    # the lines both slides draw: side and top from rest, top again after the first move
+    ln = lines()
+    for name, (mk, why, end, o) in ln.items():
+        print(f"{name}: lines ended by", {w: int((why == w).sum()) for w in np.unique(why)})
+
+    # slide 3: the map as the deck draws it, side (the arm's own plane) and top (level with the hand), the lines
+    # growing one by one from the hand at rest, 150 kg bus
     m = load("medium")
     sid, Rb0 = ours(m)
-    d0, r = start(m), mujoco.Renderer(m, H, W)
-    p0 = d0.site_xpos[sid].copy()
-    cam = camera(p0 - [0, 0, .22], 1.8)
-    done, ends = [], []                              # finished segments (a, b, rgba); ends (point, passed 2 deg)
-    def scene(d, segs, u=None):
-        r.update_scene(d, cam)
-        if u is not None:                            # the straight line the controller pulls along
-            mark(r.scene, CAPSULE, p0, .002, [.7, .7, .7, .5], p0 + .9 * u)
-        for a, b, c in done + segs:
-            mark(r.scene, CAPSULE, a, .007, c, b)
-        for p, hit in ends:
-            mark(r.scene, SPHERE, p, .022, [.95, .3, .25, 1] if hit else [.85, .85, .85, 1])
-        mark(r.scene, SPHERE, p0, .015, [1, .55, .1, 1])
-        return r.render()
-    key = ["From rest, our controller pulls the hand along a straight line",
-           "colour: bus tilt   red end: passed 2°   grey end: out of reach"]
-    def rays():
-        for i, th in enumerate(np.radians(np.arange(0, 360, 30))):
-            u = R0 @ (np.cos(th), np.sin(th), 0)
-            d, segs, prev, last, hit = copy.copy(d0), [], p0, 0., False
-            for tick in range(int((T.SLACK * T.REACH / T.V_GO + 1) * 100)):
-                p, base = T.ctrl(m, d, sid, Rb0, p0 + T.REACH * u, 5, "3d")
-                if base > T.BASE_MAX or T.clear(m, d) < T.CLEAR:
-                    hit = base > T.BASE_MAX
-                    break
-                if tick and tick % 50 == 0:                       # every 0.5 s: stalled if under 2 mm of progress
-                    if (p - p0) @ u - last < .002:
-                        break
-                    last = (p - p0) @ u
-                if tick % 10 == 0:                                # one frame per 0.1 s of simulation: 3x speed
-                    segs.append((prev, p, RAMP[min(7, int(base / .25))]))
-                    prev = p
-                    yield label(scene(d, segs, u), key + [f"line {i + 1} of 12   bus tilt {base:4.2f}°"],
-                                colors={2: RED if base > BUDGET else WHITE})
-                mujoco.mj_step(m, d, nstep=TICK)
-            done.extend(segs)
-            ends.append((prev, hit))
-            print(f"  ray {int(np.degrees(th)):3d} deg: {100 * np.linalg.norm(prev - p0):4.0f} cm, {'tilt' if hit else 'reach'}")
-            for _ in range(FPS // 2):
-                yield label(scene(d, []), key + [f"line {i + 1} of 12   bus tilt {base:4.2f}°"],
-                            colors={2: RED if hit else WHITE})
-        for _ in range(2 * FPS):
-            yield label(scene(d0, []), key + ["the map, drawn once from rest"])
-    film(out / "map.mp4", rays(), 200)
+    d = start(m)
+    p0, pw, n = d.site_xpos[sid].copy(), W // 2, len(TH)
+    assert np.array_equal(p0, ln["top"][3]) and np.array_equal(p0, ln["side"][3]), "lines not from this rest pose"
+    m.vis.global_.offwidth = pw
+    r = mujoco.Renderer(m, H, pw)
+    views = [(0, ln["side"], camera(p0 - .25 * UP, 2.6, 90, 0), "side: the arm's own plane"),
+             (1, ln["top"], camera(p0 - .25 * UP, 2.6, 180, TOP_EL), "top: level with the hand")]
+    def mapv():
+        for k in range(FPS + 2 * n + 3 * FPS):
+            tiles = []
+            for plane, (mk, why, end, o), cam, name in views:
+                r.update_scene(d, cam)
+                fan(r.scene, o, plane, mk, why, end, np.clip((k - FPS) / 2, 0, n))
+                tiles.append(label(r.render(), [name], pos=(24, 92), size=26))
+            yield key(label(np.hstack(tiles), ["The map: straight lines from rest, 150 kg bus",
+                                               "solid end: the bus passed 2°   dashed end: out of reach"], pos=(24, 14)))
+    film(out / "map.mp4", mapv(), FPS + 2 * n + FPS)
     r.close()
 
-    # slide 4: the hand 0.3 m out (sideways) and back to the same spot, 6 s each way, as the deck's gap test moves it
+    # slide 4: top view level with the hand. The map from rest; the first move, the hand 0.3 m sideways; then the
+    # rest map turns dashed, the reach from where the arm is now is drawn solid, and the goals the rest map gets wrong
     m = load("medium")
     sid, Rb0 = ours(m)
-    d, r = start(m), mujoco.Renderer(m, H, W)
-    p0, q0 = d.site_xpos[sid].copy(), d.qpos[7:14].copy()
-    p1 = p0 + .3 * R0[:, 1]
-    cam = camera((p0 + p1) / 2 - [0, 0, .3], 1.8)
-    def gap():
-        for k in range(14 * FPS):
-            while d.time < k / FPS - 1e-9:
-                T.ctrl(m, d, sid, Rb0, p0 if d.time < .5 or d.time >= 6.5 else p1, 5, "3d")
-                mujoco.mj_step(m, d, nstep=TICK)
-            r.update_scene(d, cam)
-            mark(r.scene, CAPSULE, p0, .004, [.8, .8, .8, .8], p1)
-            mark(r.scene, SPHERE, p0, .015, [1, .55, .1, 1])
-            t = tilt(d)
-            yield label(r.render(), ["150 kg bus, the hand 0.3 m out and back to the same spot",
-                                     f"hand from start  {100 * np.linalg.norm(d.site_xpos[sid] - p0):4.1f} cm",
-                                     f"bus tilt  {t:4.2f}°", f"joints off  {np.linalg.norm(d.qpos[7:14] - q0):4.2f} rad"]
-                        + (["the hand is back, the joints are not"] if d.time > 12.5 else []))
-    film(out / "gap.mp4", gap(), 4 * FPS)
+    d = start(m)
+    r = mujoco.Renderer(m, H, W)
+    cam = camera(p0 + MOVE / 2 - .25 * UP, 2.4, 180, TOP_EL)
+    end0, end1, p1 = ln["top"][2], ln["moved"][2], ln["moved"][3]
+    title = "150 kg bus, top view level with the hand"
+    def view(dd, dashed, now=False, goals=()):
+        r.update_scene(dd, cam)
+        edge(r.scene, p0, 1, end0, RAMP[1], dashed)
+        if now:
+            edge(r.scene, p1, 1, end1, [1, 1, 1, 1])
+        for g, c in goals:
+            mark(r.scene, SPHERE, g, .007, c)
+        return r.render()
+    def gapv():
+        for _ in range(2 * FPS):
+            yield label(view(d, False), [title, "the map from rest"])
+        f = 0
+        for dm in move(m, d, sid, Rb0):
+            if dm.time >= f / FPS - 1e-9:
+                f += 1
+                yield label(view(dm, False), [title, "the first move: the hand 0.3 m sideways", f"bus tilt  {tilt(dm):4.2f}°"])
+        mujoco.mj_forward(m, dm)
+        assert np.array_equal(dm.site_xpos[sid], p1), "the move on screen is not the one the lines start from"
+        u0, u1 = PLANES[1](0), PLANES[1](np.pi / 2)
+        a = np.arange(-1.2, 1.2001, .03)
+        G = (p0 + a[:, None, None] * u0 + a[None, :, None] * u1).reshape(-1, 3)
+        was, now = inside(G, p0, end0), inside(G, p1, end1)
+        goals = [(g, [1, .55, .1, 1]) for g in G[was & ~now]] + [(g, [.3, .6, 1, 1]) for g in G[~was & now]]
+        msg = [title, f"after the move the bus is {tilt(dm):.2f}° off", "dashed: the map from rest   solid: the reach from here"]
+        for _ in range(3 * FPS // 2):
+            yield label(view(dm, True, True), msg)
+        for _ in range(4 * FPS):
+            yield label(label(view(dm, True, True, goals), msg), ["orange: the map says go, the hand can't get there now",
+                                                                  "blue: the map says no, the hand gets there now"],
+                        pos=(40, H - 90), size=26)
+        print(f"gap: bus {tilt(dm):.2f} deg off after the move; grid goals (3 cm) wrong go {int((was & ~now).sum())}, "
+              f"wrong no {int((~was & now).sum())}")
+    film(out / "gap.mp4", gapv(), 8 * FPS + 3 * FPS // 2 + 2 * FPS)
     r.close()
-    print(f"gap: hand {1000 * np.linalg.norm(d.site_xpos[sid] - p0):.1f} mm from start, bus {tilt(d):.2f} deg off, "
-          f"joints {np.linalg.norm(d.qpos[7:14] - q0):.2f} rad off")
     tail()
 
 
