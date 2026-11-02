@@ -1779,30 +1779,36 @@ screen), the pacing on a fake clock, the speed table above.
 Not checked: a real pad, the live window by eye, pilots. Battery about halves the speed, so the study laptop
 runs on AC.
 
-## D79 A satellite with a panel on the sun and a dish on the Earth (2026-11-02)
+## D79 A satellite: two wings on the sun, the dish on the Earth (2026-11-02)
 
-The bus now reads as a satellite in orbit. One solar panel on the -x boom, turned square to the sun, and one small
-dish on the +x face, pointed at the Earth. The Earth is in the sky, with land, clouds and a thin blue rim. The two
-wings and the old dish are gone. The arm is the same.
+The bus now reads as a satellite in orbit. Two solar wings of three panels, one on the +y face and one on the -y
+face, turned about their arms to face the sun. One small dish on the +x face, pointed at the Earth. The -x rod
+stays as a boom with a small tip. The arm is the same.
 
-Sizes go with the bus: the panel is 2.4 x 1.2 times the bus half-side (1.2 x 0.6 m on the medium bus), the dish
-0.3 times it across. Small next to a real one, as asked. The Earth is 25 m out, 8.7 degrees in radius, so it
-looks the size it does from geostationary orbit, 17.4 degrees across. The sun is up and behind the opening camera,
-so the arm is lit from the front and the panel faces the viewer. The Earth sits low on the right of the opening
-view, clear of the map and the score card.
+Sizes go with the bus: each wing is 3 x 1.2 times the bus half-side (1.5 x 0.6 m on the medium bus), the dish 0.3
+times it across. The wings turn about y, so the sun is put square to that axis, up and a little toward -x, and
+both face it fully. The Earth is straight out from the dish, 10 degrees down, 25 m off and 10 degrees across, so
+it is outside the study screen's opening view. It is a made-up Earth: `make_models.py` writes `earth.png` from
+noise on the sphere (sea, land with a desert band, ice caps, clouds), mapped onto a sphere mesh tipped 23 degrees.
+It only has to read as Earth, it is not our planet's map.
+
+First version, same day and not pushed: one panel on the -x boom, and an Earth 17 degrees across, low on the right
+of the opening view, made of flat patches. Turned down: the Earth looked poor, too big and in the wrong place, and
+a satellite has two wings.
 
 Earth and sun are on their own body, "sky", fixed to the world and declared after the arm. That keeps geom 0 the
 bus. The two places that took every geom past the bus now take only geoms on the robot (`body_rootid == 1`):
-`teleop.clear` and `ready.selfclear`. Panel and dish are paint on the bus, as in D77. The Earth stays put while
-the bus turns, so a tilt shows against it.
+`teleop.clear` and `ready.selfclear`. Wings and dish are paint on the bus, as in D77. The Earth stays put while
+the bus turns, so a tilt shows against it. The dressed model reads `earth.png` from its own folder, so
+`sizing.py` now builds the bare model (same physics) and `tests/test_models.py` hands the texture in.
 
 The spot light's shadow map covered only 60% of its cone, which left a hard line across the Earth. It now covers
 the whole cone (`shadowscale` 1). The arm's shadow on the deck stays.
 
 Checked: `tests/test_models.py` updated for the extra body. Same masses, inertias and framing, the same geoms where
 the code reads them, the sky body has no joints and no mass, and 2000 steps end on the same state to the bit. Full
-suite, 37 pass. The compiled model gives panel normal . sun = 1.0000 and dish axis . earth = 1.0000. The study
-screen rendered with the cage, pair 1953: the Earth and the panel stay clear of the rings. Compile time is the
-same, about 40 ms.
+suite, 37 pass. In the compiled model every panel normal . sun = 1.0000 and the dish axis . earth = 1.0000.
+Three videos from the sim: the camera round the medium bus, joint 1 turning 90 degrees on the 30 kg bus (the bus
+turns against the Earth), and the study camera during a reach. Compile time about 50 ms, was 40 ms.
 
 Not checked: the live window by eye, and pilots.

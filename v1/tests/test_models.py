@@ -2,12 +2,14 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "models"))
 import numpy as np, mujoco
-from make_models import SIZES, xml
+from make_models import SIZES, EARTH_PNG, xml
+
+PNG = {EARTH_PNG: (pathlib.Path(__file__).parent.parent / "models" / EARTH_PNG).read_bytes()}
 
 
 def test_look_is_paint():
     for name, mass in SIZES.items():
-        a, b = (mujoco.MjModel.from_xml_string(xml(name, mass, look)) for look in (False, True))
+        a, b = (mujoco.MjModel.from_xml_string(xml(name, mass, look), PNG) for look in (False, True))
         n = a.nbody                                              # the robot's bodies come first, the sky after
         for f in ("body_mass", "body_inertia", "body_ipos", "body_iquat", "body_pos"):
             assert np.array_equal(getattr(a, f), getattr(b, f)[:n]), (name, f)

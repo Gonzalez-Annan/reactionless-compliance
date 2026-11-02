@@ -19,7 +19,7 @@ POOL = "the script starts Pool(10) and has no score-only path"
 # rm = files deleted first, because the script only builds them when missing; score = the argv default mode runs;
 # copy = files the score script reads, copied to a temp folder because it writes figures; why = why it is not (fully) in default mode.
 ROWS = [
-    dict(name="bus models", run=["models/make_models.py"], rm=[], writes="models/ff_{small,medium,large}.xml", rt="seconds [e]",
+    dict(name="bus models", run=["models/make_models.py"], rm=[], writes="models/ff_{small,medium,large}.xml, models/earth.png", rt="seconds [e]",
          rec="D2", backs="the 30 / 300 / 3000 kg bus models", why="writes the models every other script loads; prints nothing to check"),
     dict(name="scripted benchmark", run=["analysis/sweep.py"], rm=[], writes="data/sweep.csv", rt="about 10 min, 1 process [d]",
          rec="D33", backs="84 runs; scheme 5 peaks at 0.20 deg against 1.22 for DLS (300 kg, position only); tracking 0.16 mm",

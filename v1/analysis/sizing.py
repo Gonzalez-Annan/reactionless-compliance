@@ -29,7 +29,7 @@ V = 0.10    # hand speed of the teleop, m/s
 
 
 def setup(mass):
-    m = mujoco.MjModel.from_xml_string(xml("x", mass))
+    m = mujoco.MjModel.from_xml_string(xml("x", mass, False))   # bare: same physics, no Earth texture to load
     m.jnt_range[1:], m.jnt_limited[1:] = Q_LIM, 1
     d = mujoco.MjData(m)
     d.qpos[7:] = Q_REST
