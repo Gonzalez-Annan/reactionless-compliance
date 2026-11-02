@@ -106,7 +106,7 @@ def earth_png(path, w=1024, seed=7):
 
 
 def paint(h):
-    """Dark top deck so the white arm and the map colours stand out, arm flange, a tip on the -x boom (the old rod),
+    """Dark top deck so the white arm and the map colours stand out, arm flange,
     two wings of three panels on the +y and -y faces turned square to the sun, one dish on the +x face pointed at the
     Earth. Sizes go with the bus."""
     L, W, rd = 3 * h, 1.2 * h, .3 * h                        # wing length and width, dish radius, m
@@ -116,8 +116,7 @@ def paint(h):
     b0 = np.array([h, 0, -.25 * h])                          # dish mast foot on the +x face
     b1 = b0 + .12 * EARTH
     g = [f'type="box" pos="0 0 {h + .004:.4g}" size="{.9 * h:.4g} {.9 * h:.4g} .004" material="dark"',
-         f'type="cylinder" fromto="0 0 {h:.4g} 0 0 {h + .03:.4g}" size=".075" material="metal"',
-         f'type="sphere" pos="{-h - .6:.4g} 0 0" size=".03" material="metal"']
+         f'type="cylinder" fromto="0 0 {h:.4g} 0 0 {h + .03:.4g}" size=".075" material="metal"']
     for s in (1, -1):
         g.append(f'type="cylinder" fromto="0 {s * h:.4g} 0 0 {s * (y0 + .01):.4g} 0" size=".018" material="metal"')
         for k in range(3):
@@ -160,7 +159,8 @@ def xml(name, mass, look=True):
                 f'meansize="{s.meansize:.17g}" meanmass="{s.meanmass:.17g}" meaninertia="{s.meaninertia:.17g}"/>\n'
                 '<visual><map shadowscale="1"/></visual>\n'   # the spot's shadow map spans its whole cone: no hard line on the Earth
                 + SKY.format(png=EARTH_PNG, globe=globe().replace('name="globe"', f'name="globe" scale="{R:.4g} {R:.4g} {R:.4g}"')))
-        arm, bus, rod, deco, far = 'material="white"', 'material="foil"', 'material="metal"', paint(h), sky()
+        # the -x rod is not drawn: it stays in the physics (1 g), so no number moves
+        arm, bus, rod, deco, far = 'material="white"', 'material="foil"', 'rgba="0 0 0 0"', paint(h), sky()
         sun = f'\n<light name="sun" directional="true" pos="0 0 6" dir="{v(-SUN)}" diffuse=".6 .58 .52" specular=".4 .4 .4" castshadow="false"/>'
     return f"""<mujoco model="ff_{name}">
 <option gravity="0 0 0" timestep="0.0005" integrator="RK4"/>

@@ -22,10 +22,9 @@
 <light name="sun" directional="true" pos="0 0 6" dir="0.3304 -0 -0.9439" diffuse=".6 .58 .52" specular=".4 .4 .4" castshadow="false"/>
 <body name="base"><freejoint name="root"/>
 <geom type="box" size="0.5 0.5 0.5" mass="300.0" material="foil"/>
-<geom type="cylinder" fromto="0 0 0 -1.1 0 0" size=".02" mass="0.001" material="metal"/>
+<geom type="cylinder" fromto="0 0 0 -1.1 0 0" size=".02" mass="0.001" rgba="0 0 0 0"/>
 <geom mass="0" type="box" pos="0 0 0.504" size="0.45 0.45 .004" material="dark"/>
 <geom mass="0" type="cylinder" fromto="0 0 0.5 0 0 0.53" size=".075" material="metal"/>
-<geom mass="0" type="sphere" pos="-1.1 0 0" size=".03" material="metal"/>
 <geom mass="0" type="cylinder" fromto="0 0.5 0 0 0.66 0" size=".018" material="metal"/>
 <geom mass="0" type="box" pos="0 0.9 0" size="0.24 0.3 .008" xyaxes="0 1 0 -0.9439 0 -0.3304" material="cells"/>
 <geom mass="0" type="box" pos="0 1.4 0" size="0.24 0.3 .008" xyaxes="0 1 0 -0.9439 0 -0.3304" material="cells"/>

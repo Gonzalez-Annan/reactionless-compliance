@@ -1783,7 +1783,7 @@ runs on AC.
 
 The bus now reads as a satellite in orbit. Two solar wings of three panels, one on the +y face and one on the -y
 face, turned about their arms to face the sun. One small dish on the +x face, pointed at the Earth. The -x rod
-stays as a boom with a small tip. The arm is the same.
+is not drawn any more: it stays in the physics (1 g), so no number moves. The arm is the same.
 
 Sizes go with the bus: each wing is 3 x 1.2 times the bus half-side (1.5 x 0.6 m on the medium bus), the dish 0.3
 times it across. The wings turn about y, so the sun is put square to that axis, up and a little toward -x, and
